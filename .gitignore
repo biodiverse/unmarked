@@ -27,4 +27,5 @@ runit
 bc
 .Rhistory
 symbols.rds
-
+*.Rproj
+.Rproj.user
