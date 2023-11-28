@@ -1,0 +1,584 @@
+---
+title: "occuCOP example"
+author: "Léa Pautrel"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    number_sections: true
+    toc_float: 
+      collapsed: true
+    code_folding: show
+    theme: cerulean
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, # show code of the chunk and chunk output
+  error = TRUE,
+  collapse = FALSE,
+  comment = "", # no comment character for the chunk text outputs
+  out.width = "100%" # responsive width for chunk outputs (figures, ...)
+)
+```
+
+```{r library, echo=T, results="hide"}
+source("./R/occuCOP.R")
+library(ggplot2)
+library(ggrepel)
+library(dplyr)
+library(tibble)
+```
+
+
+
+
+
+# The COP model
+
+Hereafter, I use the notations defined in the following table.
+
+|       Notation | Parameter                                                    |
+| -------------: | :----------------------------------------------------------- |
+|            $I$ | Number of sites                                              |
+|            $J$ | Number of sampling occasions                                 |
+|       $\psi_i$ | Occupancy probability in site $i$                            |
+|          $Z_i$ | Occupancy state of site $i$ (present = 1, absent = 0)        |
+| $\lambda_{ij}$ | Detection rate in site $i$ during sampling occasion $j$      |
+|       $T_{ij}$ | Duration or length of sampling occasion $j$                  |
+|       $N_{i}$  | Number of detections in site $i$                             |
+|       $N_{ij}$ | Number of detections in site $i$ during sampling occasion $j$ |
+
+
+The model is defined as:
+
+$$
+Z_i \sim \text{Bernoulli}(\psi_{i}) \\
+N_{ij} \sim \text{Poisson}(\lambda_{ij} T_{ij})
+$$
+
+The likelihood of this model is:
+
+\begin{align}
+\begin{split}
+  L(\psi_i, \lambda_{is})
+    &= \prod_{i=1}^{I} \mathbb{P}_{\psi_i, \lambda_{is}}(N_{i} = n_{i}) \\
+    &=  
+        \prod_{i, n_i > 0} \left ( \mathbb{P}_{\psi_i, \lambda_{is}}(N_{i} = n_i, n_i > 0) \right )
+        \times 
+        \prod_{i, n_i = 0} \left ( \mathbb{P}_{\psi_i, \lambda_{is}}(N_{i} = 0) \right ) \\
+    &= 
+        \prod_{i, n_i > 0} \left ( 
+            \psi_i \frac{ \left( \sum_{s=1}^S(\lambda_{is} T_{is}) \right) ^ {n_i} }{ n_{i}! } e^{-\sum_{s=1}^S(\lambda_{is} T_{is})}
+        \right )
+        \times 
+        \prod_{i, n_i = 0} \left (
+            \psi_i e^{-\sum_{s=1}^S(\lambda_{is} T_{is})}  + (1-\psi_i)
+        \right )
+\end{split}
+\end{align}
+
+# Simulation
+
+
+```{r init}
+set.seed(0)
+
+M = 100 # Number of sites
+J = 5 # Number of observations (transects, sessions, sampling occasions...)
+```
+
+We first simulate the data set. We'll simulate data in M=`r M` sites during J=`r J` sampling occasions.
+
+We simulate site covariates:
+
+- "elev" will not be used to impact the occupancy probability
+- "habitat" will be used
+
+```{r simul-psi-cov}
+SiteCov <- data.frame(
+  "elev" = pmax(rnorm(n = M, mean = 50, sd = 50), 0),
+  "habitat" = factor(sample(
+    x = c("A", "B", "C"),
+    size = M,
+    replace = T
+  ))
+)
+print(as_tibble(SiteCov))
+```
+
+
+We simulate the occupancy state of all sites depending on the habitat type.
+
+```{r simul-psi-z}
+# Occupancy probability depending on habitat type
+simul_psi_habA = 0.9
+simul_psi_habB = 0.5
+simul_psi_habC = 0.1
+
+# For each site, we simulate occupancy state
+z_i = rep(NA, M)
+for (i in 1:M) {
+  if (SiteCov$habitat[i] == 'A') {
+    z_i[i] <-
+      sample(c(0, 1),
+             size = 1,
+             prob = c(1 - simul_psi_habA, simul_psi_habA))
+    next
+  } else if (SiteCov$habitat[i] == 'B') {
+    z_i[i] <-
+      sample(c(0, 1),
+             size = 1,
+             prob = c(1 - simul_psi_habB, simul_psi_habB))
+    next
+  } else {
+    z_i[i] <-
+      sample(c(0, 1),
+             size = 1,
+             prob = c(1 - simul_psi_habC, simul_psi_habC))
+  }
+}
+
+# We have this data:
+print(as_tibble(data.frame("habitat" = SiteCov$habitat, "z" = z_i)))
+
+# In our data, our occupancy probability per habitat is slightly different 
+# from the one we chose to simulate due to randomness:
+print(
+  data.frame("habitat" = SiteCov$habitat, "z" = z_i) %>% 
+    group_by(habitat) %>% 
+    summarise("NbSites" = n(), "psi" = mean(z))
+)
+```
+
+There are `r sum(z_i)` occupied sites out of `r M` in our simulation.
+
+We simulate temporal covariates:
+
+- "wind" will not impact the detection rate
+- "rain" will impact the detection rate
+
+```{r simul-lambda-cov}
+# Detection rate: 1 detection per day on average,
+simul_lambda = 1
+simul_lambda_rain = .3
+
+# Temporal covariates
+TemporalCov <- list(
+  "rain" = matrix(pmax(rexp(n = M * J, rate = 1 / 10), 0), nrow = M, ncol = J),
+  "wind" = matrix(rnorm(n = M * J, mean = 10), nrow = M, ncol = J)
+)
+print(as_tibble(TemporalCov))
+```
+
+We then simulate the detection rate depending on "rain" as a linear 
+
+```{r simul-lambda}
+lambda_from_rain = function(rain) {
+  # pmin(pmax((3 - .2 * rain), 0), 2)
+  2 / (1 + exp(.2 * (rain - 20)))
+}
+rain_lambda = data.frame("rain" = seq(0, max(TemporalCov$rain), by = c(.1)))
+rain_lambda$lambda = lambda_from_rain(rain_lambda$rain)
+plot(x = rain_lambda$rain,
+     y = rain_lambda$lambda,
+     type = "l")
+
+simul_lambda = lambda_from_rain(TemporalCov$rain)
+```
+
+Finally, for each site, we simulate a number of detections based on the occupancy state $z_i$ of site $i$ and detection rate $lambda_{ij}$ of site $i$ observation $j$.
+
+```{r simul-y}
+y = matrix(
+  rpois(n = M * J, lambda = as.numeric(t(simul_lambda))),
+  nrow = M,
+  ncol = J,
+  byrow = T
+) * z_i
+
+data.frame(
+  "simul_lambda" = as.numeric(t(simul_lambda)),
+  "y" = as.numeric(t(y)),
+  "z" = rep(z_i, each = J)
+) %>%
+  ggplot(aes(x = simul_lambda, y = y)) +
+  geom_point(alpha=.3,shape=16,size=2) +
+  facet_grid(z ~ .,labeller = label_both) +
+  theme_light()
+```
+
+Let's say that each observation lasts one time-unit here, *e.g.* one day per sampling occasion.
+
+```{r simul-obsLength}
+obsLength = y * 0 + 1
+class(obsLength)
+print(as_tibble(obsLength))
+```
+
+
+# unmarkedFrameCOP object
+
+## Creation
+
+We then create our unmarkedFrameCOP object.
+
+```{r umf-creation}
+umf = unmarkedFrameCOP(
+  y = y,
+  obsLength = obsLength,
+  siteCovs = SiteCov,
+  obsCovs = TemporalCov
+)
+```
+
+## Visualisation
+
+```{r umf-visu}
+head(umf)
+summary(umf)
+print(umf[2,4]) # 2nd site, 4th observation
+plot(umf)
+```
+
+## Warning and errors
+
+There is an error if there are decimals in y.
+
+```{r umf-error-decimal}
+y_with_decimals = y
+y_with_decimals[2, 1] = 49.5
+unmarkedFrameCOP(
+  y = y_with_decimals,
+  obsLength = obsLength,
+  siteCovs = SiteCov,
+  obsCovs = TemporalCov
+)
+```
+
+There is a warning if data is detection/non-detection (1/0) instead of count.
+
+```{r umf-warning-01}
+y_detec_nodetec = (y > 0) * 1
+unmarkedFrameCOP(
+  y = y_detec_nodetec,
+  obsLength = obsLength,
+  siteCovs = SiteCov,
+  obsCovs = TemporalCov
+)
+```
+
+There is an error if the dimension of obsLength is different than that of y.
+
+```{r umf-error-obsLength}
+unmarkedFrameCOP(
+  y = y,
+  obsLength = obsLength[1:5, 1:2],
+  siteCovs = SiteCov,
+  obsCovs = TemporalCov
+)
+```
+
+# Model fitting
+
+We fit the model. For more information, see [section How is the model fitted?](#how-is-the-model-fitted)
+
+## Null model
+
+```{r null-fit}
+resCOP_null <- occuCOP(
+  data = umf,
+  psiformula = ~ 1,
+  lambdaformula = ~ 1,
+  method = "Nelder-Mead"
+)
+print(resCOP_null)
+```
+
+We can backtransform the parameters:
+
+```{r null-backtransform}
+# Occcupancy estimate
+plogis(resCOP_null@estimates@estimates$psi@estimates) # plogis(x): "inverse logit"
+backTransform(resCOP_null, type = "psi")
+
+# Detection rate estimate
+exp(resCOP_null@estimates@estimates$lambda@estimates)
+backTransform(resCOP_null, type = "lambda")
+```
+
+## psi ~ elev; lambda ~ rain
+
+```{r cov-fit}
+resCOP_habitat_rain <- occuCOP(
+  data = umf,
+  psiformula = ~ -1 + habitat,
+  lambdaformula = ~ rain,
+  method = "Nelder-Mead"
+)
+print(resCOP_habitat_rain)
+```
+
+A warning tell us that the model did not converge. We can add in parameters for optim in the `occuCOP` function, for example to increase the maximum number of iterations, with `control = list(maxit = 5000)`:
+
+```{r cov-fit-maxit}
+resCOP_habitat_rain <- occuCOP(
+  data = umf,
+  psiformula = ~ -1 + habitat,
+  lambdaformula = ~ rain,
+  method = "Nelder-Mead",
+  control = list(maxit = 5000)
+)
+print(resCOP_habitat_rain)
+```
+
+We can backtransform the parameters. With covariates, we can no longer use the function `backTransform`:
+
+```{r cov-backtransform}
+backTransform(resCOP_habitat_rain, type = "psi")
+```
+
+However, we can use the function `predict`:
+
+```{r cov-predict}
+# Occcupancy estimate
+plogis(resCOP_habitat_rain@estimates@estimates$psi@estimates)
+psipred = predict(object = resCOP_habitat_rain, type = "psi")
+print(as_tibble(cbind(
+  data.frame("habitat" = resCOP_habitat_rain@data@siteCovs$habitat),
+  psipred
+)))
+
+# Detection rate estimate
+exp(resCOP_habitat_rain@estimates@estimates$lambda@estimates)
+lambdapred = predict(object = resCOP_habitat_rain, type = "lambda")
+print(as_tibble(cbind(
+  data.frame("rain" = resCOP_habitat_rain@data@obsCovs$rain),
+  lambdapred
+)))
+```
+
+## Ranking
+
+We can compare several models by their AIC by using `fitList` and `modSel`.
+
+```{r ranking}
+fl <- fitList(fits = list("Null" = resCOP_null,
+                          "psi~elev, lambda~rain" = resCOP_habitat_rain))
+modSel(fl)
+```
+
+## How is the model fitted?
+
+The model is fitted by maximum likelihood estimation (MLE). 
+
+```{r how-is-the-model-fitted, class.source = 'fold-hide'}
+# M = 100
+# J = 10
+
+cpt = 1
+for (simul_psi in c(.1, .25, .5, .75, .9)) {
+  for (simul_lambda in c(1, 3, 5)) {
+    # simul_z = c(rep(1, simul_psi * 100), rep(0, times=((1 - simul_psi) * 100)))
+    simul_z = sample(
+      x = c(0, 1),
+      size = M,
+      replace = T,
+      prob = c(1 - simul_psi, simul_psi)
+    )
+    simul_y <- matrix(rpois(n = M * J, lambda = simul_lambda),
+                      nrow = M,
+                      ncol = J) * simul_z
+    
+    fit = occuCOP(data = unmarkedFrameCOP(y = simul_y,
+                                          obsLength = (simul_y * 0 + 1)))
+    estim_psi = backTransform(fit, "psi")
+    estim_lambda = backTransform(fit, "lambda")
+    
+    nll_df_plot_i = occuCOP(
+      data = unmarkedFrameCOP(y = simul_y, obsLength = (simul_y * 0 + 1)),
+      get.NLL.params =
+        as.list(as.data.frame(t(
+          expand.grid("psi" = qlogis(seq(0.01, 0.99, by = 0.02)),
+                      "lambda" = log(round(
+                        simul_lambda * seq(from = 0.25, to = 1.75, by = .25), 2
+                      )))
+        )))
+    )
+    nll_df_plot_i$simul_psi = simul_psi
+    nll_df_plot_i$simul_lambda = simul_lambda
+    nll_df_plot_i$estim_psi = estim_psi@estimate
+    nll_df_plot_i$estim_lambda = estim_lambda@estimate
+    
+    if (cpt==1) {
+      nll_df_plot = nll_df_plot_i
+    } else{
+      nll_df_plot = rbind(nll_df_plot, nll_df_plot_i)
+    }
+    # cat('\r',cpt,"/ 15")
+    cpt = cpt + 1
+    rm(nll_df_plot_i)
+  }
+}
+
+nll_df_plot$psi = plogis(nll_df_plot[, "logit(psi).(Intercept)"])
+nll_df_plot$lambda = exp(nll_df_plot[, "log(lambda).(Intercept)"])
+nll_df_plot$simulated_lambda = (round(nll_df_plot$lambda, 2) == round(nll_df_plot$simul_lambda, 2))
+nll_df_plot$lambda_txt = format(nll_df_plot$lambda, digits = 2, nsmall = 2)
+nll_df_plot$label = ifelse(nll_df_plot$psi == max(nll_df_plot$psi),
+                           paste0("λ=", nll_df_plot$lambda_txt),
+                           NA)
+
+df_estimates = nll_df_plot %>%
+  group_by(simul_psi, simul_lambda) %>%
+  summarise(
+    estim_psi = unique(estim_psi),
+    estim_lambda = unique(estim_lambda),
+    maximum_llh = max(-nll),
+    minimum_llh = min(-nll),
+    .groups = "drop"
+  )
+
+ggplot() +
+  geom_line(
+    data = nll_df_plot,
+    aes(
+      x = psi,
+      y = -nll,
+      colour = lambda_txt,
+      linewidth = simulated_lambda,
+      linetype = simulated_lambda
+    )
+  ) +
+  ggh4x::facet_grid2(
+    simul_psi ~ simul_lambda,
+    labeller = label_both,
+    scales = "free_y",
+    independent = "y"
+  ) +
+  labs(
+    title = "Negative log-likelihood of the COP model for different values of ψ and λ",
+    x = "ψ",
+    y = "Log-likelihood",
+    colour = "lambda"
+  ) +
+  scale_linewidth_manual(values = c("TRUE" = 1, "FALSE" = .3)) +
+  scale_linetype_manual(values = c("TRUE" = "solid", "FALSE" = "dashed")) +
+  theme_light()+
+  geom_vline(data = df_estimates,
+             aes(xintercept = estim_psi),
+             linetype = "dotted") +
+  geom_label(data = df_estimates, aes(
+    x = estim_psi,
+    y = minimum_llh + abs(minimum_llh * .1),
+    label = paste0("λ: ", round(estim_lambda, 2))
+  )) +
+  geom_hline(data = df_estimates,
+             aes(yintercept = maximum_llh),
+             linetype = "dotted")+
+    geom_label(data = df_estimates, aes(
+    x = -0.05,
+    y = maximum_llh-25,
+    label = paste0("ψ: ", round(estim_psi, 2))
+  )) +
+  xlim(-.1, 1.1) +
+  theme(legend.position = "none")
+
+```
+
+# Interpret the results
+
+
+
+# Other models examples
+
+## occu
+
+```{r occu}
+resOccuNull = occu(
+  formula = ~ 1 ~ 1,
+  data = unmarkedFrameOccu(
+    y = y,
+    siteCovs = SiteCov,
+    obsCovs = TemporalCov
+  )
+)
+resOccuNull
+backTransform(resOccuNull,"state")
+backTransform(resOccuNull,"det")
+
+resOccu = occu(
+  formula = ~ rain ~ elev,
+  data = unmarkedFrameOccu(
+    y = y,
+    siteCovs = SiteCov,
+    obsCovs = TemporalCov
+  )
+)
+resOccu
+cbind(SiteCov$elev, predict(resOccu, "state"))
+cbind(as.numeric(t(TemporalCov$rain)), predict(resOccu, "det"))
+
+```
+
+## pcount
+
+```{r pcount}
+respcountNull = pcount(
+  formula = ~ 1 ~ 1,
+  data = unmarkedFramePCount(
+    y = y,
+    siteCovs = SiteCov,
+    obsCovs = TemporalCov
+  )
+)
+respcountNull
+backTransform(respcountNull,"state")
+backTransform(respcountNull,"det")
+
+respcount = pcount(
+  formula = ~ rain ~ elev,
+  data = unmarkedFramePCount(
+    y = y,
+    siteCovs = SiteCov,
+    obsCovs = TemporalCov
+  )
+)
+respcount
+cbind(SiteCov$elev, predict(respcount, "state"))
+cbind(as.numeric(t(TemporalCov$rain)), predict(respcount, "det"))
+```
+
+# --
+ 
+```{r dev}
+# psiformula <-  ~ 1
+# lambdaformula <- ~ 1
+# psistarts = rep(0, length(attr(terms(psiformula), "term.labels")) + 1)
+# lambdastarts = rep(0, length(attr(terms(lambdaformula), "term.labels")) + 1)
+
+data <- umf
+psiformula <- ~ habitat
+lambdaformula <- ~ rain
+
+
+method = "BFGS"
+se = TRUE
+engine = "R"
+threads = 1L
+na.rm = TRUE
+
+maxit = 1000
+
+object = occuCOP(
+  data = data,
+  psiformula = psiformula,
+  lambdaformula = lambdaformula
+)
+
+```
+ 
+ 
