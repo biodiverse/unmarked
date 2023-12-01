@@ -8,6 +8,8 @@ source("R/unmarkedFitList.R")
 source("R/predict.R")
 source("R/getDesign.R")
 source("R/mixedModelTools.R")
+source("R/simulate.R")
+source("R/power.R")
 # sapply(paste0("./R/", list.files("./R/")), source)
 
 library(lattice)
@@ -39,7 +41,7 @@ library(testthat)
 ## unmarkedFrameCOP class ----
 setClass(
   "unmarkedFrameCOP",
-  representation(obsLength = "matrix"),
+  representation(L = "matrix"),
   contains = "unmarkedFrame",
   validity = function(object) {
     errors <- character(0)
@@ -53,9 +55,9 @@ setClass(
                     paste(object@y[which(!y_integers)], collapse = ', ')
                   ))
     }
-    if (!all(all(dim(object@obsLength) == dim(object@y)))){
+    if (!all(all(dim(object@L) == dim(object@y)))){
       errors <- c( errors, paste(
-          "obsLength should be a matrix of the same dimension as y, with M =", M,
+          "L should be a matrix of the same dimension as y, with M =", M,
           "rows (sites) and J =", J, "columns (sampling occasions)."
     ))}
     if (length(errors) == 0) TRUE
@@ -72,7 +74,7 @@ setClass("unmarkedFitCOP",
          contains = "unmarkedFit")
 
 
-# METHODS ----------------------------------------------------------------------
+# UNMARKED FRAME METHODS -------------------------------------------------------
 
 ## getDesign method ----
 # Example for occu: https://github.com/rbchan/unmarked/blob/536e32ad7b2526f8fac1b315ed2e99accac0d50f/R/getDesign.R#L10-L97
@@ -81,12 +83,20 @@ setMethod(
   "getDesign", "unmarkedFrameCOP",
   function(umf, formlist, na.rm = TRUE) {
     
+    "
+    getDesign convert the information in the unmarkedFrame to a format
+    usable by the likelihood function:
+    - It creates model design matrices for fixed effects (X) for each parameter (here lambda, psi) 
+    - It creates model design matrices for random effects (Z) for each parameter (here lambda, psi)
+    - It handles missing data
+    "
+    
     # Retrieve useful informations from umf
     M <- numSites(umf)
     J <- obsNum(umf)
     y <- getY(umf)
-    obsLength <- umf@obsLength
-
+    L <- getL(umf)
+    
     # Occupancy submodel -------------------------------------------------------
 
     # Retrieve the fixed-effects part of the formula
@@ -102,18 +112,19 @@ setMethod(
     # Check for missing variables
     psiMissingVars <- psiVars[!(psiVars %in% names(sc))]
     if (length(psiMissingVars) > 0) {
-      stop(paste(
-        "Variable(s)",
-        paste(psiMissingVars, collapse = ", "),
-        "not found in siteCovs"
+      stop(paste0(
+        "Variable(s) '",
+        paste(psiMissingVars, collapse = "', '"),
+        "' not found in siteCovs"
       ), call. = FALSE)
     }
 
-    # State model matrix
+    # State model matrix for fixed effects
     Xpsi <- model.matrix(
       psiformula,
       model.frame(psiformula, sc, na.action = NULL)
     )
+    # State model matrix for random effects
     Zpsi <- get_Z(formlist$psiformula, sc)
     
     # Detection submodel -------------------------------------------------------
@@ -138,11 +149,12 @@ setMethod(
       ), call. = FALSE)
     }
     
-    # Detection model matrix
+    # Detection model matrix for fixed effects
     Xlambda <- model.matrix(
       lambdaformula,
       model.frame(lambdaformula, oc, na.action = NULL)
     )
+    # Detection model matrix for random effects
     Zlambda <- get_Z(formlist$lambdaformula, oc)
     
     # Missing data -------------------------------------------------------------
@@ -169,13 +181,17 @@ setMethod(
     
     if (any(removed_obs)) {
       if (na.rm) {
-        nb_missing_sites <- sum(apply(removed_obs, 1, function(x) all(is.na(x))))
+        nb_missing_sites <- sum(rowSums(!removed_obs) == 0)
         nb_missing_observations <- sum(is.na(removed_obs))
-        warning("There are missing data (count data, site covariate, observation covariate):\n\t",
-                "Only data from ", M-nb_missing_sites, " sites out of ", M, " are used.\n\t",
-                "Only data from ", (M*J)-nb_missing_sites, " observations out of ", (M*J), " are used.")
+        warning("There is missing data: ",
+                  sum(missing_y), " missing count data, ",
+                  sum(missing_sc), " missing site covariate(s), ",
+                  sum(missing_oc), " missing observation covariate(s). ",
+                "Data from only ", (M*J)-sum(removed_obs), " observations out of ", (M*J), " are used, ",
+                "from ", M-nb_missing_sites, " sites out of ", M, ".\n\t"
+                )
       } else {
-        stop("There is missing data:\n\t",
+        stop("na.rm=FALSE and there is missing data :\n\t",
              sum(missing_y), " missing count data (y)\n\t",
              sum(missing_sc), " missing site covariates (siteCovs)\n\t",
              sum(missing_oc), " missing observation covariates (obsCovs)")
@@ -194,18 +210,26 @@ setMethod(
   })
 
 
+## getL method ----
+setGeneric("getL", function(object) standardGeneric("getL"))
+setMethod("getL", "unmarkedFrameCOP", function(object) {
+  return(object@L)
+})
+
+
 ## show method ----
 setMethod("show", "unmarkedFrameCOP", function(object) {
-  J <- ncol(object@obsLength)
+  J <- ncol(object@L)
   df_unmarkedFrame <- as(object, "data.frame")
-  df_obsLength <- data.frame(object@obsLength)
-  colnames(df_obsLength) <- paste0("obsLength.", 1:J)
+  df_L <- data.frame(object@L)
+  colnames(df_L) <- paste0("L.", 1:J)
   if (ncol(df_unmarkedFrame) > J) {
-    df <-
-      cbind(df_unmarkedFrame[, 1:J], df_obsLength, df_unmarkedFrame[, (J + 1):ncol(df_unmarkedFrame)])
-  } else{
-    df <-
-      cbind(df_unmarkedFrame[, 1:J], df_obsLength)
+    df <- cbind(df_unmarkedFrame[, 1:J], 
+                df_L, 
+                df_unmarkedFrame[, (J + 1):ncol(df_unmarkedFrame), drop = FALSE])
+  } else {
+    df <- cbind(df_unmarkedFrame[, 1:J], 
+                df_L)
   }
   cat("Data frame representation of unmarkedFrame object.\n")
   print(df)
@@ -228,9 +252,9 @@ setMethod("summary", "unmarkedFrameCOP", function(object,...) {
   cat("Tabulation of y observations:")
   print(table(object@y, exclude=NULL))
   
-  if(!is.null(object@obsLength)) {
+  if(!is.null(object@L)) {
     cat("\nTabulation of sampling occasions length:")
-    print(table(object@obsLength))
+    print(table(object@L))
   }
 
   if(!is.null(object@siteCovs)) {
@@ -261,7 +285,7 @@ setMethod("[", c("unmarkedFrameCOP", "numeric", "numeric", "missing"),
                 any(i > 0)) {
               stop("i must be all positive or all negative indices.")
             }
-            if (all(j < 0)) {
+            if (all(i < 0)) {
               i <- (1:M)[i]
             }
             
@@ -280,10 +304,10 @@ setMethod("[", c("unmarkedFrameCOP", "numeric", "numeric", "missing"),
               y <- t(y)
             }
             
-            # obsLength subset
-            obsLength <- x@obsLength[i, j]
+            # L subset
+            L <- x@L[i, j]
             if (min(length(i), length(j)) == 1) {
-              obsLength <- t(obsLength)
+              L <- t(L)
             }
             
             # siteCovs subset
@@ -297,7 +321,7 @@ setMethod("[", c("unmarkedFrameCOP", "numeric", "numeric", "missing"),
             if (!is.null(obsCovs)) {
               MJ_site <- rep(1:M, each = J)
               MJ_obs <- rep(1:J, times = M)
-              obsCovs <- obsCovs[((MJ_obs %in% j) & (MJ_site %in% i)), ]
+              obsCovs <- obsCovs[((MJ_obs %in% j) & (MJ_site %in% i)), , drop = FALSE]
               rownames(obsCovs) <- NULL
             }
             
@@ -305,7 +329,7 @@ setMethod("[", c("unmarkedFrameCOP", "numeric", "numeric", "missing"),
             new(
               Class = "unmarkedFrameCOP",
               y = y,
-              obsLength = obsLength,
+              L = L,
               siteCovs = siteCovs,
               obsCovs = obsCovs,
               obsToY = diag(length(j)),
@@ -363,6 +387,133 @@ setMethod("get_orig_data", "unmarkedFitCOP", function(object, type, ...){
   clean_covs[[datatype]]
 })
 
+# UNMARKED FIT METHOD ----------------------------------------------------------
+# Required methods include: ranef, simulate,
+
+## getP ----
+setMethod("getP", "unmarkedFitCOP", function(object) {
+  data <- object@data
+  M = nrow(getY(data))
+  J = ncol(getY(data))
+  des <- getDesign(data, object@formlist, na.rm = na.rm)
+  matLambda =  do.call(object["lambda"]@invlink, 
+                       list(matrix(
+                         as.numeric(des$Xlambda %*% coef(object, 'lambda')),
+                         nrow = M, ncol = J, byrow = T)))
+  return(matLambda)
+})
+
+## fitted ----
+setMethod("fitted", "unmarkedFitCOP", function(object) {
+  data <- object@data
+  M = nrow(getY(data))
+  J = ncol(getY(data))
+  des <- getDesign(data, object@formlist, na.rm = na.rm)
+  estim_psi = as.numeric(do.call(object["psi"]@invlink,
+                                 list(as.matrix(des$Xpsi %*% coef(object, 'psi')))))
+  estim_lambda = do.call(object["lambda"]@invlink, 
+                         list(matrix(
+                           as.numeric(des$Xlambda %*% coef(object, 'lambda')),
+                           nrow = M, ncol = J, byrow = T)))
+  return(estim_psi * estim_lambda)
+})
+
+## residuals ----
+setMethod("residuals", "unmarkedFitCOP", function(object) {
+  y <- getY(object@data)
+  e <- fitted(object)
+  r <- y - e
+  return(r)
+})
+
+## plot ----
+setMethod("plot", c(x = "unmarkedFitCOP", y = "missing"), function(x, y, ...)
+{
+  y <- getY(x)
+  r <- residuals(x)
+  e <- fitted(x)
+  
+  old_graph <- graphics::par("mfrow", "mar")
+  on.exit(graphics::par(mfrow = old_graph$mfrow, mar = old_graph$mar))
+  
+  {
+    graphics::par(mfrow = c(2, 1))
+    graphics::par(mar = c(0, 5, 2, 2))
+    plot(e, y,
+         ylab = "Observed data",
+         xlab = "Predicted data",
+         xaxt = 'n')
+    abline(a = 0, b = 1, lty = 3, col = "red")
+    title(main = "COP model - detection events count", outer = F)
+    
+    graphics::par(mar = c(4, 5, 0.5, 2))
+    plot(e, r,
+         ylab = "Residuals",
+         xlab = "Predicted data")
+    abline(h = 0, lty = 3, col = "red")
+  }
+  
+})
+
+# SIMULATION METHODS ----
+
+## get_umf_components ----
+setMethod("get_umf_components", "unmarkedFitCOP",
+  function(object, formulas, guide, design, ...){
+    sc <- generate_data(formulas$psi, guide, design$M)
+    oc <- generate_data(formulas$lambda, guide, design$J*design$M)
+    yblank <- matrix(0, design$M, design$J)
+    list(y=yblank, siteCovs=sc, obsCovs=oc)
+})
+
+## simulate_fit ----
+setMethod("simulate_fit", "unmarkedFitCOP",
+  function(object, formulas, guide, design, ...){
+    # Generate covariates and create a y matrix of zeros
+    parts <- get_umf_components(object, formulas, guide, design, ...)
+    umf <- unmarkedFrameCOP(y = parts$y, siteCovs = parts$siteCovs, obsCovs=parts$obsCovs)
+    fit <- suppressMessages(
+      occuCOP(
+        data = umf,
+        psiformula = formula(formulas$psi),
+        lambdaformula = formula(formulas$lambda),
+        se = FALSE,
+        control = list(maxit = 1)
+      )
+    )
+    return(fit)
+})
+
+## simulate ----
+setMethod("simulate", "unmarkedFitCOP",
+  function(object, nsim = 1, seed = NULL, na.rm = TRUE){
+    set.seed(seed)
+    formula <- object@formula
+    umf <- object@data
+    designMats <- getDesign(umf = umf, formlist = object@formlist, na.rm = na.rm)
+    y <- designMats$y
+    M <- nrow(y)
+    J <- ncol(y)
+    
+    # Occupancy probability psi depending on the site covariates
+    psiParms = coef(object, type = "psi", fixedOnly = FALSE)
+    psi <- as.numeric(plogis(as.matrix(designMats$Xpsi %*% psiParms)))
+    
+    # Detection rate lambda depending on the observation covariates
+    lambda = getP(object = object)
+    
+    # Simulations
+    simList <- vector("list", nsim)
+    for(i in 1:nsim) {
+      Z <- rbinom(M, 1, psi)
+      # Z[object@knownOcc] <- 1
+      y = matrix(rpois(n = M * J, lambda = as.numeric(t(lambda))),
+                 nrow = M, ncol = J, byrow = T) * Z
+      simList[[i]] <- y
+    }
+    return(simList)
+})
+
 
 
 # Useful functions -------------------------------------------------------------
@@ -380,7 +531,7 @@ check.integer <- function(x, na.ignore = F) {
 
 # unmarkedFrame ----------------------------------------------------------------
 
-unmarkedFrameCOP <- function(y, obsLength, siteCovs = NULL, obsCovs = NULL, mapInfo = NULL) {
+unmarkedFrameCOP <- function(y, L, siteCovs = NULL, obsCovs = NULL, mapInfo = NULL) {
   
   # Verification that they are non-NA data in y
   if (all(is.na(y))) {
@@ -396,14 +547,14 @@ unmarkedFrameCOP <- function(y, obsLength, siteCovs = NULL, obsCovs = NULL, mapI
   # Number of sampling occasions
   J <- ncol(y)
   
-  # If missing obsLength: replace by matrix of 1
+  # If missing L: replace by matrix of 1
   # and the lambda will be the detection rate per observation length
-  if (missing(obsLength)) {
-    obsLength <- y * 0 + 1
-    warning("obsLength is missing, replacing it by a matrix of 1.")
-  } else if (is.null(obsLength)) {
-    obsLength <- y * 0 + 1
-    warning("obsLength is missing, replacing it by a matrix of 1.")
+  if (missing(L)) {
+    L <- y * 0 + 1
+    warning("L is missing, replacing it by a matrix of 1.")
+  } else if (is.null(L)) {
+    L <- y * 0 + 1
+    warning("L is missing, replacing it by a matrix of 1.")
   }
   
   # Transformation observation covariates
@@ -418,7 +569,7 @@ unmarkedFrameCOP <- function(y, obsLength, siteCovs = NULL, obsCovs = NULL, mapI
   umf <- new(
     Class = "unmarkedFrameCOP",
     y = y,
-    obsLength = obsLength,
+    L = L,
     siteCovs = siteCovs,
     obsCovs = obsCovs,
     obsToY = diag(J),
@@ -434,17 +585,18 @@ unmarkedFrameCOP <- function(y, obsLength, siteCovs = NULL, obsCovs = NULL, mapI
 occuCOP <- function(data,
                     psiformula = ~1,
                     lambdaformula = ~1,
-                    psistarts = rep(0, length(attr(terms(psiformula), "term.labels")) + 1),
-                    lambdastarts = rep(0, length(attr(terms(lambdaformula), "term.labels")) + 1),
+                    psistarts,
+                    lambdastarts,
                     method = "BFGS",
                     se = TRUE,
                     engine = "R",
                     threads = 1L,
                     na.rm = TRUE,
                     get.NLL.params = NULL,
+                    L1 = FALSE,
                     ...) {
   #TODO: engines
-  #TODO: NA
+  #TODO: random effects
   
   # Neg loglikelihood COP ------------------------------------------------------
   nll_COP <- function(params) {
@@ -468,40 +620,38 @@ occuCOP <- function(data,
     #   lambdaIdx is the index of Occupancy Parameters in params
     lambda <- exp(Xlambda %*% params[lambdaIdx])
     
+    # Listing sites not removed (due to NAs)
+    if (length(sitesRemoved) > 0) {
+      siteAnalysed = (1:M)[-sitesRemoved]
+    } else {
+      siteAnalysed = (1:M)
+    }
+    
     # Probability for each site (i)
     iProb <- rep(NA, M)
     
-    for (i in 1:M) {
-      # Probability for the site i for each sampling occasion (j)
-      ijProb <- rep(NA, J)
-      
-      # Total obs length in site i
-      obsLengthSitei <- sum(data@obsLength[i,])
-      
+    for (i in siteAnalysed) {
       # iIdx is the index to access the vectorised vectors of all obs in site i
-      iIdx <- ((i - 1) * J + 1):(i * J)
+      iIdxall <- ((i - 1) * J + 1):(i * J)
+      
+      # Removing NAs
+      iIdx = iIdxall[!removed_obsvec[iIdxall]]
       
       if (SitesWithDetec[i]) {
         # If there is at least one detection in site i
-        # factNij = sapply(factorial(yvec[iIdx]),replaceinf)
-        # iProb[i] = psi[i] * sum(lambda[iIdx] * obsLengthvec[iIdx] / factNij * exp(-lambda[iIdx] * obsLengthvec[iIdx]))
-        
-        
         iProb[i] = psi[i] * (
-          (sum(lambda[iIdx] * obsLengthvec[iIdx])) ^ sum(yvec[iIdx]) / 
+          (sum(lambda[iIdx] * Lvec[iIdx])) ^ sum(yvec[iIdx]) / 
             factorial(sum(yvec[iIdx])) *
-            exp(-sum(lambda[iIdx] * obsLengthvec[iIdx]))
+            exp(-sum(lambda[iIdx] * Lvec[iIdx]))
         )
         
       } else {
         # If there is zero detection in site i
-        # iProb[i] = psi[i] * sum(exp(-lambda[iIdx] * obsLengthvec[iIdx])) + (1 - psi[i])
-        
-        iProb[i] = psi[i] * exp(-sum(lambda[iIdx] * obsLengthvec[iIdx])) + (1 - psi[i]) 
+        iProb[i] = psi[i] * exp(-sum(lambda[iIdx] * Lvec[iIdx])) + (1 - psi[i]) 
         
       }
-      
     }
+    
     # Note: Why is there "replaceinf(factorial(data@y[i,]))" 
     #       instead of just "factorial(data@y[i,])"?
     # Because if there are a lot of detections (n_ij >= 171 on my machine),
@@ -519,7 +669,7 @@ occuCOP <- function(data,
     # it doesn't matter if its an approximation.
     
     # log-likelihood
-    ll = sum(log(iProb))
+    ll = sum(log(iProb[siteAnalysed]))
     return(-ll)
   }
   
@@ -529,8 +679,8 @@ occuCOP <- function(data,
   }
   stopifnot(class(psiformula) == "formula")
   stopifnot(class(lambdaformula) == "formula")
-  stopifnot(class(psistarts) %in%  c("numeric", "double", "integer"))
-  stopifnot(class(lambdastarts) %in%  c("numeric", "double", "integer"))
+  if(!missing(psistarts)){stopifnot(class(psistarts) %in%  c("numeric", "double", "integer"))}
+  if(!missing(lambdastarts)){stopifnot(class(lambdastarts) %in%  c("numeric", "double", "integer"))}
   stopifnot(class(threads) %in%  c("numeric", "double", "integer"))
   se = as.logical(match.arg(
     arg = as.character(se),
@@ -541,6 +691,16 @@ occuCOP <- function(data,
     choices = c("TRUE", "FALSE", "0", "1")
   ))
   engine <- match.arg(engine, c("R"))
+  L1 = as.logical(match.arg(
+    arg = as.character(L1),
+    choices = c("TRUE", "FALSE", "0", "1")
+  ))
+  
+  
+  # Do not yet manage random effects!!!
+  if (!is.null(lme4::findbars(psiformula)) | !is.null(lme4::findbars(lambdaformula))) {
+    stop("occuCOP does not currently handle random effects.")
+  }
   
   # Format input data ----------------------------------------------------------
   
@@ -551,22 +711,35 @@ occuCOP <- function(data,
   # For more informations, see: getMethod("getDesign", "unmarkedFrameCOP")
   designMats <- getDesign(umf = data, formlist = formlist, na.rm = na.rm)
   
-  # y is the count detection data (matrix of size M sites x J sessions)
+  # y is the count detection data (matrix of size M sites x J observations)
   y <- getY(data)
   
-  # obsLength is the length of sessions (matrix of size M sites x J sessions)
-  obsLength = data@obsLength
+  # L is the length of observations (matrix of size M sites x J observations)
+  L = getL(data)
+  if (!L1) {
+    if (!any(is.na(L))) {
+      if (all(L == 1)) {
+        warning(
+          "All observations lengths (L) are set to 1. ",
+          "If they were not user-defined, lambda corresponds to the ",
+          "detection rate multiplied by the observation length, ",
+          "not just the detection rate per time unit.\n",
+          "You can remove this warning by adding 'L1=TRUE' in the function inputs."
+        )
+      }
+    }
+  }
   
-  # Xpsi is the matrix with the occupancy covariates
+  # Xpsi is the fixed effects design matrix for occupancy
   Xpsi <- designMats$Xpsi
   
-  # Xlambda is the matrix with the detection covariates
+  # Xlambda is the fixed effects design matrix for detection rate
   Xlambda <- designMats$Xlambda
   
-  # Zpsi is ???
+  # Zpsi is the random effects design matrix for occupancy
   Zpsi <- designMats$Zpsi
   
-  # Zlambda is ???
+  # Zlambda is the random effects design matrix for detection rate
   Zlambda <- designMats$Zlambda
   
   # removed_obs is a M x J matrix of the observations removed from the analysis
@@ -580,7 +753,7 @@ occuCOP <- function(data,
   J <- ncol(y)
   
   # Total number of detection per site
-  NbDetecPerSite = rowSums(y)
+  NbDetecPerSite = rowSums(y, na.rm=T)
   
   # Sites where there was at least one detection
   SitesWithDetec = NbDetecPerSite > 0
@@ -615,7 +788,8 @@ occuCOP <- function(data,
   #   From Matrix of dim MxJ to vector of length MxJ:
   #   c(ySite1Obs1, ySite1Obs2, ..., ySite1ObsJ, ysite2Obs1, ...)
   yvec <- as.numeric(t(y))
-  obsLengthvec <- as.numeric(t(obsLength))
+  Lvec <- as.numeric(t(L))
+  removed_obsvec <- as.logical(t(removed_obs))
   
   # get.NLL.params -------------------------------------------------------------
   if (!is.null(get.NLL.params)) {
@@ -641,7 +815,7 @@ occuCOP <- function(data,
     message(
       "No lambda initial values provided for optim. Using lambdastarts = c(",
       paste(lambdastarts, collapse = ", "),
-      "), equivalent to detection rate",
+      "), equivalent to a detection rate",
       ifelse(length(lambdastarts) == 1, "", "s"),
       " of 1."
     )
@@ -658,7 +832,7 @@ occuCOP <- function(data,
     message(
       "No psi initial values provided for optim. Using psistarts = c(",
       paste(psistarts, collapse = ", "),
-      "), equivalent to occupancy probabilit",
+      "), equivalent to an occupancy probabilit",
       ifelse(length(psistarts) == 1, "y", "ies"),
       " of 0.5."
     )
@@ -724,7 +898,6 @@ occuCOP <- function(data,
     "unmarkedFitCOP",
     fitType = "occuCOP",
     call = match.call(),
-    # formula = as.formula(paste(formlist, collapse = "")),
     formula = as.formula(paste(
       formlist["lambdaformula"], formlist["psiformula"], collapse = ""
     )),

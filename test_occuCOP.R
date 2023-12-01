@@ -220,8 +220,8 @@ test_that("occuCOP can fit simple models", {
   # Fitting options ----
   
   # With default parameters
-  expect_no_error(fit_default <- occuCOP(data = umf))
-  expect_no_error(occuCOP(data = umf, psiformula = ~ 1, lambdaformula = ~ 1))
+  expect_message(fit_default <- occuCOP(data = umf))
+  expect_no_error(occuCOP(data = umf, psiformula = ~ 1, lambdaformula = ~ 1, psistarts = 0, lambdastarts = 0))
   
   # With chosen starting points
   expect_no_error(occuCOP(data = umf, 
@@ -230,23 +230,23 @@ test_that("occuCOP can fit simple models", {
                           lambdastarts = log(0.1)))
   expect_error(occuCOP(data = umf, 
                        psiformula = ~ 1, lambdaformula = ~ 1, 
-                       psistarts = qlogis(c(0.7, 0.5))))
+                       psistarts = qlogis(c(0.7, 0.5), lambdastarts = 0)))
   expect_error(occuCOP(data = umf, 
                        psiformula = ~ 1, lambdaformula = ~ 1, 
-                       lambdastarts = log(c(1, 2))))
+                       lambdastarts = log(c(1, 2)), psistarts = 0))
   
   # With different options
-  expect_no_error(occuCOP(data = umf, method = "Nelder-Mead"))
-  expect_error(occuCOP(data = umf, method = "ABC"))
+  expect_no_error(occuCOP(data = umf, method = "Nelder-Mead", psistarts = 0, lambdastarts = 0))
+  expect_error(occuCOP(data = umf, method = "ABC", psistarts = 0, lambdastarts = 0))
   
-  expect_no_error(occuCOP(data = umf, se = F))
+  expect_no_error(occuCOP(data = umf, se = F, psistarts = 0, lambdastarts = 0))
   expect_error(occuCOP(data = umf, se = "ABC"))
   
-  expect_no_error(occuCOP(data = umf, engine = "R"))
-  expect_error(occuCOP(data = umf, engine = "julia"))
+  expect_no_error(occuCOP(data = umf, engine = "R", psistarts = 0, lambdastarts = 0))
+  expect_error(occuCOP(data = umf, engine = "julia", psistarts = 0, lambdastarts = 0))
   
-  expect_no_error(occuCOP(data = umf, na.rm = F))
-  expect_error(occuCOP(data = umf, na.rm = "no"))
+  expect_no_error(occuCOP(data = umf, na.rm = F, psistarts = 0, lambdastarts = 0))
+  expect_error(occuCOP(data = umf, na.rm = "no", psistarts = 0, lambdastarts = 0))
   
   # Looking at at COP model outputs ----
   expect_is(fit_default, "unmarkedFitCOP")
@@ -293,7 +293,7 @@ test_that("occuCOP can fit simple models", {
       J = 10
     ),
     obsLength = matrix(1, nrow = 1000, ncol = 10)
-  ))
+  ), psistarts = 0, lambdastarts = 0)
   psi_estimate = backTransform(fit_accur, type = "psi")@estimate
   lambda_estimate = backTransform(fit_accur, type = "lambda")@estimate
   expect_equivalent(
@@ -318,7 +318,7 @@ test_that("occuCOP can fit simple models", {
       J = 10
     ),
     obsLength = matrix(1, nrow = 1000, ncol = 10)
-  ))
+  ), psistarts = 0, lambdastarts = 0)
   psi_estimate = backTransform(fit_accur, type = "psi")@estimate
   lambda_estimate = backTransform(fit_accur, type = "lambda")@estimate
   expect_equivalent(
@@ -343,7 +343,7 @@ test_that("occuCOP can fit simple models", {
       J = 10
     ),
     obsLength = matrix(1, nrow = 1000, ncol = 10)
-  ))
+  ), psistarts = 0, lambdastarts = 0)
   psi_estimate = backTransform(fit_accur, type = "psi")@estimate
   lambda_estimate = backTransform(fit_accur, type = "lambda")@estimate
   expect_equivalent(
@@ -357,6 +357,17 @@ test_that("occuCOP can fit simple models", {
     tol = 0.05
   )
 
+  # With NAs ----
+  yNA <- y
+  yNA[1,] <- NA
+  yNA[3, 1] <- NA
+  yNA[4, 3] <- NA
+  yNA[, 5] <- NA
+  expect_no_error(umfNA <- unmarkedFrameCOP(y = yNA, obsLength = obsLength))
+  
+  expect_warning(fit_NA <- occuCOP(data = umfNA, psistarts = 0, lambdastarts = 0))
+  expect_error(occuCOP(data = umfNA, psistarts = 0, lambdastarts = 0, na.rm = F))
+  
   
   #TODO
 })
@@ -366,4 +377,63 @@ test_that("occuCOP can fit models with covariates", {
   
 })
 
+
+test_that("We can simulate COP data", {
+  
+  # From scratch ----
+  
+  # With no covariates
+  expect_no_error(simulate(
+    "COP",
+    formulas = list(psi =  ~ 1, lambda =  ~ 1),
+    coefs = list(
+      psi = c(intercept = 0),
+      lambda = c(intercept = 0)
+    ),
+    design = list(M = 100, J = 100)
+  ))
+  
+  # With quantitative covariates
+  expect_no_error(simulate(
+    "COP",
+    formulas = list(psi =  ~ elev, lambda =  ~ rain),
+    coefs = list(
+      psi = c(intercept = qlogis(.5), elev = -0.5),
+      lambda = c(intercept = log(3), rain = -1)
+    ),
+    design = list(M = 100, J = 5)
+  ))
+  
+  # With guides
+  expect_no_error(simulate(
+    "COP",
+    formulas = list(psi =  ~ elev, lambda =  ~ rain),
+    coefs = list(
+      psi = c(intercept = qlogis(.5), elev = -0.5),
+      lambda = c(intercept = log(3), rain = -1)
+    ),
+    design = list(M = 100, J = 5),
+    guide = list(elev=list(dist=rnorm, mean=12, sd=0.5))
+  ))
+  
+  # With qualitative covariates
+  expect_no_error(simulate(
+    "COP",
+    formulas = list(psi =  ~ elev + habitat, lambda =  ~ 1),
+    coefs = list(
+      psi = c(
+        intercept = qlogis(.2),
+        elev = -0.5,
+        habitatB = .5,
+        habitatC = .8
+      ),
+      lambda = c(intercept = log(3))
+    ),
+    design = list(M = 100, J = 5),
+    guide = list(habitat = factor(levels = c("A", "B", "C")))
+  ))
+  
+  # From unmarkedFitCOP ----
+  #TODO
+})
 

@@ -31,10 +31,8 @@ library(ggplot2)
 library(ggrepel)
 library(dplyr)
 library(tibble)
+library(tidyr)
 ```
-
-
-
 
 
 # The COP model
@@ -60,7 +58,9 @@ Z_i \sim \text{Bernoulli}(\psi_{i}) \\
 N_{ij} \sim \text{Poisson}(\lambda_{ij} T_{ij})
 $$
 
-The likelihood of this model is:
+## How is the model fitted?
+
+The model is fitted by maximum likelihood estimation (MLE). Likelihood is the probability of observing these data given a set of parameters. The likelihood $L$ of this model is:
 
 \begin{align}
 \begin{split}
@@ -80,6 +80,124 @@ The likelihood of this model is:
         \right )
 \end{split}
 \end{align}
+
+To maximise the likelihood, we use an optimisation algorithm, and we actually minimise the log-likelihood $log(L)$ for computational reasons. We can visualise  how can the likelihood vary depending on the parameters, to better understand what the optimisation algorithm does. 
+
+With the COP model, here are examples of log-likelihood for varying simulation scenarios (see simul_lambda on top, simul_psi on the right), and for different values of $\psi$ (on the bottom) and $\lambda$ (line colours, the thick lines corresponding to the detection rate $\lambda$ used to simulate data). The black dotted lines and labels correspond to the value of the parameters $\psi$ and $\lambda$ for the maximum likelihood estimated by the optimisation algorithm.
+
+```{r how-is-the-model-fitted, message=FALSE, class.source='fold-hide', fig.height=10, fig.width=12}
+M = 100 # Number of sites
+J = 5 # Number of observations (transects, sessions, sampling occasions...)
+cpt = 1
+for (simul_psi in c(.1, .25, .5, .75, .9)) {
+  for (simul_lambda in c(1, 3, 5)) {
+    simul_z = sample(
+      x = c(0, 1),
+      size = M,
+      replace = T,
+      prob = c(1 - simul_psi, simul_psi)
+    )
+    simul_y <- matrix(rpois(n = M * J, lambda = simul_lambda),
+                      nrow = M,
+                      ncol = J) * simul_z
+    
+    fit = occuCOP(data = unmarkedFrameCOP(y = simul_y,
+                                          L = (simul_y * 0 + 1)),
+                  psistarts=0, lambdastarts=0)
+    estim_psi = backTransform(fit, "psi")
+    estim_lambda = backTransform(fit, "lambda")
+    
+    nll_df_plot_i = occuCOP(
+      data = unmarkedFrameCOP(y = simul_y, L = (simul_y * 0 + 1)),
+      get.NLL.params =
+        as.list(as.data.frame(t(
+          expand.grid("psi" = qlogis(seq(0.01, 0.99, by = 0.02)),
+                      # "lambda" = log(round(
+                      #   simul_lambda * seq(from = 0.25, to = 1.75, by = .25), 2
+                      # ))
+                      lambda=log(c(1,3,5))
+                      )
+        )))
+    )
+    nll_df_plot_i$simul_psi = simul_psi
+    nll_df_plot_i$simul_lambda = simul_lambda
+    nll_df_plot_i$estim_psi = estim_psi@estimate
+    nll_df_plot_i$estim_lambda = estim_lambda@estimate
+    
+    if (cpt == 1) {
+      nll_df_plot = nll_df_plot_i
+    } else{
+      nll_df_plot = rbind(nll_df_plot, nll_df_plot_i)
+    }
+    # cat('\r',cpt,"/ 15")
+    cpt = cpt + 1
+    rm(nll_df_plot_i)
+  }
+}
+
+nll_df_plot$psi = plogis(nll_df_plot[, "logit(psi).(Intercept)"])
+nll_df_plot$lambda = exp(nll_df_plot[, "log(lambda).(Intercept)"])
+nll_df_plot$simulated_lambda = (round(nll_df_plot$lambda, 2) == round(nll_df_plot$simul_lambda, 2))
+nll_df_plot$lambda_txt = format(nll_df_plot$lambda, digits = 2, nsmall = 2)
+nll_df_plot$label = ifelse(nll_df_plot$psi == max(nll_df_plot$psi),
+                           paste0("λ=", nll_df_plot$lambda_txt),
+                           NA)
+
+df_estimates = nll_df_plot %>%
+  group_by(simul_psi, simul_lambda) %>%
+  summarise(
+    estim_psi = unique(estim_psi),
+    estim_lambda = unique(estim_lambda),
+    maximum_llh = max(-nll),
+    minimum_llh = min(-nll),
+    .groups = "drop"
+  )
+
+ggplot() +
+  geom_line(
+    data = nll_df_plot,
+    aes(
+      x = psi,
+      y = -nll,
+      colour = lambda_txt,
+      linewidth = simulated_lambda
+    )
+  ) +
+  ggh4x::facet_grid2(
+    simul_psi ~ simul_lambda,
+    labeller = label_both,
+    scales = "free_y",
+    independent = "y"
+  ) +
+  labs(
+    title = "Negative log-likelihood of the COP model for different values of ψ and λ",
+    x = "ψ",
+    y = "Log-likelihood",
+    colour = "λ"
+  ) +
+  scale_linewidth_manual(values = c("TRUE" = 2, "FALSE" = 1)) +
+  theme_light()+
+  geom_vline(data = df_estimates,
+             aes(xintercept = estim_psi),
+             linetype = "dotted") +
+  geom_label(data = df_estimates, aes(
+    x = estim_psi,
+    y = minimum_llh + abs(minimum_llh * .1),
+    label = paste0("λ: ", round(estim_lambda, 2))
+  )) +
+  geom_hline(data = df_estimates,
+             aes(yintercept = maximum_llh),
+             linetype = "dotted") +
+  geom_label(data = df_estimates, aes(
+    x = 0,
+    y = maximum_llh - 30,
+    label = paste0("ψ: ", round(estim_psi, 2))
+  )) +
+  xlim(-.1, 1) +
+  theme(legend.position = "bottom") +
+  guides(linewidth = "none")
+
+```
 
 # Simulation
 
@@ -119,27 +237,16 @@ simul_psi_habA = 0.9
 simul_psi_habB = 0.5
 simul_psi_habC = 0.1
 
+simul_psi = ifelse(
+  SiteCov$habitat == "A",
+  simul_psi_habA,
+  ifelse(SiteCov$habitat == "B", simul_psi_habB, simul_psi_habC)
+)
+
 # For each site, we simulate occupancy state
 z_i = rep(NA, M)
 for (i in 1:M) {
-  if (SiteCov$habitat[i] == 'A') {
-    z_i[i] <-
-      sample(c(0, 1),
-             size = 1,
-             prob = c(1 - simul_psi_habA, simul_psi_habA))
-    next
-  } else if (SiteCov$habitat[i] == 'B') {
-    z_i[i] <-
-      sample(c(0, 1),
-             size = 1,
-             prob = c(1 - simul_psi_habB, simul_psi_habB))
-    next
-  } else {
-    z_i[i] <-
-      sample(c(0, 1),
-             size = 1,
-             prob = c(1 - simul_psi_habC, simul_psi_habC))
-  }
+  z_i[i] <- sample(c(0, 1), size = 1, prob = c(1 - simul_psi[i], simul_psi[i]))
 }
 
 # We have this data:
@@ -162,10 +269,6 @@ We simulate temporal covariates:
 - "rain" will impact the detection rate
 
 ```{r simul-lambda-cov}
-# Detection rate: 1 detection per day on average,
-simul_lambda = 1
-simul_lambda_rain = .3
-
 # Temporal covariates
 TemporalCov <- list(
   "rain" = matrix(pmax(rexp(n = M * J, rate = 1 / 10), 0), nrow = M, ncol = J),
@@ -213,10 +316,10 @@ data.frame(
 
 Let's say that each observation lasts one time-unit here, *e.g.* one day per sampling occasion.
 
-```{r simul-obsLength}
-obsLength = y * 0 + 1
-class(obsLength)
-print(as_tibble(obsLength))
+```{r simul-L}
+L = y * 0 + 1
+class(L)
+print(as_tibble(L))
 ```
 
 
@@ -229,7 +332,7 @@ We then create our unmarkedFrameCOP object.
 ```{r umf-creation}
 umf = unmarkedFrameCOP(
   y = y,
-  obsLength = obsLength,
+  L = L,
   siteCovs = SiteCov,
   obsCovs = TemporalCov
 )
@@ -239,8 +342,12 @@ umf = unmarkedFrameCOP(
 
 ```{r umf-visu}
 head(umf)
+
 summary(umf)
-print(umf[2,4]) # 2nd site, 4th observation
+
+# You can subset an unmarkedFrame: here the 2nd site, 4th observation
+print(umf[2, 4])
+
 plot(umf)
 ```
 
@@ -253,7 +360,7 @@ y_with_decimals = y
 y_with_decimals[2, 1] = 49.5
 unmarkedFrameCOP(
   y = y_with_decimals,
-  obsLength = obsLength,
+  L = L,
   siteCovs = SiteCov,
   obsCovs = TemporalCov
 )
@@ -265,59 +372,90 @@ There is a warning if data is detection/non-detection (1/0) instead of count.
 y_detec_nodetec = (y > 0) * 1
 unmarkedFrameCOP(
   y = y_detec_nodetec,
-  obsLength = obsLength,
+  L = L,
   siteCovs = SiteCov,
   obsCovs = TemporalCov
 )
 ```
 
-There is an error if the dimension of obsLength is different than that of y.
+There is an error if the dimension of L is different than that of y.
 
-```{r umf-error-obsLength}
+```{r umf-error-L}
 unmarkedFrameCOP(
   y = y,
-  obsLength = obsLength[1:5, 1:2],
+  L = L[1:5, 1:2],
   siteCovs = SiteCov,
   obsCovs = TemporalCov
 )
 ```
 
-# Model fitting
+# Fit the model
 
-We fit the model. For more information, see [section How is the model fitted?](#how-is-the-model-fitted)
-
-## Null model
+## Null model fitting
 
 ```{r null-fit}
-resCOP_null <- occuCOP(
+occuCOP(
   data = umf,
   psiformula = ~ 1,
   lambdaformula = ~ 1,
   method = "Nelder-Mead"
 )
+```
+
+Note that we a warning because observation lengths (L) were all set to 1 in our unmarkedFrame. This was our aim, so we can add `L1 = TRUE` in the function parameters.
+
+```{r}
+occuCOP(
+  data = umf,
+  psiformula = ~ 1,
+  lambdaformula = ~ 1,
+  method = "Nelder-Mead",
+  L1 = TRUE
+)
+```
+
+We also have messages to inform us of the default initial parameters for the optimisation algorithm. These messages can be removed by choosing them manually. For example, we could set initial parameters that are close to what we can intuitively expect with our data.
+
+Intuitively, the initial psi value can be the proportion of sites in which we do not have any observations.
+
+```{r}
+psi_init = mean(rowSums(y) == 0)
+print(psi_init)
+```
+
+And the initial lambda value can be the mean count of detection events in sites in which there was at least one observation.
+
+```{r}
+lambda_init = mean(y[rowSums(y) > 0, ])
+print(lambda_init)
+```
+
+We have to transform them. See `?occuCOP` for more information about these transformations.
+
+```{r}
+resCOP_null <- occuCOP(
+  data = umf,
+  psiformula = ~ 1,
+  lambdaformula = ~ 1,
+  psistarts = qlogis(psi_init),
+  lambdastarts = log(lambda_init),
+  method = "Nelder-Mead",
+  L1 = TRUE
+)
 print(resCOP_null)
 ```
 
-We can backtransform the parameters:
+## $\psi$ ~ habitat, $\lambda$ ~ rain
 
-```{r null-backtransform}
-# Occcupancy estimate
-plogis(resCOP_null@estimates@estimates$psi@estimates) # plogis(x): "inverse logit"
-backTransform(resCOP_null, type = "psi")
-
-# Detection rate estimate
-exp(resCOP_null@estimates@estimates$lambda@estimates)
-backTransform(resCOP_null, type = "lambda")
-```
-
-## psi ~ elev; lambda ~ rain
+With covariates, we need initial values for the optimisation to be vectors of the adequate length. Here, we will keep the default initial values of 0, which backtransformed, correspond to an occupancy probability of 0.5 and a detection rate of 1.
 
 ```{r cov-fit}
 resCOP_habitat_rain <- occuCOP(
   data = umf,
   psiformula = ~ -1 + habitat,
   lambdaformula = ~ rain,
-  method = "Nelder-Mead"
+  method = "Nelder-Mead",
+  L1 = TRUE
 )
 print(resCOP_habitat_rain)
 ```
@@ -330,38 +468,104 @@ resCOP_habitat_rain <- occuCOP(
   psiformula = ~ -1 + habitat,
   lambdaformula = ~ rain,
   method = "Nelder-Mead",
+  L1 = TRUE,
   control = list(maxit = 5000)
 )
 print(resCOP_habitat_rain)
 ```
 
-We can backtransform the parameters. With covariates, we can no longer use the function `backTransform`:
+## Back-transforming parameter estimates
+
+To check the names of the parameters for the submodels of the COP occupancy model, we can use the function `names`.
+
+```{r param-names}
+names(resCOP_null)
+```
+
+### For a model without covariates
+
+Without covariates, we can use the function `backTransform`. 
+
+```{r null-backtransform}
+# Occcupancy estimate
+backTransform(resCOP_null, type = "psi")
+
+# Detection rate estimate
+backTransform(resCOP_null, type = "lambda")
+```
+
+Alternatively, we can back-transform the parameter manually. Most users should use the `backTransform` function in this situation, but if you need to go in depth, here's how to do it.
+
+```{r null-backtransform-manual}
+# Occcupancy probability psi
+## What is the inverse link, the function to back-transform the estimate?
+resCOP_null@estimates@estimates$psi@invlink
+## Manual back-transformation
+logistic(coef(resCOP_null, "psi"))
+plogis(coef(resCOP_null, "psi")) # plogis(x): "inverse logit", equivalent to logistic(x)
+
+# Detection rate lambda
+## What is the inverse link, the function to back-transform the estimate?
+resCOP_null@estimates@estimates$lambda@invlink
+## Manual back-transformation
+exp(coef(resCOP_null, "lambda"))
+```
+
+
+### For a model with covariates
+
+With covariates, we can no longer use the function `backTransform`:
 
 ```{r cov-backtransform}
 backTransform(resCOP_habitat_rain, type = "psi")
 ```
 
-However, we can use the function `predict`:
+Instead, we can use the function `predict`, which can be used to back-transform the parameters depending on the covariates. `predict` can also be used, as its name leads on, to predict occupancy and detection with new parameters, if the user specify `newdata`.
 
 ```{r cov-predict}
 # Occcupancy estimate
-plogis(resCOP_habitat_rain@estimates@estimates$psi@estimates)
-psipred = predict(object = resCOP_habitat_rain, type = "psi")
-print(as_tibble(cbind(
-  data.frame("habitat" = resCOP_habitat_rain@data@siteCovs$habitat),
-  psipred
-)))
+psipred = predict(object = resCOP_habitat_rain, type = "psi", appendData = TRUE)
+print(as_tibble(psipred[, c("Predicted", "SE", "lower", "upper", "habitat", "elev")]))
 
 # Detection rate estimate
-exp(resCOP_habitat_rain@estimates@estimates$lambda@estimates)
-lambdapred = predict(object = resCOP_habitat_rain, type = "lambda")
+lambdapred = predict(object = resCOP_habitat_rain, type = "lambda", appendData = FALSE)
 print(as_tibble(cbind(
-  data.frame("rain" = resCOP_habitat_rain@data@obsCovs$rain),
+  data.frame(
+    "site" = rep(1:M, each = J),
+    "observation" = rep(1:J, times = M),
+    "rain" = resCOP_habitat_rain@data@obsCovs$rain
+  ),
   lambdapred
 )))
 ```
 
-## Ranking
+We can also backtransform the parameters manually. This works well for qualitative covariates (*e.g.* habitat), but not for quantitative covariates (*e.g.* rain), because linear regression with the covariate is applied to the **transformed parameters**, and should be back-transformed only afterwards.
+
+```{r cov-backtransform-manual}
+# Occupancy estimate
+logistic(coef(resCOP_habitat_rain, "psi"))
+
+# Detection rate estimate
+exp(coef(resCOP_habitat_rain, "lambda"))
+
+# We're supposed to have a predicted lambda = 1.77 for rain = 6.03.
+
+# With the back-transformed parameters, this doesnt work!
+1.9693466 + 0.9821017 * 6.03 
+
+# We have to back-transform the results AFTER we applied the linear regression.
+exp(0.67770181 - 0.01806041 * 6.03) 
+```
+
+## Plot the model fit
+
+```{r}
+plot(resCOP_null)
+plot(resCOP_habitat_rain)
+```
+
+
+## Model selection
 
 We can compare several models by their AIC by using `fitList` and `modSel`.
 
@@ -371,123 +575,120 @@ fl <- fitList(fits = list("Null" = resCOP_null,
 modSel(fl)
 ```
 
-## How is the model fitted?
 
-The model is fitted by maximum likelihood estimation (MLE). 
+## How well did the model estimated the simulated parameters?
 
-```{r how-is-the-model-fitted, class.source = 'fold-hide'}
-# M = 100
-# J = 10
+We know under which conditions we simulated data, because we chose the simulated parameters $\lambda$ and $\psi$. Therefore, we can compare the "true parameters" to the "estimated parameters". Here, we will focus on this one example only.
 
-cpt = 1
-for (simul_psi in c(.1, .25, .5, .75, .9)) {
-  for (simul_lambda in c(1, 3, 5)) {
-    # simul_z = c(rep(1, simul_psi * 100), rep(0, times=((1 - simul_psi) * 100)))
-    simul_z = sample(
-      x = c(0, 1),
-      size = M,
-      replace = T,
-      prob = c(1 - simul_psi, simul_psi)
-    )
-    simul_y <- matrix(rpois(n = M * J, lambda = simul_lambda),
-                      nrow = M,
-                      ncol = J) * simul_z
-    
-    fit = occuCOP(data = unmarkedFrameCOP(y = simul_y,
-                                          obsLength = (simul_y * 0 + 1)))
-    estim_psi = backTransform(fit, "psi")
-    estim_lambda = backTransform(fit, "lambda")
-    
-    nll_df_plot_i = occuCOP(
-      data = unmarkedFrameCOP(y = simul_y, obsLength = (simul_y * 0 + 1)),
-      get.NLL.params =
-        as.list(as.data.frame(t(
-          expand.grid("psi" = qlogis(seq(0.01, 0.99, by = 0.02)),
-                      "lambda" = log(round(
-                        simul_lambda * seq(from = 0.25, to = 1.75, by = .25), 2
-                      )))
-        )))
-    )
-    nll_df_plot_i$simul_psi = simul_psi
-    nll_df_plot_i$simul_lambda = simul_lambda
-    nll_df_plot_i$estim_psi = estim_psi@estimate
-    nll_df_plot_i$estim_lambda = estim_lambda@estimate
-    
-    if (cpt==1) {
-      nll_df_plot = nll_df_plot_i
-    } else{
-      nll_df_plot = rbind(nll_df_plot, nll_df_plot_i)
-    }
-    # cat('\r',cpt,"/ 15")
-    cpt = cpt + 1
-    rm(nll_df_plot_i)
-  }
-}
+### $\psi$ the occupancy probability
 
-nll_df_plot$psi = plogis(nll_df_plot[, "logit(psi).(Intercept)"])
-nll_df_plot$lambda = exp(nll_df_plot[, "log(lambda).(Intercept)"])
-nll_df_plot$simulated_lambda = (round(nll_df_plot$lambda, 2) == round(nll_df_plot$simul_lambda, 2))
-nll_df_plot$lambda_txt = format(nll_df_plot$lambda, digits = 2, nsmall = 2)
-nll_df_plot$label = ifelse(nll_df_plot$psi == max(nll_df_plot$psi),
-                           paste0("λ=", nll_df_plot$lambda_txt),
-                           NA)
+```{r how-well-did-COP-estimated-psi, class.source = 'fold-hide', out.width = "60%"}
+psi_simulVSestim = data.frame(
+  "habitat" = SiteCov$habitat,
+  "simul" = simul_psi,
+  "estim_null" = predict(resCOP_null, "psi", re.form=T)$Predicted,
+  "estim_habitat_rain" = predict(resCOP_habitat_rain, "psi", re.form=T)$Predicted
+)
 
-df_estimates = nll_df_plot %>%
-  group_by(simul_psi, simul_lambda) %>%
-  summarise(
-    estim_psi = unique(estim_psi),
-    estim_lambda = unique(estim_lambda),
-    maximum_llh = max(-nll),
-    minimum_llh = min(-nll),
-    .groups = "drop"
-  )
-
-ggplot() +
-  geom_line(
-    data = nll_df_plot,
-    aes(
-      x = psi,
-      y = -nll,
-      colour = lambda_txt,
-      linewidth = simulated_lambda,
-      linetype = simulated_lambda
-    )
-  ) +
-  ggh4x::facet_grid2(
-    simul_psi ~ simul_lambda,
-    labeller = label_both,
-    scales = "free_y",
-    independent = "y"
-  ) +
+tidyr::pivot_longer(
+  psi_simulVSestim,
+  cols = c("simul","estim_null","estim_habitat_rain"),
+  names_to = "model",
+  values_to = "estim"
+) %>% 
+  mutate(model = factor(
+    model,
+    levels = c("simul", "estim_null", "estim_habitat_rain"),
+    labels = c("Simulated", "Null model", "ψ ~ habitat, λ ~ rain"),
+    ordered = T
+  )) %>% 
+  ggplot(aes(x = estim, y = habitat, colour = model)) +
+  geom_point() +
   labs(
-    title = "Negative log-likelihood of the COP model for different values of ψ and λ",
-    x = "ψ",
-    y = "Log-likelihood",
-    colour = "lambda"
+    title = "How well did the COP model estimate ψ?",
+    x = "Occupancy probability (ψ)",
+    y = "Habitat",
+    colour = "Model"
   ) +
-  scale_linewidth_manual(values = c("TRUE" = 1, "FALSE" = .3)) +
-  scale_linetype_manual(values = c("TRUE" = "solid", "FALSE" = "dashed")) +
-  theme_light()+
-  geom_vline(data = df_estimates,
-             aes(xintercept = estim_psi),
-             linetype = "dotted") +
-  geom_label(data = df_estimates, aes(
-    x = estim_psi,
-    y = minimum_llh + abs(minimum_llh * .1),
-    label = paste0("λ: ", round(estim_lambda, 2))
-  )) +
-  geom_hline(data = df_estimates,
-             aes(yintercept = maximum_llh),
-             linetype = "dotted")+
-    geom_label(data = df_estimates, aes(
-    x = -0.05,
-    y = maximum_llh-25,
-    label = paste0("ψ: ", round(estim_psi, 2))
-  )) +
-  xlim(-.1, 1.1) +
-  theme(legend.position = "none")
+  theme_light() +
+  theme(legend.title = element_blank(),
+        legend.position = "bottom")
+```
+
+### $\lambda$ the detection rate
+
+```{r how-well-did-COP-estimated-lambda, class.source = 'fold-hide', out.width = "60%"}
+lambda_simulVSestim = data.frame(
+  "rain" = as.numeric(t(TemporalCov$rain)),
+  "simul" = as.numeric(t(simul_lambda)),
+  "estim_null" = as.numeric(t(predict(resCOP_null, "lambda", re.form=T)$Predicted)),
+  "estim_habitat_rain" = as.numeric(t(predict(resCOP_habitat_rain, "lambda", re.form=T)$Predicted))
+)
+
+tidyr::pivot_longer(
+  lambda_simulVSestim,
+  cols = c("simul","estim_null","estim_habitat_rain"),
+  names_to = "model",
+  values_to = "estim"
+) %>%
+  mutate(model = factor(
+    model,
+    levels = c("simul", "estim_null", "estim_habitat_rain"),
+    labels = c("Simulated", "Null model", "ψ ~ habitat, λ ~ rain"),
+    ordered = T
+  )) %>% 
+ggplot(aes(x = estim, y = rain, colour = model)) +
+  geom_point() +
+  labs(
+    title = "How well did the COP model estimate λ?",
+    x = "Detection rate (λ)",
+    y = "Rain",
+    colour = "Model"
+  ) +
+  theme_light() +
+  theme(legend.title = element_blank(),
+        legend.position = "bottom")
 
 ```
+
+# Simulate data sets
+
+## Based on chosen parameters
+
+See https://rbchan.github.io/unmarked/articles/simulate.html for more informations.
+
+```{r simul-chosen-params}
+simul_umf <- simulate(
+  "COP",
+  formulas = list(psi =  ~ elev + habitat, lambda =  ~ rain),
+  coefs = list(
+    psi = c(
+      intercept = qlogis(.2),
+      elev = -0.5,
+      habitatB = .5,
+      habitatC = .8
+    ),
+    lambda = c(intercept = log(3), rain = -1)
+  ),
+  design = list(M = 100, J = 3),
+  guide = list(
+    elev = list(dist = rnorm, mean = 100, sd = 80),
+    habitat = factor(levels = c("A", "B", "C"))
+  ),
+  seed = 123
+)
+head(simul_umf)
+summary(simul_umf)
+```
+
+## Based on a unmarkedFitCOP object
+
+```{r}
+
+```
+
+
+<!--
 
 # Interpret the results
 
@@ -552,6 +753,8 @@ cbind(SiteCov$elev, predict(respcount, "state"))
 cbind(as.numeric(t(TemporalCov$rain)), predict(respcount, "det"))
 ```
 
+-->
+
 # --
  
 ```{r dev}
@@ -560,10 +763,14 @@ cbind(as.numeric(t(TemporalCov$rain)), predict(respcount, "det"))
 # psistarts = rep(0, length(attr(terms(psiformula), "term.labels")) + 1)
 # lambdastarts = rep(0, length(attr(terms(lambdaformula), "term.labels")) + 1)
 
+psiformula <- ~ 1
+lambdaformula <- ~ 1
+formlist <- mget(c("psiformula", "lambdaformula"))
+
 data <- umf
 psiformula <- ~ habitat
 lambdaformula <- ~ rain
-
+formlist <- mget(c("psiformula", "lambdaformula"))
 
 method = "BFGS"
 se = TRUE
@@ -580,5 +787,4 @@ object = occuCOP(
 )
 
 ```
- 
- 
+
