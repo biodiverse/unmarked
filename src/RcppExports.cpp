@@ -454,8 +454,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // nll_occuRNMulti
-double nll_occuRNMulti(arma::vec beta, arma::mat state_ind, arma::mat det_ind, int S, Rcpp::List ylist, Rcpp::List Xlist, Rcpp::List Vlist, arma::imat dep, arma::ivec K, arma::imat Kmin, int threads);
-RcppExport SEXP _unmarked_nll_occuRNMulti(SEXP betaSEXP, SEXP state_indSEXP, SEXP det_indSEXP, SEXP SSEXP, SEXP ylistSEXP, SEXP XlistSEXP, SEXP VlistSEXP, SEXP depSEXP, SEXP KSEXP, SEXP KminSEXP, SEXP threadsSEXP) {
+double nll_occuRNMulti(arma::vec beta, arma::mat state_ind, arma::mat det_ind, int S, arma::ivec modOcc, Rcpp::List ylist, Rcpp::List Xlist, Rcpp::List Vlist, arma::imat dep, arma::ivec K, arma::imat Kmin, int threads);
+RcppExport SEXP _unmarked_nll_occuRNMulti(SEXP betaSEXP, SEXP state_indSEXP, SEXP det_indSEXP, SEXP SSEXP, SEXP modOccSEXP, SEXP ylistSEXP, SEXP XlistSEXP, SEXP VlistSEXP, SEXP depSEXP, SEXP KSEXP, SEXP KminSEXP, SEXP threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -463,6 +463,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type state_ind(state_indSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type det_ind(det_indSEXP);
     Rcpp::traits::input_parameter< int >::type S(SSEXP);
+    Rcpp::traits::input_parameter< arma::ivec >::type modOcc(modOccSEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type ylist(ylistSEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type Xlist(XlistSEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type Vlist(VlistSEXP);
@@ -470,7 +471,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::ivec >::type K(KSEXP);
     Rcpp::traits::input_parameter< arma::imat >::type Kmin(KminSEXP);
     Rcpp::traits::input_parameter< int >::type threads(threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(nll_occuRNMulti(beta, state_ind, det_ind, S, ylist, Xlist, Vlist, dep, K, Kmin, threads));
+    rcpp_result_gen = Rcpp::wrap(nll_occuRNMulti(beta, state_ind, det_ind, S, modOcc, ylist, Xlist, Vlist, dep, K, Kmin, threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -589,7 +590,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_unmarked_nll_occuMulti", (DL_FUNC) &_unmarked_nll_occuMulti, 15},
     {"_unmarked_nll_occuPEN", (DL_FUNC) &_unmarked_nll_occuPEN, 11},
     {"_unmarked_nll_occuRN", (DL_FUNC) &_unmarked_nll_occuRN, 10},
-    {"_unmarked_nll_occuRNMulti", (DL_FUNC) &_unmarked_nll_occuRNMulti, 11},
+    {"_unmarked_nll_occuRNMulti", (DL_FUNC) &_unmarked_nll_occuRNMulti, 12},
     {"_unmarked_nll_occuTTD", (DL_FUNC) &_unmarked_nll_occuTTD, 17},
     {"_unmarked_nll_pcount", (DL_FUNC) &_unmarked_nll_pcount, 11},
     {"_unmarked_nll_pcountOpen", (DL_FUNC) &_unmarked_nll_pcountOpen, 35},
