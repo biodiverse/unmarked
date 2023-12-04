@@ -1,18 +1,24 @@
 ---
-title: "occuCOP example"
+title: "Occupancy model with count data using `occuCOP`"
 author: "Léa Pautrel"
-date: "`r format(Sys.time(), '%d %B %Y')`"
-output:
-  html_document:
-    toc: yes
-    toc_depth: 3
+date: "December 12, 2023"
+bibliography: unmarked.bib
+csl: ecology.csl
+output: 
+  rmarkdown::html_vignette:
+    fig_width: 5
+    fig_height: 3.5
     number_sections: true
-    toc_float: 
-      collapsed: true
-    code_folding: show
-    theme: cerulean
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Occupancy model with count data using `occuCOP`}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
 editor_options: 
   chunk_output_type: console
+header-includes: 
+  - \usepackage{tikz}
+  - \usepackage{pgfplots}
 ---
 
 ```{r setup, include=FALSE}
@@ -26,6 +32,9 @@ knitr::opts_chunk$set(
 ```
 
 ```{r library, echo=T, results="hide"}
+# While it is not packaged
+setwd("~/synchros_git/MOBICO_git/unmarked/")
+knitr::opts_knit$set(root.dir = "~/synchros_git/MOBICO_git/unmarked/")
 source("./R/occuCOP.R")
 library(ggplot2)
 library(ggrepel)
@@ -35,57 +44,84 @@ library(tidyr)
 ```
 
 
-# The COP model
+# How does `occuCOP` work?
 
-Hereafter, I use the notations defined in the following table.
-
+> Hereafter, I use the notation defined in the following table.
+> 
 |       Notation | Parameter                                                    |
 | -------------: | :----------------------------------------------------------- |
-|            $I$ | Number of sites                                              |
-|            $J$ | Number of sampling occasions                                 |
+|            $M$ | Number of sites                                              |
+|            $J$ | Number of observations                                       |
 |       $\psi_i$ | Occupancy probability in site $i$                            |
 |          $Z_i$ | Occupancy state of site $i$ (present = 1, absent = 0)        |
-| $\lambda_{ij}$ | Detection rate in site $i$ during sampling occasion $j$      |
-|       $T_{ij}$ | Duration or length of sampling occasion $j$                  |
+| $\lambda_{ij}$ | Detection rate in site $i$ during observation $j$            |
+|       $T_{ij}$ | Duration or length of observation $j$                        |
 |       $N_{i}$  | Number of detections in site $i$                             |
-|       $N_{ij}$ | Number of detections in site $i$ during sampling occasion $j$ |
+|       $N_{ij}$ | Number of detections in site $i$ during observation $j$      |
+> 
+> Table: Mathematical notation
 
+## The COP occupancy model
 
-The model is defined as:
+COP stands for "Counting Occurrences Process". It is an occupancy model, hence it is a hierarchical model with two submodels : the **ecological submodel**, for occupancy; and the **observation submodel**, to take into account imperfect detection. Two equations therefore define this model.
+
+- The **ecological submodel** for occupancy, with:
+  - $Z_i$ the occupancy state of site $i$, with $Z_i=1$ if the species is present in site $i$ and $Z_i=0$ if the species is absent.
+  - $\psi_i$ the occupancy probability, whose value depends on the site covariates of site $i$.
+- The **observation submodel** for imperfect detection, with:
+  - $N_{ij}$ the number of detection events in site $i$ during observation $j$
+  - $\lambda_{ij}$ the detection rate per time-unit or space-unit in site $i$ during observation $j$
+  - $L_{ij}$ the length of the $j^{th}$ observation in site $i$
 
 $$
 Z_i \sim \text{Bernoulli}(\psi_{i}) \\
-N_{ij} \sim \text{Poisson}(\lambda_{ij} T_{ij})
+N_{ij} \sim \text{Poisson}(\lambda_{ij} L_{ij})
 $$
 
-## How is the model fitted?
+The full process can be schematised, as in the following figure. This figure helps understanding what we mean by imperfect detection in occupancy modelling: a site can be occupied by a species and remain undetected.
 
-The model is fitted by maximum likelihood estimation (MLE). Likelihood is the probability of observing these data given a set of parameters. The likelihood $L$ of this model is:
+```{r cop-model, echo=FALSE, out.width="90%", fig.cap="COP occupancy model (from @pautrel2023)", fig.align = 'center'}
+knitr::include_graphics("./figures/COP-model.png")
+```
+
+What we call **observation** ($j$) can correspond to several ways to collect data, for example:
+
+- **Sampling occasions**: field operators collect data several times. They monitor the site during a given amount of time at each sampling occasion. Sampling occasions are seperated by periods of time during when the site is not monitored. $L_{ij}$ is the duration of the $j^{th}$ sampling occasion in site $i$ and $\lambda_{ij}$ can typically be the rate of detection events per day or per hour.
+- **Transects**: field operators follow a straight path that cuts through a landscape and note their observations. Operators can cover each transect in a study several times and/or there can be several transects per site. $L_{ij}$ is the length of the $j^th$ transect in site $i$ and $\lambda_{ij}$ can typically be the rate of detection events per kilometer.
+- **Sessions**: data is collected continuously for a long period of time, through sensors (camera-traps, automatic recording units) or opportunistically. Data is discretised -- or aggregated -- for periods of time called sessions that occur consecutively, without any gaps between them. $L_{ij}$ is the duration of the $j^{th}$ session in site $i$ and $\lambda_{ij}$ can typically be the rate of detection events per day or per hour.
+
+## Fitting the model by maximum likelihood estimation
+
+The model is fitted by maximum likelihood estimation (MLE). Likelihood is the probability of observing the data we have given a set of parameters.
+
+Here, likelihood for site $i$ is the probability of observing $N_i = \sum_{j=1}^{J} N_{ij}$ the count of all detection events in site $i$, with $L_{i} = \sum_{j=1}^{J} L_{ij}$ the total observation length in site $i$, given parameters $\psi_{i}$ the occupancy probability and $\lambda_{ij}$ the detection rate. 
+
+The likelihood ($\mathcal{L}$) of this model is described hereafter, and is detailed in supplementary materials of @pautrel2023.
 
 \begin{align}
 \begin{split}
-  L(\psi_i, \lambda_{is})
-    &= \prod_{i=1}^{I} \mathbb{P}_{\psi_i, \lambda_{is}}(N_{i} = n_{i}) \\
+  \mathcal{L}(\psi_i, \lambda_{is})
+    &= \prod_{i=1}^{M} \mathbb{P}_{\psi_i, \lambda_{is}}(N_{i} = n_{i}) \\
     &=  
         \prod_{i, n_i > 0} \left ( \mathbb{P}_{\psi_i, \lambda_{is}}(N_{i} = n_i, n_i > 0) \right )
         \times 
         \prod_{i, n_i = 0} \left ( \mathbb{P}_{\psi_i, \lambda_{is}}(N_{i} = 0) \right ) \\
     &= 
         \prod_{i, n_i > 0} \left ( 
-            \psi_i \frac{ \left( \sum_{s=1}^S(\lambda_{is} T_{is}) \right) ^ {n_i} }{ n_{i}! } e^{-\sum_{s=1}^S(\lambda_{is} T_{is})}
+            \psi_i \frac{ \left( \sum_{s=1}^S(\lambda_{is} L_{is}) \right) ^ {n_i} }{ n_{i}! } e^{-\sum_{s=1}^S(\lambda_{is} L_{is})}
         \right )
         \times 
         \prod_{i, n_i = 0} \left (
-            \psi_i e^{-\sum_{s=1}^S(\lambda_{is} T_{is})}  + (1-\psi_i)
+            \psi_i e^{-\sum_{s=1}^S(\lambda_{is} L_{is})}  + (1-\psi_i)
         \right )
 \end{split}
 \end{align}
 
-To maximise the likelihood, we use an optimisation algorithm, and we actually minimise the log-likelihood $log(L)$ for computational reasons. We can visualise  how can the likelihood vary depending on the parameters, to better understand what the optimisation algorithm does. 
+To maximise the likelihood, we use an optimisation algorithm. We actually minimise the log-likelihood ($log(\mathcal{L})$) for computational reasons. In R, optimisation algorithms are embedded in the `optim` function. We can visualise  how can the likelihood vary depending on the parameters, to better understand what the optimisation algorithm does. 
 
 With the COP model, here are examples of log-likelihood for varying simulation scenarios (see simul_lambda on top, simul_psi on the right), and for different values of $\psi$ (on the bottom) and $\lambda$ (line colours, the thick lines corresponding to the detection rate $\lambda$ used to simulate data). The black dotted lines and labels correspond to the value of the parameters $\psi$ and $\lambda$ for the maximum likelihood estimated by the optimisation algorithm.
 
-```{r how-is-the-model-fitted, message=FALSE, class.source='fold-hide', fig.height=10, fig.width=12}
+```{r how-is-the-model-fitted, echo=FALSE, fig.height=10, fig.width=12, message=FALSE}
 M = 100 # Number of sites
 J = 5 # Number of observations (transects, sessions, sampling occasions...)
 cpt = 1
@@ -199,8 +235,7 @@ ggplot() +
 
 ```
 
-# Simulation
-
+# Simulating a data set
 
 ```{r init}
 set.seed(0)
@@ -209,7 +244,7 @@ M = 100 # Number of sites
 J = 5 # Number of observations (transects, sessions, sampling occasions...)
 ```
 
-We first simulate the data set. We'll simulate data in M=`r M` sites during J=`r J` sampling occasions.
+We first simulate the data set. We'll simulate data in M = `r M` sites during J = `r J` sampling occasions.
 
 We simulate site covariates:
 
@@ -322,12 +357,9 @@ class(L)
 print(as_tibble(L))
 ```
 
+# Creating an `unmarkedFrameCOP` object
 
-# unmarkedFrameCOP object
-
-## Creation
-
-We then create our unmarkedFrameCOP object.
+Now that we have data, we create our unmarkedFrameCOP object.
 
 ```{r umf-creation}
 umf = unmarkedFrameCOP(
@@ -338,7 +370,7 @@ umf = unmarkedFrameCOP(
 )
 ```
 
-## Visualisation
+We can visualise what is in this `unmarkedFrameCOP` object with several functions.
 
 ```{r umf-visu}
 head(umf)
@@ -351,7 +383,7 @@ print(umf[2, 4])
 plot(umf)
 ```
 
-## Warning and errors
+## Warning and errors {.unnumbered}
 
 There is an error if there are decimals in y.
 
@@ -369,9 +401,8 @@ unmarkedFrameCOP(
 There is a warning if data is detection/non-detection (1/0) instead of count.
 
 ```{r umf-warning-01}
-y_detec_nodetec = (y > 0) * 1
 unmarkedFrameCOP(
-  y = y_detec_nodetec,
+  y = ((y > 0) * 1),
   L = L,
   siteCovs = SiteCov,
   obsCovs = TemporalCov
@@ -419,21 +450,19 @@ We also have messages to inform us of the default initial parameters for the opt
 Intuitively, the initial psi value can be the proportion of sites in which we do not have any observations.
 
 ```{r}
-psi_init = mean(rowSums(y) == 0)
-print(psi_init)
+(psi_init <- mean(rowSums(y) == 0))
 ```
 
 And the initial lambda value can be the mean count of detection events in sites in which there was at least one observation.
 
 ```{r}
-lambda_init = mean(y[rowSums(y) > 0, ])
-print(lambda_init)
+(lambda_init <- mean(y[rowSums(y) > 0, ]))
 ```
 
 We have to transform them. See `?occuCOP` for more information about these transformations.
 
 ```{r}
-resCOP_null <- occuCOP(
+(resCOP_null <- occuCOP(
   data = umf,
   psiformula = ~ 1,
   lambdaformula = ~ 1,
@@ -441,8 +470,7 @@ resCOP_null <- occuCOP(
   lambdastarts = log(lambda_init),
   method = "Nelder-Mead",
   L1 = TRUE
-)
-print(resCOP_null)
+))
 ```
 
 ## $\psi$ ~ habitat, $\lambda$ ~ rain
@@ -450,28 +478,26 @@ print(resCOP_null)
 With covariates, we need initial values for the optimisation to be vectors of the adequate length. Here, we will keep the default initial values of 0, which backtransformed, correspond to an occupancy probability of 0.5 and a detection rate of 1.
 
 ```{r cov-fit}
-resCOP_habitat_rain <- occuCOP(
+(resCOP_habitat_rain <- occuCOP(
   data = umf,
   psiformula = ~ -1 + habitat,
   lambdaformula = ~ rain,
   method = "Nelder-Mead",
   L1 = TRUE
-)
-print(resCOP_habitat_rain)
+))
 ```
 
 A warning tell us that the model did not converge. We can add in parameters for optim in the `occuCOP` function, for example to increase the maximum number of iterations, with `control = list(maxit = 5000)`:
 
 ```{r cov-fit-maxit}
-resCOP_habitat_rain <- occuCOP(
+(resCOP_habitat_rain <- occuCOP(
   data = umf,
   psiformula = ~ -1 + habitat,
   lambdaformula = ~ rain,
   method = "Nelder-Mead",
   L1 = TRUE,
   control = list(maxit = 5000)
-)
-print(resCOP_habitat_rain)
+))
 ```
 
 ## Back-transforming parameter estimates
@@ -548,7 +574,10 @@ logistic(coef(resCOP_habitat_rain, "psi"))
 # Detection rate estimate
 exp(coef(resCOP_habitat_rain, "lambda"))
 
-# We're supposed to have a predicted lambda = 1.77 for rain = 6.03.
+# We're supposed to have a predicted lambda ≈ 1.77 for rain = 6.03, as we can see using predict:
+predict(resCOP_habitat_rain,
+        type = "lambda",
+        newdata = data.frame("rain" = 6.03))
 
 # With the back-transformed parameters, this doesnt work!
 1.9693466 + 0.9821017 * 6.03 
@@ -567,14 +596,67 @@ plot(resCOP_habitat_rain)
 
 ## Model selection
 
-We can compare several models by their AIC by using `fitList` and `modSel`.
+We can compare several models by their AIC by using `fitList` and `modSel`. 
 
 ```{r ranking}
-fl <- fitList(fits = list("Null" = resCOP_null,
-                          "psi~elev, lambda~rain" = resCOP_habitat_rain))
+fl <- fitList(fits = list(
+  # lambda~1
+  "psi~1              lambda~1" = suppressWarnings(suppressMessages(occuCOP(
+     umf, ~1, ~1
+  ))),
+  "psi~habitat        lambda~1" = suppressWarnings(suppressMessages(occuCOP(
+     umf, ~habitat, ~1
+  ))),
+  "psi~elev           lambda~1" = suppressWarnings(suppressMessages(occuCOP(
+     umf, ~elev, ~1
+  ))),
+  "psi~habitat+elev   lambda~1" = suppressWarnings(suppressMessages(occuCOP(
+     umf, ~habitat+elev, ~1
+  ))),
+  # lambda~rain
+  "psi~1              lambda~rain" = suppressWarnings(suppressMessages(occuCOP(
+     umf, ~1, ~rain
+  ))),
+  "psi~habitat        lambda~rain" = suppressWarnings(suppressMessages(occuCOP(
+     umf, ~habitat, ~rain
+  ))),
+  "psi~elev           lambda~rain" = suppressWarnings(suppressMessages(occuCOP(
+     umf, ~elev, ~rain
+  ))),
+  "psi~habitat+elev   lambda~rain" = suppressWarnings(suppressMessages(occuCOP(
+     umf, ~habitat+elev, ~rain
+  ))),
+  # lambda~wind
+  "psi~1              lambda~wind" = suppressWarnings(suppressMessages(occuCOP(
+     umf, ~1, ~wind
+  ))),
+  "psi~habitat        lambda~wind" = suppressWarnings(suppressMessages(occuCOP(
+     umf, ~habitat, ~wind
+  ))),
+  "psi~elev           lambda~wind" = suppressWarnings(suppressMessages(occuCOP(
+     umf, ~elev, ~wind
+  ))),
+  "psi~habitat+elev   lambda~wind" = suppressWarnings(suppressMessages(occuCOP(
+     umf, ~habitat+elev, ~wind
+  ))),
+  # lambda~rain+wind
+  "psi~1              lambda~rain+wind" = suppressWarnings(suppressMessages(occuCOP(
+     umf, ~1, ~rain+wind
+  ))),
+  "psi~habitat        lambda~rain+wind" = suppressWarnings(suppressMessages(occuCOP(
+     umf, ~habitat, ~rain+wind
+  ))),
+  "psi~elev           lambda~rain+wind" = suppressWarnings(suppressMessages(occuCOP(
+     umf, ~elev, ~rain+wind
+  ))),
+  "psi~habitat+elev   lambda~rain+wind" = suppressWarnings(suppressMessages(occuCOP(
+     umf, ~habitat+elev, ~rain+wind
+  )))
+))
 modSel(fl)
 ```
 
+Here, we compared all possible models, with the default parameters (optimisation algorithm, initial values, ...). This approach if often applied by model users to select their model. Note that selecting a model only by minimising AIC is very often flawed, as it is in our case. The model with the lower AIC is `psi~habitat, lambda~rain+wind`, where the occupancy probability depends on the habitat type, and the detection rate depends on both rain and wind. However, because we simulated our data above, we know that the best model should have been `psi~habitat, lambda~rain`, since neither the elevation nor the wind were used to simulate the count data.
 
 ## How well did the model estimated the simulated parameters?
 
@@ -651,11 +733,26 @@ ggplot(aes(x = estim, y = rain, colour = model)) +
 
 ```
 
-# Simulate data sets
+# Model diagnostics
 
-## Based on chosen parameters
+## Posterior distributions
 
-See https://rbchan.github.io/unmarked/articles/simulate.html for more informations.
+$$\mathbb{P}(z_{i} = 1 \vert y_{ij}, \widehat{\psi_{i}}, \widehat{\lambda_{ij}})$$
+
+```{r}
+(re_null <- ranef(resCOP_null))
+(re_habitat_rain <- ranef(resCOP_habitat_rain))
+bup(re_habitat_rain, stat = "mean") # Posterior mean
+confint(re_habitat_rain, level = 0.80) # 80% CI
+plot(re_habitat_rain)
+```
+
+
+## Simulate data sets
+
+### Based on chosen parameters
+
+> For more information, see https://rbchan.github.io/unmarked/articles/simulate.html.
 
 ```{r simul-chosen-params}
 simul_umf <- simulate(
@@ -681,110 +778,31 @@ head(simul_umf)
 summary(simul_umf)
 ```
 
-## Based on a unmarkedFitCOP object
+### Based on a unmarkedFitCOP object
+
+We can also generate new simulated count data (y) with our estimated parameters and our covariates.
 
 ```{r}
+y_simulate = simulate(resCOP_habitat_rain, nsim = 5)
+str(y_simulate)
+```
 
+## Bootstrap
+
+### Parametric bootstrap with `parboot`
+
+```{r}
+parboot(resCOP_null, statistics = unmarked::SSE, nsim = 20)
 ```
 
 
-<!--
+### Non-parametric bootstrap
 
-# Interpret the results
+Not currently supported.
 
-
-
-# Other models examples
-
-## occu
-
-```{r occu}
-resOccuNull = occu(
-  formula = ~ 1 ~ 1,
-  data = unmarkedFrameOccu(
-    y = y,
-    siteCovs = SiteCov,
-    obsCovs = TemporalCov
-  )
-)
-resOccuNull
-backTransform(resOccuNull,"state")
-backTransform(resOccuNull,"det")
-
-resOccu = occu(
-  formula = ~ rain ~ elev,
-  data = unmarkedFrameOccu(
-    y = y,
-    siteCovs = SiteCov,
-    obsCovs = TemporalCov
-  )
-)
-resOccu
-cbind(SiteCov$elev, predict(resOccu, "state"))
-cbind(as.numeric(t(TemporalCov$rain)), predict(resOccu, "det"))
-
+```{r}
+nonparboot(resCOP_null)
 ```
 
-## pcount
 
-```{r pcount}
-respcountNull = pcount(
-  formula = ~ 1 ~ 1,
-  data = unmarkedFramePCount(
-    y = y,
-    siteCovs = SiteCov,
-    obsCovs = TemporalCov
-  )
-)
-respcountNull
-backTransform(respcountNull,"state")
-backTransform(respcountNull,"det")
-
-respcount = pcount(
-  formula = ~ rain ~ elev,
-  data = unmarkedFramePCount(
-    y = y,
-    siteCovs = SiteCov,
-    obsCovs = TemporalCov
-  )
-)
-respcount
-cbind(SiteCov$elev, predict(respcount, "state"))
-cbind(as.numeric(t(TemporalCov$rain)), predict(respcount, "det"))
-```
-
--->
-
-# --
- 
-```{r dev}
-# psiformula <-  ~ 1
-# lambdaformula <- ~ 1
-# psistarts = rep(0, length(attr(terms(psiformula), "term.labels")) + 1)
-# lambdastarts = rep(0, length(attr(terms(lambdaformula), "term.labels")) + 1)
-
-psiformula <- ~ 1
-lambdaformula <- ~ 1
-formlist <- mget(c("psiformula", "lambdaformula"))
-
-data <- umf
-psiformula <- ~ habitat
-lambdaformula <- ~ rain
-formlist <- mget(c("psiformula", "lambdaformula"))
-
-method = "BFGS"
-se = TRUE
-engine = "R"
-threads = 1L
-na.rm = TRUE
-
-maxit = 1000
-
-object = occuCOP(
-  data = data,
-  psiformula = psiformula,
-  lambdaformula = lambdaformula
-)
-
-```
-
+# References

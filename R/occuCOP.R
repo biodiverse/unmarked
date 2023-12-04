@@ -1,19 +1,22 @@
-
-# Prerequisites (while its not integrated within the package)
-library(unmarked)
-source("R/unmarkedFrame.R")
-source("R/utils.R")
-source("R/unmarkedEstimate.R")
-source("R/unmarkedFitList.R")
-source("R/predict.R")
-source("R/getDesign.R")
-source("R/mixedModelTools.R")
-source("R/simulate.R")
-source("R/power.R")
-# sapply(paste0("./R/", list.files("./R/")), source)
-
-library(lattice)
-library(testthat)
+# 
+# # Prerequisites (while its not integrated within the package)
+# setwd("~/synchros_git/MOBICO_git/unmarked/R")
+# library(unmarked)
+# source("unmarkedFrame.R")
+# source("utils.R")
+# source("unmarkedEstimate.R")
+# source("unmarkedFitList.R")
+# source("predict.R")
+# source("getDesign.R")
+# source("mixedModelTools.R")
+# source("simulate.R")
+# source("power.R")
+# source("boot.R")
+# # source("~/synchros_git/MOBICO_git/unmarked/R/RcppExports.R")
+# # sapply(paste0("./", list.files("./")), source)
+# 
+# library(lattice)
+# library(testthat)
 
 # Fit the occupancy model COP
 # (Counting Occurrences Process)
@@ -388,7 +391,7 @@ setMethod("get_orig_data", "unmarkedFitCOP", function(object, type, ...){
 })
 
 # UNMARKED FIT METHOD ----------------------------------------------------------
-# Required methods include: ranef, simulate,
+# Required methods include: ranef, ,
 
 ## getP ----
 setMethod("getP", "unmarkedFitCOP", function(object) {
@@ -455,7 +458,7 @@ setMethod("plot", c(x = "unmarkedFitCOP", y = "missing"), function(x, y, ...)
   
 })
 
-# SIMULATION METHODS ----
+# SIMULATION METHODS -----------------------------------------------------------
 
 ## get_umf_components ----
 setMethod("get_umf_components", "unmarkedFitCOP",
@@ -514,13 +517,65 @@ setMethod("simulate", "unmarkedFitCOP",
     return(simList)
 })
 
+## nonparboot ----
+setMethod("nonparboot", "unmarkedFitCOP",
+          function(object, B = 0, keepOldSamples = TRUE, ...)
+          {
+            stop("Not currently supported for unmarkedFitCOP", call.=FALSE)
+          })
+
+
+
+# POSTERIOR DISTRIBUTION METHODS -----------------------------------------------
+
+## ranef ----
+setMethod("ranef", "unmarkedFitCOP", function(object, ...) {
+  # Sites removed (srm) and sites kept (sk)
+  srm <- object@sitesRemoved
+  if (length(srm) > 0) {
+    sk = 1:numSites(getData(object))[-srm]
+  } else{
+    sk = 1:numSites(getData(object))
+  }
+  
+  # unmarkedFrame informations
+  M <- length(sk)
+  J <- obsNum(getData(object))
+  y <- getY(getData(object))[sk,]
+  
+  # Estimated parameters
+  psi <- predict(object, type = "psi")[sk, 1]
+  lambda <- getP(object)[sk,]
+  
+  # Estimate posterior distributions
+  z = c(0, 1)
+  post <- array(0, c(M, 2, 1), dimnames = list(NULL, z))
+  for (i in 1:M) {
+    # psi density
+    f <- dbinom(x = z,
+                size = 1,
+                prob = psi[i])
+    
+    # lambda density
+    g <- c(1, 1)
+    for (j in 1:J) {
+      if (is.na(y[i, j]) | is.na(lambda[i, j])) {
+        next
+      }
+      g = g * dpois(x = y[i, j], lambda = lambda[i, j] * z)
+    }
+    
+    # psi*lambda density
+    fudge <- f * g
+    post[i, , 1] <- fudge / sum(fudge)
+  }
+  
+  new("unmarkedRanef", post = post)
+})
+
 
 
 # Useful functions -------------------------------------------------------------
-
-replaceinf = function(x) {
-  max(.Machine$double.xmin, min(.Machine$double.xmax, x))
-}
 
 check.integer <- function(x, na.ignore = F) {
   if (is.na(x) & na.ignore) {
@@ -599,7 +654,7 @@ occuCOP <- function(data,
   #TODO: random effects
   
   # Neg loglikelihood COP ------------------------------------------------------
-  nll_COP <- function(params) {
+  R_nll_occuCOP <- function(params) {
     
     # Reading and transforming params
     # Taking into account the covariates
@@ -620,7 +675,7 @@ occuCOP <- function(data,
     #   lambdaIdx is the index of Occupancy Parameters in params
     lambda <- exp(Xlambda %*% params[lambdaIdx])
     
-    # Listing sites not removed (due to NAs)
+    # Listing sites analysed = sites not removed (due to NAs)
     if (length(sitesRemoved) > 0) {
       siteAnalysed = (1:M)[-sitesRemoved]
     } else {
@@ -652,22 +707,6 @@ occuCOP <- function(data,
       }
     }
     
-    # Note: Why is there "replaceinf(factorial(data@y[i,]))" 
-    #       instead of just "factorial(data@y[i,])"?
-    # Because if there are a lot of detections (n_ij >= 171 on my machine),
-    #   then factorial(n_ij) = Inf, 
-    #   then 1/factorial(n_ij) = 0, 
-    #   then log(0) = -Inf,
-    #   then loglikelihood = -Inf
-    #   then optim does not work.
-    # 
-    # We want to maximise likelihood, 
-    # (technically, minimise negative loglikelihood).
-    # We don't do anything else with this function.
-    # So as long as we have a tiny value for likelihood, 
-    # (ie a huge value for negative loglikelihood)
-    # it doesn't matter if its an approximation.
-    
     # log-likelihood
     ll = sum(log(iProb[siteAnalysed]))
     return(-ll)
@@ -690,7 +729,7 @@ occuCOP <- function(data,
     arg = as.character(na.rm),
     choices = c("TRUE", "FALSE", "0", "1")
   ))
-  engine <- match.arg(engine, c("R"))
+  engine <- match.arg(engine, c("C", "R"))
   L1 = as.logical(match.arg(
     arg = as.character(L1),
     choices = c("TRUE", "FALSE", "0", "1")
@@ -698,7 +737,7 @@ occuCOP <- function(data,
   
   
   # Do not yet manage random effects!!!
-  if (!is.null(lme4::findbars(psiformula)) | !is.null(lme4::findbars(lambdaformula))) {
+  if (has_random(psiformula) | has_random(lambdaformula)) {
     stop("occuCOP does not currently handle random effects.")
   }
   
@@ -804,6 +843,24 @@ occuCOP <- function(data,
     return(df_NLL)
   }
   
+  # nll function depending on engine -------------------------------------------
+  if (identical(engine, "C")) {
+    nll <- function(params) {
+      nll_occuCOP(
+        y = yvec,
+        L = Lvec,
+        X = X,
+        V = V,
+        beta_psi = params[psiIdx],
+        beta_lambda = params[lambdaIdx],
+        removed = removed_obsvec
+      )
+    }
+  } else if (identical(engine, "R")) {
+    nll <- R_nll_occuCOP
+  }
+  
+  
   # Optimisation ---------------------------------------------------------------
   
   ## Checking the starting point for optim
@@ -846,7 +903,7 @@ occuCOP <- function(data,
   ## Run optim
   opt <- optim(
     starts,
-    nll_COP,
+    nll_occuCOP,
     method = method,
     hessian = se,
     ...
