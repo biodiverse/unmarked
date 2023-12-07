@@ -100,7 +100,7 @@ test_that("unmarkedFrameCOP is constructed correctly", {
   # summary method for unmarkedFrameCOP
   expect_output(summary(umf), "unmarkedFrameCOP Object")
   expect_output(summary(umf_sub_ij), "unmarkedFrameCOP Object")
-
+  
   # plot method for unmarkedFrameCOP
   expect_no_error(plot(umf))
   expect_no_error(plot(umf_sub_ij))
@@ -141,6 +141,7 @@ test_that("unmarkedFrameCOP is constructed correctly", {
   expect_no_error(umfNA <- unmarkedFrameCOP(y = y, L = obsLengthNA))
   expect_output(print(umfNA), "Data frame representation of unmarkedFrame object")
   expect_output(summary(umfNA), "unmarkedFrameCOP Object")
+
   expect_no_error(plot(umfNA))
   
   ## NA also in covariates
@@ -229,19 +230,19 @@ test_that("occuCOP can fit simple models", {
 
   # Looking at at COP model outputs ----
   expect_is(fit_default, "unmarkedFitCOP")
-
+  
   ## backTransform
   expect_no_error(backTransform(fit_default, type = "psi"))
   expect_no_error(backTransform(fit_default, type = "lambda"))
   expect_error(backTransform(fit_default, type = "state"))
   expect_error(backTransform(fit_default, type = "det"))
   expect_is(backTransform(fit_default, type = "psi"), "unmarkedBackTrans")
-
+  
   ## predict with newdata = fit@data
   expect_no_error(predict(object = fit_default, type = "psi"))
   expect_no_error(predict(object = fit_default, type = "lambda"))
   expect_error(predict(object = fit_default, type = "state"))
-
+  
   ## predict with newdata = 1
   expect_no_error(predict(
     object = fit_default,
@@ -258,9 +259,8 @@ test_that("occuCOP can fit simple models", {
     newdata = data.frame("a"=1:5,"b"=10:14),
     type = "psi"
   ))
-
+  
   # Fitting accurately ----
-
   ## psi = 0.50, lambda = 1 ----
   psi_test = .5
   lambda_test = 1
@@ -451,6 +451,3 @@ test_that("occuCOP can fit models with covariates", {
     lambdastarts = c(0,0)
   ))
 })
-
-
-

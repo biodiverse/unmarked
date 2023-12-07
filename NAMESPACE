@@ -52,7 +52,8 @@ exportMethods(backTransform, coef, confint, coordinates, fitted, getData,
               "siteCovs<-", summary, update, vcov, yearlySiteCovs,
               "yearlySiteCovs<-", "[", smoothed, projected, nonparboot, logLik,
               LRT, ranef, bup, crossVal, posteriorSamples, sigma, randomTerms, 
-              optimizePenalty, unmarkedPowerList, plotEffectsData, plotEffects)
+              optimizePenalty, unmarkedPowerList, plotEffectsData, plotEffects,
+              getL)
 
 S3method("print", "unmarkedPostSamples")
 

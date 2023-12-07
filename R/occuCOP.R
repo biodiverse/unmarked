@@ -1,4 +1,27 @@
-# Classes ----------------------------------------------------------------------
+# Fit the occupancy model COP
+# (Counting Occurrences Process)
+
+# Occupancy
+# z_i ~ Bernoulli(psi_i)
+# 
+# with:
+#   z_i = Occupancy state of site i
+#       = 1 if the site i is occupied
+#       = 0 else
+# with:
+#   psi_i = Occupancy probability of site i
+
+# Detection
+# N_ij | z_i = 1 ~ Poisson(lambda_is*L_is)
+# N_ij | z_i = 0 ~ 0
+# 
+# with:
+#   N_ij = Number of detections of site i during observation j
+#   z_i = Occupancy state of site i
+#   lambda_ij = Detection rate of the observation j in site i
+#   L_ij = Length/Duration of the observation j in site i
+
+# CLASSES ----------------------------------------------------------------------
 
 ## unmarkedFrameCOP class ----
 setClass(
@@ -27,7 +50,6 @@ setClass(
   }
 )
 
-
 ## unmarkedFitCOP class ----
 setClass("unmarkedFitCOP",
          representation(removed_obs = "matrix",
@@ -35,7 +57,6 @@ setClass("unmarkedFitCOP",
                         nll = "optionalNumeric",
                         convergence="optionalNumeric"),
          contains = "unmarkedFit")
-
 
 
 # Methods ----------------------------------------------------------------------
@@ -60,7 +81,6 @@ setMethod(
     L <- getL(umf)
     
     # Occupancy submodel -------------------------------------------------------
-    
     # Retrieve the fixed-effects part of the formula
     psiformula <- lme4::nobars(as.formula(formlist$psiformula))
     psiVars <- all.vars(psiformula)
@@ -80,7 +100,7 @@ setMethod(
         "' not found in siteCovs"
       ), call. = FALSE)
     }
-    
+
     # State model matrix for fixed effects
     Xpsi <- model.matrix(
       psiformula,
@@ -218,7 +238,7 @@ setMethod("summary", "unmarkedFrameCOP", function(object,...) {
     cat("\nTabulation of sampling occasions length:")
     print(table(object@L))
   }
-  
+
   if(!is.null(object@siteCovs)) {
     cat("\nSite-level covariates:\n")
     print(summary(object@siteCovs))
@@ -228,9 +248,7 @@ setMethod("summary", "unmarkedFrameCOP", function(object,...) {
     cat("\nObservation-level covariates:\n")
     print(summary(object@obsCovs))
   }
-  
 })
-
 
 
 ## umf[i, j] ----
@@ -417,7 +435,6 @@ setMethod("plot", c(x = "unmarkedFitCOP", y = "missing"), function(x, y, ...) {
 })
 
 
-
 ## get_umf_components ----
 setMethod("get_umf_components", "unmarkedFitCOP",
   function(object, formulas, guide, design, ...){
@@ -589,7 +606,6 @@ unmarkedFrameCOP <- function(y, L, siteCovs = NULL, obsCovs = NULL, mapInfo = NU
   
   return(umf)
 }
-
 
 
 # occuCOP ----------------------------------------------------------------------
