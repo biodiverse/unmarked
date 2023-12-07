@@ -24,7 +24,7 @@ importFrom(pbapply, pbsapply, pblapply)
 export(occu, occuFP, occuRN, pcount, pcountOpen, multinomPois, distsamp,
        colext, gmultmix, gdistsamp, gpcount, occuPEN, occuPEN_CV, occuMulti,
        occuMS, computeMPLElambda, pcount.spHDS, occuTTD, distsampOpen,
-       multmixOpen, nmixTTD, gdistremoval, goccu)
+       multmixOpen, nmixTTD, gdistremoval, goccu, occuCOP)
 export(removalPiFun, doublePiFun)
 export(makeRemPiFun, makeCrPiFun, makeCrPiFunMb, makeCrPiFunMh)
 
@@ -40,7 +40,8 @@ exportClasses(unmarkedFit, unmarkedFitOccu, unmarkedFitOccuFP, unmarkedFitDS,
               unmarkedFrameGPC, unmarkedEstimate, unmarkedFitList,
               unmarkedModSel, unmarkedRanef, unmarkedFrameOccuMulti,
               unmarkedFrameOccuMS, unmarkedFrameGDR, unmarkedCrossVal,
-              unmarkedPostSamples, unmarkedPower, unmarkedPowerList)
+              unmarkedPostSamples, unmarkedPower, unmarkedPowerList,
+              unmarkedFrameCOP, unmarkedFitCOP)
 
 # Methods
 exportMethods(backTransform, coef, confint, coordinates, fitted, getData,
@@ -61,7 +62,8 @@ export(unmarkedEstimate, fitList, mapInfo, unmarkedFrame,
     unmarkedFrameDS, unmarkedMultFrame, unmarkedFrameGMM,
     unmarkedFramePCO, unmarkedFrameGDS, unmarkedFrameGPC, unmarkedFrameOccuMulti,
     unmarkedFrameOccuMS, unmarkedFrameOccuTTD, unmarkedFrameDSO, 
-    unmarkedFrameMMO, unmarkedFrameGDR, unmarkedFrameGOccu)
+    unmarkedFrameMMO, unmarkedFrameGDR, unmarkedFrameGOccu,
+    unmarkedFrameCOP)
 
 # Formatting
 export(csvToUMF, formatLong, formatWide, formatMult, formatDistData)
