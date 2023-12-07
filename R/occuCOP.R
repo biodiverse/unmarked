@@ -1,43 +1,25 @@
-# 
-# # Prerequisites (while its not integrated within the package)
-# setwd("~/synchros_git/MOBICO_git/unmarked/R")
-# library(unmarked)
-# source("unmarkedFrame.R")
-# source("utils.R")
-# source("unmarkedEstimate.R")
-# source("unmarkedFitList.R")
-# source("predict.R")
-# source("getDesign.R")
-# source("mixedModelTools.R")
-# source("simulate.R")
-# source("power.R")
-# source("boot.R")
-# # source("~/synchros_git/MOBICO_git/unmarked/R/RcppExports.R")
-# # sapply(paste0("./", list.files("./")), source)
-# 
-# library(lattice)
-# library(testthat)
-
 # Fit the occupancy model COP
 # (Counting Occurrences Process)
 
 # Occupancy
-# z_i ~ Bernoulli(psi)
+# z_i ~ Bernoulli(psi_i)
 # 
 # with:
 #   z_i = Occupancy state of site i
 #       = 1 if the site i is occupied
 #       = 0 else
+# with:
+#   psi_i = Occupancy probability of site i
 
 # Detection
-# N_ijs | z_i = 1 ~ Poisson(lambda*T_s)
-# N_ijs | z_i = 0 ~ 0
+# N_ij | z_i = 1 ~ Poisson(lambda_is*L_is)
+# N_ij | z_i = 0 ~ 0
 # 
 # with:
-#   N_is = Number of detections of site i during session s
+#   N_ij = Number of detections of site i during observation j
 #   z_i = Occupancy state of site i
-#   lambda = Detection rate
-#   T_s = Duration of the session s
+#   lambda_ij = Detection rate of the observation j in site i
+#   L_ij = Length/Duration of the observation j in site i
 
 # CLASSES ----------------------------------------------------------------------
 
@@ -60,9 +42,9 @@ setClass(
     }
     if (!all(all(dim(object@L) == dim(object@y)))){
       errors <- c( errors, paste(
-          "L should be a matrix of the same dimension as y, with M =", M,
-          "rows (sites) and J =", J, "columns (sampling occasions)."
-    ))}
+        "L should be a matrix of the same dimension as y, with M =", M,
+        "rows (sites) and J =", J, "columns (sampling occasions)."
+      ))}
     if (length(errors) == 0) TRUE
     else errors
   }
@@ -77,11 +59,9 @@ setClass("unmarkedFitCOP",
          contains = "unmarkedFit")
 
 
-# UNMARKED FRAME METHODS -------------------------------------------------------
+# Methods ----------------------------------------------------------------------
 
 ## getDesign method ----
-# Example for occu: https://github.com/rbchan/unmarked/blob/536e32ad7b2526f8fac1b315ed2e99accac0d50f/R/getDesign.R#L10-L97
-# Example for GDR: https://github.com/rbchan/unmarked/blob/c82e63947d7df7dfc896066e51dbf63bda3babf4/R/gdistremoval.R#L177-L253
 setMethod(
   "getDesign", "unmarkedFrameCOP",
   function(umf, formlist, na.rm = TRUE) {
@@ -101,7 +81,6 @@ setMethod(
     L <- getL(umf)
     
     # Occupancy submodel -------------------------------------------------------
-
     # Retrieve the fixed-effects part of the formula
     psiformula <- lme4::nobars(as.formula(formlist$psiformula))
     psiVars <- all.vars(psiformula)
@@ -187,12 +166,12 @@ setMethod(
         nb_missing_sites <- sum(rowSums(!removed_obs) == 0)
         nb_missing_observations <- sum(is.na(removed_obs))
         warning("There is missing data: ",
-                  sum(missing_y), " missing count data, ",
-                  sum(missing_sc), " missing site covariate(s), ",
-                  sum(missing_oc), " missing observation covariate(s). ",
+                sum(missing_y), " missing count data, ",
+                sum(missing_sc), " missing site covariate(s), ",
+                sum(missing_oc), " missing observation covariate(s). ",
                 "Data from only ", (M*J)-sum(removed_obs), " observations out of ", (M*J), " are used, ",
                 "from ", M-nb_missing_sites, " sites out of ", M, ".\n\t"
-                )
+        )
       } else {
         stop("na.rm=FALSE and there is missing data :\n\t",
              sum(missing_y), " missing count data (y)\n\t",
@@ -203,12 +182,12 @@ setMethod(
     
     # Output -------------------------------------------------------------------
     return(list(
-        y = y,
-        Xpsi = Xpsi,
-        Zpsi = Zpsi,
-        Xlambda = Xlambda,
-        Zlambda = Zlambda,
-        removed_obs = removed_obs
+      y = y,
+      Xpsi = Xpsi,
+      Zpsi = Zpsi,
+      Xlambda = Xlambda,
+      Zlambda = Zlambda,
+      removed_obs = removed_obs
     ))
   })
 
@@ -269,8 +248,8 @@ setMethod("summary", "unmarkedFrameCOP", function(object,...) {
     cat("\nObservation-level covariates:\n")
     print(summary(object@obsCovs))
   }
-
 })
+
 
 ## umf[i, j] ----
 setMethod("[", c("unmarkedFrameCOP", "numeric", "numeric", "missing"),
@@ -359,10 +338,6 @@ setMethod("fl_getY", "unmarkedFitCOP", function(fit, ...){
   getDesign(getData(fit), fit@formlist)$y
 })
 
-# PREDICT METHODS ----
-# Fit type-specific methods to generate different components of prediction
-# 5. predict_by_chunk(): Take inputs and generate predictions
-# Basic methods are shown below; fit type-specific methods in their own sections
 
 ## predict_inputs_from_umf ----
 setMethod("predict_inputs_from_umf", "unmarkedFitCOP",
@@ -377,11 +352,13 @@ setMethod("predict_inputs_from_umf", "unmarkedFitCOP",
             return(list(X = X, offset = NULL))
           })
 
+
 ## get_formula ----
 setMethod("get_formula", "unmarkedFitCOP", function(object, type, ...) {
   fl <- object@formlist
   switch(type, psi = fl$psiformula, lambda = fl$lambdaformula)
 })
+
 
 ## get_orig_data ----
 setMethod("get_orig_data", "unmarkedFitCOP", function(object, type, ...){
@@ -390,8 +367,6 @@ setMethod("get_orig_data", "unmarkedFitCOP", function(object, type, ...){
   clean_covs[[datatype]]
 })
 
-# UNMARKED FIT METHOD ----------------------------------------------------------
-# Required methods include: ranef, ,
 
 ## getP ----
 setMethod("getP", "unmarkedFitCOP", function(object) {
@@ -405,6 +380,7 @@ setMethod("getP", "unmarkedFitCOP", function(object) {
                          nrow = M, ncol = J, byrow = T)))
   return(matLambda)
 })
+
 
 ## fitted ----
 setMethod("fitted", "unmarkedFitCOP", function(object) {
@@ -421,6 +397,7 @@ setMethod("fitted", "unmarkedFitCOP", function(object) {
   return(estim_psi * estim_lambda)
 })
 
+
 ## residuals ----
 setMethod("residuals", "unmarkedFitCOP", function(object) {
   y <- getY(object@data)
@@ -429,9 +406,9 @@ setMethod("residuals", "unmarkedFitCOP", function(object) {
   return(r)
 })
 
+
 ## plot ----
-setMethod("plot", c(x = "unmarkedFitCOP", y = "missing"), function(x, y, ...)
-{
+setMethod("plot", c(x = "unmarkedFitCOP", y = "missing"), function(x, y, ...) {
   y <- getY(x)
   r <- residuals(x)
   e <- fitted(x)
@@ -455,10 +432,8 @@ setMethod("plot", c(x = "unmarkedFitCOP", y = "missing"), function(x, y, ...)
          xlab = "Predicted data")
     abline(h = 0, lty = 3, col = "red")
   }
-  
 })
 
-# SIMULATION METHODS -----------------------------------------------------------
 
 ## get_umf_components ----
 setMethod("get_umf_components", "unmarkedFitCOP",
@@ -468,6 +443,7 @@ setMethod("get_umf_components", "unmarkedFitCOP",
     yblank <- matrix(0, design$M, design$J)
     list(y=yblank, siteCovs=sc, obsCovs=oc)
 })
+
 
 ## simulate_fit ----
 setMethod("simulate_fit", "unmarkedFitCOP",
@@ -487,46 +463,44 @@ setMethod("simulate_fit", "unmarkedFitCOP",
     return(fit)
 })
 
+
 ## simulate ----
 setMethod("simulate", "unmarkedFitCOP",
   function(object, nsim = 1, seed = NULL, na.rm = TRUE){
-    set.seed(seed)
-    formula <- object@formula
-    umf <- object@data
-    designMats <- getDesign(umf = umf, formlist = object@formlist, na.rm = na.rm)
-    y <- designMats$y
-    M <- nrow(y)
-    J <- ncol(y)
-    
-    # Occupancy probability psi depending on the site covariates
-    psiParms = coef(object, type = "psi", fixedOnly = FALSE)
-    psi <- as.numeric(plogis(as.matrix(designMats$Xpsi %*% psiParms)))
-    
-    # Detection rate lambda depending on the observation covariates
-    lambda = getP(object = object)
-    
-    # Simulations
-    simList <- vector("list", nsim)
-    for(i in 1:nsim) {
-      Z <- rbinom(M, 1, psi)
-      # Z[object@knownOcc] <- 1
-      y = matrix(rpois(n = M * J, lambda = as.numeric(t(lambda))),
-                 nrow = M, ncol = J, byrow = T) * Z
-      simList[[i]] <- y
-    }
-    return(simList)
+  set.seed(seed)
+  formula <- object@formula
+  umf <- object@data
+  designMats <- getDesign(umf = umf, formlist = object@formlist, na.rm = na.rm)
+  y <- designMats$y
+  M <- nrow(y)
+  J <- ncol(y)
+  
+  # Occupancy probability psi depending on the site covariates
+  psiParms = coef(object, type = "psi", fixedOnly = FALSE)
+  psi <- as.numeric(plogis(as.matrix(designMats$Xpsi %*% psiParms)))
+  
+  # Detection rate lambda depending on the observation covariates
+  lambda = getP(object = object)
+  
+  # Simulations
+  simList <- vector("list", nsim)
+  for(i in 1:nsim) {
+    Z <- rbinom(M, 1, psi)
+    # Z[object@knownOcc] <- 1
+    y = matrix(rpois(n = M * J, lambda = as.numeric(t(lambda))),
+               nrow = M, ncol = J, byrow = T) * Z
+    simList[[i]] <- y
+  }
+  return(simList)
 })
+
 
 ## nonparboot ----
 setMethod("nonparboot", "unmarkedFitCOP",
-          function(object, B = 0, keepOldSamples = TRUE, ...)
-          {
-            stop("Not currently supported for unmarkedFitCOP", call.=FALSE)
-          })
+  function(object, B = 0, keepOldSamples = TRUE, ...) {
+  stop("Not currently supported for unmarkedFitCOP", call.=FALSE)
+})
 
-
-
-# POSTERIOR DISTRIBUTION METHODS -----------------------------------------------
 
 ## ranef ----
 setMethod("ranef", "unmarkedFitCOP", function(object, ...) {
@@ -572,7 +546,6 @@ setMethod("ranef", "unmarkedFitCOP", function(object, ...) {
   
   new("unmarkedRanef", post = post)
 })
-
 
 
 # Useful functions -------------------------------------------------------------
@@ -644,7 +617,7 @@ occuCOP <- function(data,
                     lambdastarts,
                     method = "BFGS",
                     se = TRUE,
-                    engine = "R",
+                    engine = c("C", "R"),
                     threads = 1L,
                     na.rm = TRUE,
                     get.NLL.params = NULL,
@@ -754,7 +727,7 @@ occuCOP <- function(data,
   y <- getY(data)
   
   # L is the length of observations (matrix of size M sites x J observations)
-  L = getL(data)
+  L <- getL(data)
   if (!L1) {
     if (!any(is.na(L))) {
       if (all(L == 1)) {
@@ -762,7 +735,7 @@ occuCOP <- function(data,
           "All observations lengths (L) are set to 1. ",
           "If they were not user-defined, lambda corresponds to the ",
           "detection rate multiplied by the observation length, ",
-          "not just the detection rate per time unit.\n",
+          "not just the detection rate per time-unit or space-unit.\n",
           "You can remove this warning by adding 'L1=TRUE' in the function inputs."
         )
       }
@@ -849,8 +822,8 @@ occuCOP <- function(data,
       nll_occuCOP(
         y = yvec,
         L = Lvec,
-        X = X,
-        V = V,
+        Xpsi = Xpsi,
+        Xlambda = Xlambda,
         beta_psi = params[psiIdx],
         beta_lambda = params[lambdaIdx],
         removed = removed_obsvec
@@ -897,13 +870,13 @@ occuCOP <- function(data,
     stop("psistarts (", paste(psistarts, collapse = ", "), ") ",
          "should be of length ", NbParamPsi, " with psiformula ", psiformula)
   }
-
+  
   starts <- c(psistarts, lambdastarts)
   
   ## Run optim
   opt <- optim(
     starts,
-    nll_occuCOP,
+    nll,
     method = method,
     hessian = se,
     ...
@@ -913,7 +886,7 @@ occuCOP <- function(data,
   covMat <- invertHessian(opt, nP, se)
   ests <- opt$par
   tmb_mod <- NULL
-  nll <- opt$value
+  nll_value <- opt$value
   fmAIC <- 2 * opt$value + 2 * nP
   
   # Organize effect estimates
@@ -966,12 +939,11 @@ occuCOP <- function(data,
     AIC = fmAIC,
     opt = opt,
     negLogLike = opt$value,
-    nllFun = nll_COP,
-    nll = nll,
+    nllFun = nll,
+    nll = nll_value,
     convergence = opt$convergence,
     TMB = tmb_mod
   )
   
   return(umfit)
 }
-

@@ -338,6 +338,23 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// nll_occuCOP
+double nll_occuCOP(arma::icolvec y, arma::icolvec L, arma::mat Xpsi, arma::mat Xlambda, arma::colvec beta_psi, arma::colvec beta_lambda, Rcpp::LogicalVector removed);
+RcppExport SEXP _unmarked_nll_occuCOP(SEXP ySEXP, SEXP LSEXP, SEXP XpsiSEXP, SEXP XlambdaSEXP, SEXP beta_psiSEXP, SEXP beta_lambdaSEXP, SEXP removedSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::icolvec >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::icolvec >::type L(LSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type Xpsi(XpsiSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type Xlambda(XlambdaSEXP);
+    Rcpp::traits::input_parameter< arma::colvec >::type beta_psi(beta_psiSEXP);
+    Rcpp::traits::input_parameter< arma::colvec >::type beta_lambda(beta_lambdaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::LogicalVector >::type removed(removedSEXP);
+    rcpp_result_gen = Rcpp::wrap(nll_occuCOP(y, L, Xpsi, Xlambda, beta_psi, beta_lambda, removed));
+    return rcpp_result_gen;
+END_RCPP
+}
 // nll_occuMS
 double nll_occuMS(arma::vec beta, arma::mat y, Rcpp::List dm_state, Rcpp::List dm_phi, Rcpp::List dm_det, arma::mat sind, arma::mat pind, arma::mat dind, std::string prm, int S, int T, int J, int N, arma::mat naflag, arma::mat guide);
 RcppExport SEXP _unmarked_nll_occuMS(SEXP betaSEXP, SEXP ySEXP, SEXP dm_stateSEXP, SEXP dm_phiSEXP, SEXP dm_detSEXP, SEXP sindSEXP, SEXP pindSEXP, SEXP dindSEXP, SEXP prmSEXP, SEXP SSEXP, SEXP TSEXP, SEXP JSEXP, SEXP NSEXP, SEXP naflagSEXP, SEXP guideSEXP) {
@@ -563,6 +580,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_unmarked_nll_multmixOpen", (DL_FUNC) &_unmarked_nll_multmixOpen, 39},
     {"_unmarked_nll_nmixTTD", (DL_FUNC) &_unmarked_nll_nmixTTD, 13},
     {"_unmarked_nll_occu", (DL_FUNC) &_unmarked_nll_occu, 11},
+    {"_unmarked_nll_occuCOP", (DL_FUNC) &_unmarked_nll_occuCOP, 7},
     {"_unmarked_nll_occuMS", (DL_FUNC) &_unmarked_nll_occuMS, 15},
     {"_unmarked_nll_occuMulti_loglik", (DL_FUNC) &_unmarked_nll_occuMulti_loglik, 14},
     {"_unmarked_nll_occuMulti", (DL_FUNC) &_unmarked_nll_occuMulti, 15},
