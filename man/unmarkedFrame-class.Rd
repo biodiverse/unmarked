@@ -98,6 +98,7 @@ argument of the fitting functions.
     \item{numSites}{\code{signature(object = "unmarkedFrame")}: extract M }
     \item{numY}{\code{signature(object = "unmarkedFrame")}: extract
       ncol(y) }
+    \item{getL}{\code{signature(object = "unmarkedFrame")}: extract L }
     \item{obsCovs}{\code{signature(object = "unmarkedFrame")}: extract
 		observation-level covariates }
     \item{obsCovs<-}{\code{signature(object = "unmarkedFrame")}: add or

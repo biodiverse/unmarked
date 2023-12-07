@@ -2,9 +2,9 @@ context("occuCOP fitting function")
 skip_on_cran()
 
 COPsimul <- function(psi = 0.5,
-                         lambda = 1,
-                         M = 100,
-                         J = 5) {
+                     lambda = 1,
+                     M = 100,
+                     J = 5) {
   
   z_i <- sample(
     x = c(0, 1),

@@ -8,11 +8,10 @@
 #   z_i = Occupancy state of site i
 #       = 1 if the site i is occupied
 #       = 0 else
-# with:
 #   psi_i = Occupancy probability of site i
 
 # Detection
-# N_ij | z_i = 1 ~ Poisson(lambda_is*L_is)
+# N_ij | z_i = 1 ~ Poisson(lambda_ij*L_ij)
 # N_ij | z_i = 0 ~ 0
 # 
 # with:
@@ -54,7 +53,6 @@ setClass(
 setClass("unmarkedFitCOP",
          representation(removed_obs = "matrix",
                         formlist = "list",
-                        nll = "optionalNumeric",
                         convergence="optionalNumeric"),
          contains = "unmarkedFit")
 
@@ -206,7 +204,7 @@ setMethod("show", "unmarkedFrameCOP", function(object) {
   df_L <- data.frame(object@L)
   colnames(df_L) <- paste0("L.", 1:J)
   if (ncol(df_unmarkedFrame) > J) {
-    df <- cbind(df_unmarkedFrame[, 1:J], 
+    df <- cbind(df_unmarkedFrame[, 1:J, drop = FALSE], 
                 df_L, 
                 df_unmarkedFrame[, (J + 1):ncol(df_unmarkedFrame), drop = FALSE])
   } else {
@@ -281,13 +279,13 @@ setMethod("[", c("unmarkedFrameCOP", "numeric", "numeric", "missing"),
             }
             
             # y observation count data subset
-            y <- getY(x)[i, j]
+            y <- getY(x)[i, j, drop = FALSE]
             if (min(length(i), length(j)) == 1) {
               y <- t(y)
             }
             
             # L subset
-            L <- x@L[i, j]
+            L <- x@L[i, j, drop = FALSE]
             if (min(length(i), length(j)) == 1) {
               L <- t(L)
             }
@@ -618,12 +616,10 @@ occuCOP <- function(data,
                     method = "BFGS",
                     se = TRUE,
                     engine = c("C", "R"),
-                    threads = 1L,
                     na.rm = TRUE,
                     get.NLL.params = NULL,
                     L1 = FALSE,
                     ...) {
-  #TODO: engines
   #TODO: random effects
   
   # Neg loglikelihood COP ------------------------------------------------------
@@ -693,7 +689,6 @@ occuCOP <- function(data,
   stopifnot(class(lambdaformula) == "formula")
   if(!missing(psistarts)){stopifnot(class(psistarts) %in%  c("numeric", "double", "integer"))}
   if(!missing(lambdastarts)){stopifnot(class(lambdastarts) %in%  c("numeric", "double", "integer"))}
-  stopifnot(class(threads) %in%  c("numeric", "double", "integer"))
   se = as.logical(match.arg(
     arg = as.character(se),
     choices = c("TRUE", "FALSE", "0", "1")
@@ -811,7 +806,7 @@ occuCOP <- function(data,
                          paste0("log(lambda).", ParamLambda))
     df_NLL$nll = NA
     for (i in 1:nrow(df_NLL)) {
-      df_NLL$nll[i] = nll_COP(params = as.numeric(as.vector(df_NLL[i, -ncol(df_NLL)])))
+      df_NLL$nll[i] = R_nll_occuCOP(params = as.numeric(as.vector(df_NLL[i, -ncol(df_NLL)])))
     }
     return(df_NLL)
   }
@@ -886,7 +881,6 @@ occuCOP <- function(data,
   covMat <- invertHessian(opt, nP, se)
   ests <- opt$par
   tmb_mod <- NULL
-  nll_value <- opt$value
   fmAIC <- 2 * opt$value + 2 * nP
   
   # Organize effect estimates
@@ -940,7 +934,6 @@ occuCOP <- function(data,
     opt = opt,
     negLogLike = opt$value,
     nllFun = nll,
-    nll = nll_value,
     convergence = opt$convergence,
     TMB = tmb_mod
   )
