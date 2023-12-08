@@ -12,6 +12,7 @@ Authors@R: c(
     person("Jeff", "Hostetler", role="aut"),
     person("Rebecca", "Hutchinson", role="aut"),
     person("Adam", "Smith", role="aut"),
+    person("Léa", "Pautrel", role="ctb"),
     person("Marc", "Kery", role="ctb"),
     person("Mike", "Meredith", role="ctb"),
     person("Auriel", "Fournier", role="ctb"),

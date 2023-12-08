@@ -19,6 +19,7 @@ reference:
       - occuMulti
       - occuPEN
       - occuTTD
+      - occuCOP
   - title: Abundance models
     contents:
       - occuRN
