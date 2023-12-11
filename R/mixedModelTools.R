@@ -95,8 +95,8 @@ terms_in_bar <- function(bars, RHS=FALSE){
   bars_sub <- bars[[2]][[2]]
   if(RHS) bars_sub <- bars[[2]][[3]]
   form <- formula(substitute(~X, list(X=bars_sub)))
-  trms <- attr(terms(form), "term.labels")
-  int <- attr(terms(form), "intercept")
+  trms <- attr(stats::terms(form), "term.labels")
+  int <- attr(stats::terms(form), "intercept")
   if(int == 1 & !RHS) trms <- c("1", trms)
   trms
 }
