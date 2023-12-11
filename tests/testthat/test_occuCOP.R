@@ -414,7 +414,7 @@ test_that("We can simulate COP data", {
   expect_no_error(simulate(umfit))
 })
 
-test_that("occuCOP can fit models with covariates", {
+test_that("occuCOP can fit and predict models with covariates", {
   # Simulate data with covariates ----
   expect_no_error(umf <- simulate(
     "COP",
@@ -432,7 +432,7 @@ test_that("occuCOP can fit models with covariates", {
     guide = list(habitat = factor(levels = c("A", "B", "C")))
   ))
   
-  # Fit
+  # Fit ----
   expect_no_error(umfit <- occuCOP(
     umf,
     psiformula =  ~ habitat + elev,
@@ -450,4 +450,16 @@ test_that("occuCOP can fit models with covariates", {
     psistarts = c(0),
     lambdastarts = c(0,0)
   ))
+  
+  # Predict ----
+  expect_no_error(predict(umfit, type = "psi"))
+  expect_no_error(predict(umfit, type = "lambda", appendData = TRUE))
+  expect_no_error(predict(umfit, type = "lambda", level = 0.5))
+  expect_no_error(predict(
+    umfit,
+    type = "psi",
+    newdata = data.frame("habitat" = c("A", "B", "C"), "elev" = c(0, 0, 0)),
+    appendData = TRUE
+  ))
 })
+
