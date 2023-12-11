@@ -98,7 +98,6 @@ argument of the fitting functions.
     \item{numSites}{\code{signature(object = "unmarkedFrame")}: extract M }
     \item{numY}{\code{signature(object = "unmarkedFrame")}: extract
       ncol(y) }
-    \item{getL}{\code{signature(object = "unmarkedFrame")}: extract L }
     \item{obsCovs}{\code{signature(object = "unmarkedFrame")}: extract
 		observation-level covariates }
     \item{obsCovs<-}{\code{signature(object = "unmarkedFrame")}: add or
@@ -121,14 +120,18 @@ argument of the fitting functions.
       modify site-level covariates }
     \item{summary}{\code{signature(object = "unmarkedFrame")}: summarize
       data }
+    \item{getL}{\code{signature(object = "unmarkedFrameCOP")}: extract L }
   }
 }
-\note{ This is a superclass with child classes for each fitting function }
+\note{ This is a superclass with child classes for each fitting function.}
 
 \seealso{\code{\link{unmarkedFrame}}, \code{\linkS4class{unmarkedFit}},
 	\code{\link{unmarked-package}}
 }
 \examples{
+
+# List all the child classes of unmarkedFrame
+showClass("unmarkedFrame")
 
 # Organize data for pcount()
 data(mallard)

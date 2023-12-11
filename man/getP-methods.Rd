@@ -20,14 +20,14 @@
 \alias{getP,unmarkedFitGOccu-method}
 \title{Methods for Function getP in Package `unmarked'}
 \description{
-Methods for function \code{getP} in Package `unmarked'. These methods
-return a matrix of detection probabilities.
+Methods for function \code{getP} in Package `unmarked'. These methods return a matrix of dimension MxJ of the back-transformed detection parameter (\eqn{p} the detection probability or \eqn{\lambda} the detection rate, depending on the model), with M the number of sites and J the number of sampling periods.
 }
 \section{Methods}{
 \describe{
-\item{object = "unmarkedFit"}{A fitted model object}
-\item{object = "unmarkedFitDS"}{A fitted model object}
-\item{object = "unmarkedFitMPois"}{A fitted model object}
-\item{object = "unmarkedFitGMM"}{A fitted model object}
+\item{\code{signature(object = "unmarkedFit")}}{A fitted model object}
+\item{\code{signature(object = "unmarkedFitDS")}}{A fitted model object}
+\item{\code{signature(object = "unmarkedFitMPois")}}{A fitted model object}
+\item{\code{signature(object = "unmarkedFitGMM")}}{A fitted model object}
+\item{\code{signature(object = "unmarkedFitCOP")}}{With \code{\link{unmarkedFitCOP}} the object of a model fitted with \code{\link{occuCOP}}. Returns a matrix of \eqn{\lambda} the detection rate.}
 }}
 \keyword{methods}

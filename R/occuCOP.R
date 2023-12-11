@@ -53,7 +53,7 @@ setClass(
 setClass("unmarkedFitCOP",
          representation(removed_obs = "matrix",
                         formlist = "list",
-                        convergence="optionalNumeric"),
+                        convergence = "optionalNumeric"),
          contains = "unmarkedFit")
 
 

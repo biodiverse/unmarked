@@ -26,16 +26,19 @@ These methods return predicted values from fitted model objects.
 \describe{
 
 \item{\code{signature(object = "unmarkedFit")}}{
-"type" must be either `state' or `det'.
+"type" depends upon the fitted models. You can see the possible types with \code{names(fm), with \code{fm} your \code{unmarkedFit} object.}
+}
+\item{\code{signature(object = "unmarkedFitList")}}{
+"type" depends upon the fitted models. You can see the possible types with \code{names(fl), with \code{fl} your \code{unmarkedFitList} object.}
+}
+\item{\code{signature(object = "unmarkedFitOccu")}}{
+"type" must be either 'state' or 'det'.
 }
 \item{\code{signature(object = "unmarkedFitColExt")}}{
 "type" must be 'psi', 'col', 'ext', or 'det'.
 }
 \item{\code{signature(object = "unmarkedFitGMM")}}{
 "type" must be 'lambda', 'psi', 'det'
-}
-\item{\code{signature(object = "unmarkedFitList")}}{
-"type" depends upon the fitted models
 }
 \item{\code{signature(object = "unmarkedRanef")}}{
 Use this method to generate the empirical Bayes posterior predictive distribution
@@ -63,7 +66,12 @@ Alternatively, you can use the \code{\link{posteriorSamples}} function on the
 This is useful if you are having trouble designing your custom function or if 
 you want to obtain multiple different derived parameters from the same posterior
 predictive distribution.
-
 }
+\item{\code{signature(object = "unmarkedFitCOP")}}{
+"type" must be either 'psi' or 'lambda'.
+}
+
 }}
+
+
 \keyword{methods}
