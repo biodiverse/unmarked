@@ -69,13 +69,8 @@ setMethod("parboot", "unmarkedFit",  function(object, statistic=SSE, nsim=10,
     simdata <- replaceY(object@data, x)
     tryCatch({
       #if(runif(1,0,1) < 0.5) stop("fail") # for testing error trapping
-      if (class(object) == "unmarkedFitCOP") {
-        fit <- suppressMessages(update(object, data = simdata, se = FALSE))
-        statistic(fit, ...)
-      } else {
-        fit <- update(object, data = simdata, starts = starts, se = FALSE)
-        statistic(fit, ...)
-      }
+      fit <- update(object, data = simdata, starts = starts, se = FALSE)
+      statistic(fit, ...)
     }, error=function(e){
       t0[] <- NA
       t0
