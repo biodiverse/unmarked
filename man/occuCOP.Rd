@@ -34,7 +34,7 @@ occuCOP(data,
     
     \item{na.rm}{Logical specifying whether to fit the model (\code{na.rm=TRUE}) or not (\code{na.rm=FALSE}) if there are NAs in the \code{\link{unmarkedFrameCOP}} object.}
     
-    \item{return.negloglik}{A list of vectors of parameters (\code{c(psiparams, lambdaparams)}). If specified, the function will not maximise likelihood but return the negative log-likelihood for the those parameters. See an example below.}
+    \item{return.negloglik}{A list of vectors of parameters (\code{c(psiparams, lambdaparams)}). If specified, the function will not maximise likelihood but return the negative log-likelihood for the those parameters in the \code{nll} column of a dataframe. See an example below.}
 
     \item{L1}{Logical specifying whether the length of observations (\code{L}) are purposefully set to 1 (\code{L1=TRUE}) or not (\code{L1=FALSE}).}
 
@@ -50,7 +50,7 @@ occuCOP(data,
   \subsection{The COP occupancy model}{
     
     \code{occuCOP} fits a single season occupancy model using count data, as described in Pautrel et al. (2023). 
-    
+
     The \strong{occupancy sub-model} is:
     
     \deqn{z_i \sim \text{Bernoulli}(\psi_i)}{z_i ~ Bernoulli(psi_i)}
@@ -237,7 +237,7 @@ print(occuCOP(data = umf, engine = "R", psistarts = 0, lambdastarts = 0)@nllFun)
 
 # Finally, if you do not want to fit your model but only get the likelihood,
 # you can get the negative log-likelihood for a given set of parameters.
-occuCOP(data = umf, get.NLL.params = list(
+occuCOP(data = umf, return.negloglik = list(
   c("psi" = qlogis(0.25), "lambda" = log(2)),
   c("psi" = qlogis(0.5), "lambda" = log(1)),
   c("psi" = qlogis(0.75), "lambda" = log(0.5))

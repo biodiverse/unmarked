@@ -52,8 +52,7 @@ setClass(
 ## unmarkedFitCOP class ----
 setClass("unmarkedFitCOP",
          representation(removed_obs = "matrix",
-                        formlist = "list",
-                        convergence = "optionalNumeric"),
+                        formlist = "list"),
          contains = "unmarkedFit")
 
 
@@ -959,7 +958,6 @@ occuCOP <- function(data,
     opt = opt,
     negLogLike = opt$value,
     nllFun = nll,
-    convergence = opt$convergence,
     TMB = tmb_mod
   )
   
