@@ -199,21 +199,28 @@ test_that("occuCOP can fit simple models", {
 
   # Fitting options ----
 
-  # With default parameters
-  expect_message(fit_default <- occuCOP(data = umf, L1=TRUE))
+  ## With default parameters ----
+  expect_no_error(fit_default <- occuCOP(data = umf, L1 = TRUE))
   expect_warning(occuCOP(data = umf, psiformula = ~ 1, lambdaformula = ~ 1, psistarts = 0, lambdastarts = 0))
 
-  # With chosen starting points
+  ## With chosen starting points ----
   expect_no_error(occuCOP(data = umf,
                           psiformula = ~ 1, lambdaformula = ~ 1,
                           psistarts = qlogis(.7),
                           lambdastarts = log(0.1), L1=T))
-  expect_error(occuCOP(data = umf,
-                       psiformula = ~ 1, lambdaformula = ~ 1,
-                       psistarts = qlogis(c(0.7, 0.5), lambdastarts = 0, L1=T)))
-  expect_error(occuCOP(data = umf,
-                       psiformula = ~ 1, lambdaformula = ~ 1,
-                       lambdastarts = log(c(1, 2)), psistarts = 0, L1=T))
+  expect_no_error(occuCOP(data = umf,
+                          psiformula = ~ 1, lambdaformula = ~ 1,
+                          starts = c(qlogis(.7), log(0.1)), L1 = T))
+  # warning if all starts and psistarts and lambdastarts were furnished
+  # and starts != c(psistarts, lambdastarts)
+  expect_no_error(occuCOP(data = umf, starts = c(0, 0),
+                          psistarts = c(0), lambdastarts = c(0), L1 = T))
+  expect_warning(occuCOP(data = umf, starts = c(0, 1),
+                          psistarts = c(0), lambdastarts = c(0), L1 = T))
+  # errors if starting vectors of the wrong length
+  expect_error(occuCOP(data = umf, starts = c(0), L1 = T))
+  expect_error(occuCOP(data = umf, psistarts = c(0, 0), lambdastarts = 0, L1 = T))
+  expect_error(occuCOP(data = umf, lambdastarts = c(0, 0), L1 = T))
 
   # With different options
   expect_no_error(occuCOP(data = umf, method = "Nelder-Mead", psistarts = 0, lambdastarts = 0, L1=T))
@@ -230,6 +237,7 @@ test_that("occuCOP can fit simple models", {
 
   # Looking at at COP model outputs ----
   expect_is(fit_default, "unmarkedFitCOP")
+  expect_equivalent(coef(fit_default), c(0.13067954, 0.06077929), tol = 1e-5)
   
   ## backTransform
   expect_no_error(backTransform(fit_default, type = "psi"))
@@ -239,8 +247,10 @@ test_that("occuCOP can fit simple models", {
   expect_is(backTransform(fit_default, type = "psi"), "unmarkedBackTrans")
   
   ## predict with newdata = fit@data
-  expect_no_error(predict(object = fit_default, type = "psi"))
-  expect_no_error(predict(object = fit_default, type = "lambda"))
+  expect_no_error(umpredpsi <- predict(object = fit_default, type = "psi"))
+  expect_equal(umpredpsi$Predicted[1], 0.5326235, tol = 1e-5)
+  expect_no_error(umpredlambda <- predict(object = fit_default, type = "lambda"))
+  expect_equal(umpredlambda$Predicted[1], 1.062664, tol = 1e-5)
   expect_error(predict(object = fit_default, type = "state"))
   
   ## predict with newdata = 1
@@ -416,6 +426,7 @@ test_that("We can simulate COP data", {
 
 test_that("occuCOP can fit and predict models with covariates", {
   # Simulate data with covariates ----
+  set.seed(123)
   expect_no_error(umf <- simulate(
     "COP",
     formulas = list(psi =  ~ elev + habitat, lambda =  ~ rain),
@@ -451,15 +462,24 @@ test_that("occuCOP can fit and predict models with covariates", {
     lambdastarts = c(0,0)
   ))
   
+  expect_equivalent(
+    coef(umfit), 
+    c(-1.5350679, 0.4229763, 0.7398768, -1.0456397, 1.2333424, -0.8344109), 
+    tol = 1e-5
+  )
+  
   # Predict ----
   expect_no_error(predict(umfit, type = "psi"))
-  expect_no_error(predict(umfit, type = "lambda", appendData = TRUE))
-  expect_no_error(predict(umfit, type = "lambda", level = 0.5))
-  expect_no_error(predict(
+  expect_no_error(umpredpsi <- predict(
     umfit,
     type = "psi",
     newdata = data.frame("habitat" = c("A", "B", "C"), "elev" = c(0, 0, 0)),
     appendData = TRUE
   ))
+  expect_equivalent(umpredpsi$Predicted, c(0.1772534, 0.2474811, 0.3110551), tol = 1e-5)
+  
+  expect_no_error(umpredlambda <- predict(umfit, type = "lambda", appendData = TRUE))
+  expect_no_error(predict(umfit, type = "lambda", level = 0.5))
+  expect_equal(umpredlambda$Predicted[1], 1.092008, tol = 1e-5)
 })
 

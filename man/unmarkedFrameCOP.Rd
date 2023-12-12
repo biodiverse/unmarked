@@ -3,7 +3,7 @@
 
 \title{Organize data for the occupancy model using count data fit by \code{occuCOP}}
 
-\usage{unmarkedFrameCOP(y, L, siteCovs = NULL, obsCovs = NULL, mapInfo = NULL)}
+\usage{unmarkedFrameCOP(y, L, siteCovs = NULL, obsCovs = NULL)}
 
 \description{Organizes count data along with the covariates. The \linkS4class{unmarkedFrame} S4 class required by the \code{data} argument of \code{\link{occuCOP}}.}
 
@@ -17,7 +17,7 @@
   
   \item{obsCovs}{A named list of dataframes of dimension MxJ, with one dataframe per covariate that varies between sites and observation periods}
   
-  \item{mapInfo}{Currently ignored}
+  %% \item{mapInfo}{Currently ignored}
 }
 
 \details{

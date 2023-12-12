@@ -465,7 +465,8 @@ setMethod("simulate_fit", "unmarkedFitCOP",
 ## simulate ----
 setMethod("simulate", "unmarkedFitCOP",
   function(object, nsim = 1, seed = NULL, na.rm = TRUE){
-  set.seed(seed)
+  # set.seed(seed) 
+  # Purposefully not implemented
   formula <- object@formula
   umf <- object@data
   designMats <- getDesign(umf = umf, formlist = object@formlist, na.rm = na.rm)
@@ -613,11 +614,12 @@ occuCOP <- function(data,
                     lambdaformula = ~1,
                     psistarts,
                     lambdastarts,
+                    starts,
                     method = "BFGS",
                     se = TRUE,
                     engine = c("C", "R"),
                     na.rm = TRUE,
-                    get.NLL.params = NULL,
+                    return.negloglik = NULL,
                     L1 = FALSE,
                     ...) {
   #TODO: random effects
@@ -798,9 +800,9 @@ occuCOP <- function(data,
   Lvec <- as.numeric(t(L))
   removed_obsvec <- as.logical(t(removed_obs))
   
-  # get.NLL.params -------------------------------------------------------------
-  if (!is.null(get.NLL.params)) {
-    df_NLL = data.frame(t(as.data.frame(get.NLL.params)))
+  # return.negloglik -----------------------------------------------------------
+  if (!is.null(return.negloglik)) {
+    df_NLL = data.frame(t(as.data.frame(return.negloglik)))
     rownames(df_NLL) = NULL
     colnames(df_NLL) = c(paste0("logit(psi).", ParamPsi),
                          paste0("log(lambda).", ParamLambda))
@@ -831,44 +833,67 @@ occuCOP <- function(data,
   
   # Optimisation ---------------------------------------------------------------
   
-  ## Checking the starting point for optim
-  if (missing(lambdastarts)) {
-    # If lambda starts argument was not given:
-    # 0 by default 
-    # so lambda = exp(0) = 1 by default
-    lambdastarts = rep(0, NbParamLambda)
-    message(
-      "No lambda initial values provided for optim. Using lambdastarts = c(",
-      paste(lambdastarts, collapse = ", "),
-      "), equivalent to a detection rate",
-      ifelse(length(lambdastarts) == 1, "", "s"),
-      " of 1."
-    )
-  } else if (length(lambdastarts) != NbParamLambda) {
-    stop("lambdastarts (", paste(lambdastarts, collapse = ", "), ") ",
-         "should be of length ", NbParamLambda, " with lambdaformula ", lambdaformula)
+  ## Checking the starting point for optim ----
+  # Check if either (psistarts AND lambdastarts) OR starts is provided
+  if (!missing(psistarts) & !missing(lambdastarts)) {
+    # Both psistarts and lambdastarts provided
+    if (!missing(starts)){
+      if (!all(c(psistarts, lambdastarts) == starts)) {
+        warning(
+          "You provided psistarts, lambdastarts and starts. ",
+          "Please provide either (psistarts AND lambdastarts) OR starts. ",
+          "Using psistarts and lambdastarts."
+        )
+      }
+    }
+    if (length(lambdastarts) != NbParamLambda) {
+      stop("lambdastarts (", paste(lambdastarts, collapse = ", "), ") ",
+           "should be of length ", NbParamLambda, " with lambdaformula ", lambdaformula)
+    }
+    if (length(psistarts) != NbParamPsi) {
+      stop("psistarts (", paste(psistarts, collapse = ", "), ") ",
+           "should be of length ", NbParamPsi, " with psiformula ", psiformula)
+    }
+    starts <- c(psistarts, lambdastarts)
+  } else if (!missing(starts)) {
+    # starts provided
+    if (length(starts) != nP) {
+      stop("starts (", paste(starts, collapse = ", "), ") ",
+           "should be of length ", nP, 
+           " with psiformula ", psiformula, 
+           " and lambdaformula ", lambdaformula)
+    }
+    
+    psistarts <- starts[1:NbParamPsi]
+    lambdastarts <- starts[(NbParamPsi + 1):(NbParamPsi + NbParamLambda)]
+    
+  } else {
+    # No arguments provided, apply default values
+    
+    if (missing(lambdastarts)) {
+      # If lambda starts argument was not given:
+      # 0 by default 
+      # so lambda = exp(0) = 1 by default
+      lambdastarts = rep(0, NbParamLambda)
+    } else if (length(lambdastarts) != NbParamLambda) {
+      stop("lambdastarts (", paste(lambdastarts, collapse = ", "), ") ",
+           "should be of length ", NbParamLambda, " with lambdaformula ", lambdaformula)
+    }
+    
+    if (missing(psistarts)) {
+      # If psi starts argument was not given
+      # 0 by default 
+      # so psi = plogis(0) = 0.5 by default
+      psistarts = rep(0, NbParamPsi)
+    } else if (length(psistarts) != NbParamPsi) {
+      stop("psistarts (", paste(psistarts, collapse = ", "), ") ",
+           "should be of length ", NbParamPsi, " with psiformula ", psiformula)
+    }
+    
+    starts <- c(psistarts, lambdastarts)
   }
   
-  if (missing(psistarts)) {
-    # If psi starts argument was not given
-    # 0 by default 
-    # so psi = plogis(0) = 0.5 by default
-    psistarts = rep(0, NbParamPsi)
-    message(
-      "No psi initial values provided for optim. Using psistarts = c(",
-      paste(psistarts, collapse = ", "),
-      "), equivalent to an occupancy probabilit",
-      ifelse(length(psistarts) == 1, "y", "ies"),
-      " of 0.5."
-    )
-  } else if (length(psistarts) != NbParamPsi) {
-    stop("psistarts (", paste(psistarts, collapse = ", "), ") ",
-         "should be of length ", NbParamPsi, " with psiformula ", psiformula)
-  }
-  
-  starts <- c(psistarts, lambdastarts)
-  
-  ## Run optim
+  ## Run optim ----
   opt <- optim(
     starts,
     nll,

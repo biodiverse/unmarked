@@ -20,7 +20,7 @@
 \alias{getP,unmarkedFitGOccu-method}
 \title{Methods for Function getP in Package `unmarked'}
 \description{
-Methods for function \code{getP} in Package `unmarked'. These methods return a matrix of dimension MxJ of the back-transformed detection parameter (\eqn{p} the detection probability or \eqn{\lambda} the detection rate, depending on the model), with M the number of sites and J the number of sampling periods.
+Methods for function \code{getP} in Package `unmarked'. These methods return a matrix of the back-transformed detection parameter (\eqn{p} the detection probability or \eqn{\lambda} the detection rate, depending on the model). The matrix is of dimension MxJ, with M the number of sites and J the number of sampling periods; or of dimension MxJT for models with multiple primary periods T.
 }
 \section{Methods}{
 \describe{

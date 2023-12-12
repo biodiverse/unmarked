@@ -53,9 +53,9 @@ Collate: 'classes.R' 'unmarkedEstimate.R' 'mapInfo.R' 'unmarkedFrame.R'
     'simulate.R'
     'predict.R'
     'goccu.R'
+    'occuCOP.R'
     'RcppExports.R'
     'zzz.R'
-    'occuCOP.R'
 LinkingTo: 
     Rcpp,
     RcppArmadillo,

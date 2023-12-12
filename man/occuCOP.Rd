@@ -7,10 +7,10 @@
 \usage{
 occuCOP(data, 
         psiformula = ~1, lambdaformula = ~1, 
-        psistarts, lambdastarts,
+        psistarts, lambdastarts, starts,
         method = "BFGS", se = TRUE, 
         engine = c("C", "R"), na.rm = TRUE, 
-        get.NLL.params = NULL, L1 = FALSE, ...)}
+        return.negloglik = NULL, L1 = FALSE, ...)}
 
 \arguments{
 
@@ -20,9 +20,11 @@ occuCOP(data,
     
     \item{lambdaformula}{Formula describing the detection covariates.}
     
-    \item{psistarts}{Vector of starting values for likelihood maximisation with \code{\link{optim}} for occupancy probability \eqn{\psi}{psi}. These values must be logit-transformed (with \code{\link{qlogis}}). See details. By default, optimisation will start at 0, corresponding to an occupancy probability of 0.5 (\code{plogis(0)} is 0.5).}
+    \item{psistarts}{Vector of starting values for likelihood maximisation with \code{\link{optim}} for occupancy probability \eqn{\psi}{psi}. These values must be logit-transformed (with \code{\link{qlogis}}) (see details). By default, optimisation will start at 0, corresponding to an occupancy probability of 0.5 (\code{plogis(0)} is 0.5).}
     
-    \item{lambdastarts}{Vector of starting values for likelihood maximisation with \code{\link{optim}} for detection rate \eqn{\lambda}{lambda}. These values must be log-transformed (with \code{\link{log}}). See details. By default, optimisation will start at 0, corresponding to detection rate of 1 (\code{exp(0)} is 1).}
+    \item{lambdastarts}{Vector of starting values for likelihood maximisation with \code{\link{optim}} for detection rate \eqn{\lambda}{lambda}. These values must be log-transformed (with \code{\link{log}}) (see details). By default, optimisation will start at 0, corresponding to detection rate of 1 (\code{exp(0)} is 1).}
+    
+    \item{starts}{Vector of starting values for likelihood maximisation with \code{\link{optim}}. If \code{psistarts} and \code{lambdastarts} are provided, \code{starts = c(psistarts, lambdastarts)}.}
 
     \item{method}{Optimisation method used by \code{\link{optim}}.}
     
@@ -32,7 +34,7 @@ occuCOP(data,
     
     \item{na.rm}{Logical specifying whether to fit the model (\code{na.rm=TRUE}) or not (\code{na.rm=FALSE}) if there are NAs in the \code{\link{unmarkedFrameCOP}} object.}
     
-    \item{get.NLL.params}{A list of vectors of parameters (\code{c(psiparams, lambdaparams)}). If specified, the function will not maximise likelihood but return the likelihood for the those parameters. See an example below.}
+    \item{return.negloglik}{A list of vectors of parameters (\code{c(psiparams, lambdaparams)}). If specified, the function will not maximise likelihood but return the negative log-likelihood for the those parameters. See an example below.}
 
     \item{L1}{Logical specifying whether the length of observations (\code{L}) are purposefully set to 1 (\code{L1=TRUE}) or not (\code{L1=FALSE}).}
 
@@ -222,11 +224,11 @@ occuCOP(data = umf, method = "Nelder-Mead")
 
 # We can run our model with a C++ or with a R likelihood function.
 ## They give the same result. 
-occuCOP(data = umf,engine = "C", psistarts = 0, lambdastarts = 0)
+occuCOP(data = umf, engine = "C", psistarts = 0, lambdastarts = 0)
 occuCOP(data = umf, engine = "R", psistarts = 0, lambdastarts = 0)
 
 ## The C++ (the default) is faster.
-system.time(occuCOP(data = umf,engine = "C", psistarts = 0, lambdastarts = 0))
+system.time(occuCOP(data = umf, engine = "C", psistarts = 0, lambdastarts = 0))
 system.time(occuCOP(data = umf, engine = "R", psistarts = 0, lambdastarts = 0))
 
 ## However, if you want to understand how the likelihood is calculated,

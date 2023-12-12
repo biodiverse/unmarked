@@ -61,7 +61,6 @@ blank_umFit <- function(fit_function){
 
 setMethod("simulate", "character",
   function(object, nsim=1, seed=NULL, formulas, coefs=NULL, design, guide=NULL, ...){
-  set.seed(seed)
   model <- blank_umFit(object)
   fit <- suppressWarnings(simulate_fit(model, formulas, guide, design, ...))
   coefs <- check_coefs(coefs, fit)
