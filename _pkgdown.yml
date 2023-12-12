@@ -59,7 +59,7 @@ reference:
       - unmarkedFrameOccuMulti
       - unmarkedFramePCount
       - unmarkedFrameMPois
-      - unmarkedFrameCOP
+      - unmarkedFrameOccuCOP
       - unmarkedFrameOccuMS
       - unmarkedFrameOccuTTD
       - unmarkedFrameG3

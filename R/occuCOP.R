@@ -22,9 +22,9 @@
 
 # CLASSES ----------------------------------------------------------------------
 
-## unmarkedFrameCOP class ----
+## unmarkedFrameOccuCOP class ----
 setClass(
-  "unmarkedFrameCOP",
+  "unmarkedFrameOccuCOP",
   representation(L = "matrix"),
   contains = "unmarkedFrame",
   validity = function(object) {
@@ -60,7 +60,7 @@ setClass("unmarkedFitCOP",
 
 ## getDesign method ----
 setMethod(
-  "getDesign", "unmarkedFrameCOP",
+  "getDesign", "unmarkedFrameOccuCOP",
   function(umf, formlist, na.rm = TRUE) {
     
     "
@@ -191,13 +191,13 @@ setMethod(
 
 ## getL method ----
 setGeneric("getL", function(object) standardGeneric("getL"))
-setMethod("getL", "unmarkedFrameCOP", function(object) {
+setMethod("getL", "unmarkedFrameOccuCOP", function(object) {
   return(object@L)
 })
 
 
 ## show method ----
-setMethod("show", "unmarkedFrameCOP", function(object) {
+setMethod("show", "unmarkedFrameOccuCOP", function(object) {
   J <- ncol(object@L)
   df_unmarkedFrame <- as(object, "data.frame")
   df_L <- data.frame(object@L)
@@ -217,8 +217,8 @@ setMethod("show", "unmarkedFrameCOP", function(object) {
 
 
 ## summary method ----
-setMethod("summary", "unmarkedFrameCOP", function(object,...) {
-  cat("unmarkedFrameCOP Object\n\n")
+setMethod("summary", "unmarkedFrameOccuCOP", function(object,...) {
+  cat("unmarkedFrameOccuCOP Object\n\n")
   
   cat(nrow(object@y), "sites\n")
   cat("Maximum number of sampling occasions per site:",obsNum(object),"\n")
@@ -249,7 +249,7 @@ setMethod("summary", "unmarkedFrameCOP", function(object,...) {
 
 
 ## umf[i, j] ----
-setMethod("[", c("unmarkedFrameCOP", "numeric", "numeric", "missing"),
+setMethod("[", c("unmarkedFrameOccuCOP", "numeric", "numeric", "missing"),
           function(x, i, j) {
             # Gey dimensions of x
             M <- numSites(x)
@@ -306,7 +306,7 @@ setMethod("[", c("unmarkedFrameCOP", "numeric", "numeric", "missing"),
             
             # Recreate umf
             new(
-              Class = "unmarkedFrameCOP",
+              Class = "unmarkedFrameOccuCOP",
               y = y,
               L = L,
               siteCovs = siteCovs,
@@ -318,13 +318,13 @@ setMethod("[", c("unmarkedFrameCOP", "numeric", "numeric", "missing"),
 
 
 ## umf[i, ] ----
-setMethod("[", c("unmarkedFrameCOP", "numeric", "missing", "missing"),
+setMethod("[", c("unmarkedFrameOccuCOP", "numeric", "missing", "missing"),
           function(x, i) {
             x[i, 1:obsNum(x)]
           })
 
 ## umf[, j] ----
-setMethod("[", c("unmarkedFrameCOP", "missing", "numeric", "missing"),
+setMethod("[", c("unmarkedFrameOccuCOP", "missing", "numeric", "missing"),
           function(x, j) {
             x[1:numSites(x), j]
           })
@@ -447,7 +447,7 @@ setMethod("simulate_fit", "unmarkedFitCOP",
   function(object, formulas, guide, design, ...){
     # Generate covariates and create a y matrix of zeros
     parts <- get_umf_components(object, formulas, guide, design, ...)
-    umf <- unmarkedFrameCOP(y = parts$y, siteCovs = parts$siteCovs, obsCovs=parts$obsCovs)
+    umf <- unmarkedFrameOccuCOP(y = parts$y, siteCovs = parts$siteCovs, obsCovs=parts$obsCovs)
     fit <- suppressMessages(
       occuCOP(
         data = umf,
@@ -557,7 +557,7 @@ check.integer <- function(x, na.ignore = F) {
 
 # unmarkedFrame ----------------------------------------------------------------
 
-unmarkedFrameCOP <- function(y, L, siteCovs = NULL, obsCovs = NULL, mapInfo = NULL) {
+unmarkedFrameOccuCOP <- function(y, L, siteCovs = NULL, obsCovs = NULL) {
   
   # Verification that they are non-NA data in y
   if (all(is.na(y))) {
@@ -566,7 +566,7 @@ unmarkedFrameCOP <- function(y, L, siteCovs = NULL, obsCovs = NULL, mapInfo = NU
   
   # Verification that these are count data (and not detection/non-detection)
   if (max(y, na.rm = T) == 1) {
-    warning("unmarkedFrameCOP is for count data. ",
+    warning("unmarkedFrameOccuCOP is for count data. ",
             "The data furnished appear to be detection/non-detection.")
   }
   
@@ -591,15 +591,14 @@ unmarkedFrameCOP <- function(y, L, siteCovs = NULL, obsCovs = NULL, mapInfo = NU
     numSites = nrow(y)
   )
   
-  # Create S4 object of class unmarkedFrameCOP
+  # Create S4 object of class unmarkedFrameOccuCOP
   umf <- new(
-    Class = "unmarkedFrameCOP",
+    Class = "unmarkedFrameOccuCOP",
     y = y,
     L = L,
     siteCovs = siteCovs,
     obsCovs = obsCovs,
-    obsToY = diag(J),
-    mapInfo = mapInfo
+    obsToY = diag(J)
   )
   
   return(umf)
@@ -683,8 +682,8 @@ occuCOP <- function(data,
   }
   
   # Check arguments ------------------------------------------------------------
-  if (!is(data, "unmarkedFrameCOP")) {
-    stop("Data is not an unmarkedFrameCOP object. See ?unmarkedFrameCOP if necessary.")
+  if (!is(data, "unmarkedFrameOccuCOP")) {
+    stop("Data is not an unmarkedFrameOccuCOP object. See ?unmarkedFrameOccuCOP if necessary.")
   }
   stopifnot(class(psiformula) == "formula")
   stopifnot(class(lambdaformula) == "formula")
@@ -716,7 +715,7 @@ occuCOP <- function(data,
   formlist <- mget(c("psiformula", "lambdaformula"))
   
   # Get the design matrix (calling the getDesign method for unmarkedFrame)
-  # For more informations, see: getMethod("getDesign", "unmarkedFrameCOP")
+  # For more informations, see: getMethod("getDesign", "unmarkedFrameOccuCOP")
   designMats <- getDesign(umf = data, formlist = formlist, na.rm = na.rm)
   
   # y is the count detection data (matrix of size M sites x J observations)

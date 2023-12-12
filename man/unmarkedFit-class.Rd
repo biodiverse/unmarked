@@ -18,6 +18,7 @@
 \alias{plot,unmarkedFit,missing-method}
 \alias{plot,unmarkedFitOccuMulti,missing-method}
 \alias{plot,unmarkedFitGDR,missing-method}
+\alias{plot,unmarkedFitCOP,missing-method}
 \alias{profile,unmarkedFit-method}
 \alias{residuals,unmarkedFit-method}
 \alias{residuals,unmarkedFitOccu-method}
@@ -26,6 +27,7 @@
 \alias{residuals,unmarkedFitOccuMulti-method}
 \alias{residuals,unmarkedFitOccuTTD-method}
 \alias{residuals,unmarkedFitGDR-method}
+\alias{residuals,unmarkedFitCOP-method}
 \alias{update,unmarkedFit-method}
 \alias{update,unmarkedFitColExt-method}
 \alias{update,unmarkedFitGMM-method}

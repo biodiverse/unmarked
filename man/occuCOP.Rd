@@ -2,6 +2,8 @@
 
 \alias{occuCOP}
 
+\encoding{UTF-8}
+
 \title{Fit the occupancy model using count dta}
 
 \usage{
@@ -14,7 +16,7 @@ occuCOP(data,
 
 \arguments{
 
-    \item{data}{An \code{\linkS4class{unmarkedFrameCOP}} object created with the \code{\link{unmarkedFrameCOP}} function.}
+    \item{data}{An \code{\link{unmarkedFrameOccuCOP}} object created with the \code{\link{unmarkedFrameOccuCOP}} function.}
     
     \item{psiformula}{Formula describing the occupancy covariates.}
     
@@ -32,7 +34,7 @@ occuCOP(data,
     
     \item{engine}{Code to use for optimisation. Either \code{"C"} for fast C++ code, or \code{"R"} for native R code.}
     
-    \item{na.rm}{Logical specifying whether to fit the model (\code{na.rm=TRUE}) or not (\code{na.rm=FALSE}) if there are NAs in the \code{\link{unmarkedFrameCOP}} object.}
+    \item{na.rm}{Logical specifying whether to fit the model (\code{na.rm=TRUE}) or not (\code{na.rm=FALSE}) if there are NAs in the \code{\link{unmarkedFrameOccuCOP}} object.}
     
     \item{return.negloglik}{A list of vectors of parameters (\code{c(psiparams, lambdaparams)}). If specified, the function will not maximise likelihood but return the negative log-likelihood for the those parameters in the \code{nll} column of a dataframe. See an example below.}
 
@@ -45,7 +47,7 @@ occuCOP(data,
 
 \details{
   
-  See \code{\link{unmarkedFrameCOP}} for a description of how to supply data to the \code{data} argument. See \code{\link{unmarkedFrame}} for a more general documentation of \code{unmarkedFrame} objects for the different models implemented in \pkg{unmarked}.
+  See \code{\link{unmarkedFrameOccuCOP}} for a description of how to supply data to the \code{data} argument. See \code{\link{unmarkedFrame}} for a more general documentation of \code{unmarkedFrame} objects for the different models implemented in \pkg{unmarked}.
   
   \subsection{The COP occupancy model}{
     
@@ -101,7 +103,7 @@ Pautrel, L., Moulherat, S., Gimenez, O. & Etienne, M.-P. Submitted. \emph{Analys
 
 \seealso{
   \code{\link{unmarked}}, 
-  \code{\link{unmarkedFrameCOP}},
+  \code{\link{unmarkedFrameOccuCOP}},
   \code{\link{unmarkedFit-class}}
 }
 
@@ -115,8 +117,8 @@ nSites <- 100
 nObs <- 3
 
 # For an occupancy covariate, we associate each site to a land-use category.
-landuse <- sample(factor(c("Forest", "Grassland", "City"), ordered = T), 
-                  size = nSites, replace = T)
+landuse <- sample(factor(c("Forest", "Grassland", "City"), ordered = TRUE), 
+                  size = nSites, replace = TRUE)
 simul_psi <- ifelse(landuse == "Forest", 0.8, 
                     ifelse(landuse == "Grassland", 0.4, 0.1))
 z <- rbinom(n = nSites, size = 1, prob = simul_psi)
@@ -130,8 +132,8 @@ L = matrix(7, nrow = nSites, ncol = nObs)
 y <- matrix(rpois(n = nSites * nObs, lambda = simul_lambda * L), 
             nrow = nSites, ncol = nObs) * z
 
-# We create our unmarkedFrameCOP object
-umf <- unmarkedFrameCOP(
+# We create our unmarkedFrameOccuCOP object
+umf <- unmarkedFrameOccuCOP(
   y = y,
   L = L,
   siteCovs = data.frame("landuse" = landuse),

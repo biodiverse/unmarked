@@ -19,7 +19,7 @@ COPsimul <- function(psi = 0.5,
 }
 
 
-test_that("unmarkedFrameCOP is constructed correctly", {
+test_that("unmarkedFrameOccuCOP is constructed correctly", {
   set.seed(123)
   
   # Simulate data
@@ -71,9 +71,9 @@ test_that("unmarkedFrameCOP is constructed correctly", {
   )
 
   
-  # Creating a unmarkedFrameCOP object
-  expect_warning(umf <- unmarkedFrameCOP(y = y))
-  expect_no_error(umf <- unmarkedFrameCOP(y = y, L = L))
+  # Creating a unmarkedFrameOccuCOP object
+  expect_warning(umf <- unmarkedFrameOccuCOP(y = y))
+  expect_no_error(umf <- unmarkedFrameOccuCOP(y = y, L = L))
   
   
   # Create subsets
@@ -81,14 +81,14 @@ test_that("unmarkedFrameCOP is constructed correctly", {
   expect_no_error(umf_sub_j <- umf[, 1:2])
   expect_no_error(umf_sub_ij <- umf[1:3, 1:2])
   
-  # unmarkedFrameCOP organisation ----------------------------------------------
-  expect_true(inherits(umf, "unmarkedFrameCOP"))
+  # unmarkedFrameOccuCOP organisation ----------------------------------------------
+  expect_true(inherits(umf, "unmarkedFrameOccuCOP"))
   expect_equivalent(numSites(umf_sub_i), 3)
   expect_equivalent(obsNum(umf_sub_j), 2)
   expect_equivalent(numSites(umf_sub_ij), 3)
   expect_equivalent(obsNum(umf_sub_ij), 2)
   
-  # unmarkedFrameCOP display ---------------------------------------------------
+  # unmarkedFrameOccuCOP display ---------------------------------------------------
   
   # print method
   expect_output(print(umf), "Data frame representation of unmarkedFrame object")
@@ -97,29 +97,29 @@ test_that("unmarkedFrameCOP is constructed correctly", {
   expect_output(print(umf[,1]), "Data frame representation of unmarkedFrame object")
   expect_output(print(umf[1,1]), "Data frame representation of unmarkedFrame object")
   
-  # summary method for unmarkedFrameCOP
-  expect_output(summary(umf), "unmarkedFrameCOP Object")
-  expect_output(summary(umf_sub_ij), "unmarkedFrameCOP Object")
+  # summary method for unmarkedFrameOccuCOP
+  expect_output(summary(umf), "unmarkedFrameOccuCOP Object")
+  expect_output(summary(umf_sub_ij), "unmarkedFrameOccuCOP Object")
   
-  # plot method for unmarkedFrameCOP
+  # plot method for unmarkedFrameOccuCOP
   expect_no_error(plot(umf))
   expect_no_error(plot(umf_sub_ij))
   
   
   # Input handling: covariates -------------------------------------------------
-  expect_no_error(umfCovs <- unmarkedFrameCOP(
+  expect_no_error(umfCovs <- unmarkedFrameOccuCOP(
     y = y,
     L = L,
     siteCovs = psiCovs,
     obsCovs = lambdaCovs
   ))
   expect_output(print(umfCovs), "Data frame representation of unmarkedFrame object")
-  expect_output(summary(umfCovs), "unmarkedFrameCOP Object")
+  expect_output(summary(umfCovs), "unmarkedFrameOccuCOP Object")
   expect_no_error(plot(umfCovs))
   
   # Input handling: NA ---------------------------------------------------------
   
-  # NA should not pose problems when creating the unmarkedFrameCOP object.
+  # NA should not pose problems when creating the unmarkedFrameOccuCOP object.
   # The warnings and potential errors will be displayed when fitting the model.
   # Except when y only contains NA: then there's an error.
   
@@ -128,9 +128,9 @@ test_that("unmarkedFrameCOP is constructed correctly", {
   yNA[1:2,] <- NA
   yNA[3:5, 3:4] <- NA
   yNA[,3] <- NA
-  expect_no_error(umfNA <- unmarkedFrameCOP(y = yNA, L = L))
+  expect_no_error(umfNA <- unmarkedFrameOccuCOP(y = yNA, L = L))
   expect_output(print(umfNA), "Data frame representation of unmarkedFrame object")
-  expect_output(summary(umfNA), "unmarkedFrameCOP Object")
+  expect_output(summary(umfNA), "unmarkedFrameOccuCOP Object")
   expect_no_error(plot(umfNA))
   
   ## NA in L
@@ -138,9 +138,9 @@ test_that("unmarkedFrameCOP is constructed correctly", {
   obsLengthNA[1:2,] <- NA
   obsLengthNA[3:5, 3:4] <- NA
   obsLengthNA[,5] <- NA
-  expect_no_error(umfNA <- unmarkedFrameCOP(y = y, L = obsLengthNA))
+  expect_no_error(umfNA <- unmarkedFrameOccuCOP(y = y, L = obsLengthNA))
   expect_output(print(umfNA), "Data frame representation of unmarkedFrame object")
-  expect_output(summary(umfNA), "unmarkedFrameCOP Object")
+  expect_output(summary(umfNA), "unmarkedFrameOccuCOP Object")
 
   expect_no_error(plot(umfNA))
   
@@ -153,33 +153,33 @@ test_that("unmarkedFrameCOP is constructed correctly", {
   lambdaCovsNA[[1]][1:5,] <- NA
   lambdaCovsNA[[1]][,3] <- NA
   lambdaCovsNA[[3]][,5] <- NA
-  expect_no_error(umfCovsNA <- unmarkedFrameCOP(
+  expect_no_error(umfCovsNA <- unmarkedFrameOccuCOP(
     y = yNA,
     L = obsLengthNA,
     siteCovs = psiCovsNA,
     obsCovs = lambdaCovsNA
   ))
   expect_output(print(umfCovsNA), "Data frame representation of unmarkedFrame object")
-  expect_output(summary(umfCovsNA), "unmarkedFrameCOP Object")
+  expect_output(summary(umfCovsNA), "unmarkedFrameOccuCOP Object")
   expect_no_error(plot(umfCovsNA))
   
   ## all NA in y
   yallNA <- y
   yallNA[1:M, 1:J] <- NA
-  expect_error(unmarkedFrameCOP(y = yallNA, L = L))
+  expect_error(unmarkedFrameOccuCOP(y = yallNA, L = L))
   
   # Input handling: error and warnings -----------------------------------------
   # Error when there are decimals in y
   y_with_decimals = y
   y_with_decimals[1, 1] = .5
-  expect_error(unmarkedFrameCOP(y = y_with_decimals, L = L))
+  expect_error(unmarkedFrameOccuCOP(y = y_with_decimals, L = L))
   
   # Warning if y is detection/non-detection instead of count
   y_detec_nodetec = (y > 0) * 1
-  expect_warning(unmarkedFrameCOP(y = y_detec_nodetec, L = L))
+  expect_warning(unmarkedFrameOccuCOP(y = y_detec_nodetec, L = L))
   
   # Error if the dimension of L is different than that of y
-  expect_error(unmarkedFrameCOP(y = y, L = L[1:2, 1:2]))
+  expect_error(unmarkedFrameOccuCOP(y = y, L = L[1:2, 1:2]))
 })
 
 
@@ -195,7 +195,7 @@ test_that("occuCOP can fit simple models", {
   L = y * 0 + 1
 
   # Create umf
-  umf <- unmarkedFrameCOP(y = y, L = L)
+  umf <- unmarkedFrameOccuCOP(y = y, L = L)
 
   # Fitting options ----
 
@@ -274,7 +274,7 @@ test_that("occuCOP can fit simple models", {
   ## psi = 0.50, lambda = 1 ----
   psi_test = .5
   lambda_test = 1
-  fit_accur <- occuCOP(data = unmarkedFrameCOP(
+  fit_accur <- occuCOP(data = unmarkedFrameOccuCOP(
     y = COPsimul(
       psi = psi_test,
       lambda = lambda_test,
@@ -299,7 +299,7 @@ test_that("occuCOP can fit simple models", {
   ## psi = 0.25, lambda = 5 ----
   psi_test = 0.25
   lambda_test = 5
-  fit_accur <- occuCOP(data = unmarkedFrameCOP(
+  fit_accur <- occuCOP(data = unmarkedFrameOccuCOP(
     y = COPsimul(
       psi = psi_test,
       lambda = lambda_test,
@@ -324,7 +324,7 @@ test_that("occuCOP can fit simple models", {
   ## psi = 0.75, lambda = 0.5 ----
   psi_test = 0.75
   lambda_test = 0.5
-  fit_accur <- occuCOP(data = unmarkedFrameCOP(
+  fit_accur <- occuCOP(data = unmarkedFrameOccuCOP(
     y = COPsimul(
       psi = psi_test,
       lambda = lambda_test,
@@ -352,7 +352,7 @@ test_that("occuCOP can fit simple models", {
   yNA[3, 1] <- NA
   yNA[4, 3] <- NA
   yNA[, 5] <- NA
-  expect_no_error(umfNA <- unmarkedFrameCOP(y = yNA, L = L))
+  expect_no_error(umfNA <- unmarkedFrameOccuCOP(y = yNA, L = L))
 
   expect_warning(fit_NA <- occuCOP(data = umfNA, psistarts = 0, lambdastarts = 0, L1=T))
   expect_error(occuCOP(data = umfNA, psistarts = 0, lambdastarts = 0, na.rm = F))

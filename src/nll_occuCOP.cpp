@@ -4,11 +4,11 @@
 using namespace Rcpp ;
 
 // [[Rcpp::export]]
-double nll_occuCOP(arma::icolvec y, arma::icolvec L, 
+double nll_occuCOP(arma::icolvec y, arma::icolvec L,
     arma::mat Xpsi, arma::mat Xlambda,
     arma::colvec beta_psi, arma::colvec beta_lambda,
     Rcpp::LogicalVector removed) {
-  
+
   // Number of sites M and obs J
   int M = Xpsi.n_rows;
   int J = y.n_elem / M;
@@ -18,7 +18,7 @@ double nll_occuCOP(arma::icolvec y, arma::icolvec L,
 
   //Calculate lambda back-transformed from log
   arma::colvec lambda = exp(Xlambda*beta_lambda);
-  
+
   double ll=0.0;
   int k=0; // counter
   // for each site i in 1:M
@@ -36,7 +36,7 @@ double nll_occuCOP(arma::icolvec y, arma::icolvec L,
       }
       k++;
     }
-    if (!NbRemoved < J) {
+    if ((!NbRemoved) < J) {
       if(iN>0) {
         ll += log(psi(i) * pow(iLambdaL, iN) / tgamma(iN + 1) * exp(-iLambdaL));
       } else {

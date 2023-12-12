@@ -101,7 +101,7 @@ Here are methods that you should test but probably will not have to rewrite. The
 
 You may also need to add specific methods to allow users to access an attribute you added to your `unmarkedFrame` subclass.
 
-- For example, `getL` for `unmarkedFrameCOP`
+- For example, `getL` for `unmarkedFrameOccuCOP`
 
 # Fitting the model
 

@@ -1,9 +1,11 @@
-\name{unmarkedFrameCOP}
-\alias{unmarkedFrameCOP}
+\name{unmarkedFrameOccuCOP}
+\alias{unmarkedFrameOccuCOP}
+\alias{getL}
+\alias{getL,unmarkedFrameOccuCOP-method}
 
 \title{Organize data for the occupancy model using count data fit by \code{occuCOP}}
 
-\usage{unmarkedFrameCOP(y, L, siteCovs = NULL, obsCovs = NULL)}
+\usage{unmarkedFrameOccuCOP(y, L, siteCovs = NULL, obsCovs = NULL)}
 
 \description{Organizes count data along with the covariates. The \linkS4class{unmarkedFrame} S4 class required by the \code{data} argument of \code{\link{occuCOP}}.}
 
@@ -21,10 +23,10 @@
 }
 
 \details{
-    unmarkedFrameCOP is the \linkS4class{unmarkedFrame} S4 class that holds data to be passed to the \code{\link{occuCOP}} model-fitting function.
+    unmarkedFrameOccuCOP is the \linkS4class{unmarkedFrame} S4 class that holds data to be passed to the \code{\link{occuCOP}} model-fitting function.
 }
 
-\value{an object of class \code{unmarkedFrameCOP}}
+\value{an object of class \code{unmarkedFrameOccuCOP}}
 
 \seealso{
   \code{\link{unmarkedFrame-class}}, 
@@ -45,7 +47,7 @@ J <- 3 # Number of observation periods
     1, NA, 0),
   nrow = M,
   ncol = J,
-  byrow = T
+  byrow = TRUE
 ))
 
 # Length of observation periods
@@ -56,7 +58,7 @@ J <- 3 # Number of observation periods
     7, 1, 3),
   nrow = M,
   ncol = J,
-  byrow = T
+  byrow = TRUE
 ))
 
 # Site covariates
@@ -69,17 +71,20 @@ J <- 3 # Number of observation periods
 (obs.covs.list <- list(
   "rain" = matrix(rexp(M * J), nrow = M, ncol = J),
   "wind" = matrix(
-    sample(letters[1:3], replace = T, size = M * J),
+    sample(letters[1:3], replace = TRUE, size = M * J),
     nrow = M, ncol = J)
 ))
 
-# Organise data in a unmarkedFrameCOP object
-umf <- unmarkedFrameCOP(
+# Organise data in a unmarkedFrameOccuCOP object
+umf <- unmarkedFrameOccuCOP(
   y = y,
   L = L,
   siteCovs = site.covs,
   obsCovs = obs.covs.list
 )
+
+# Extract L
+getL(umf)
 
 # Look at data
 print(umf) # Print the whole data set
@@ -89,12 +94,12 @@ plot(umf) # Plot the count of detection events
 
 
 # L is optional, if absent, it will be replaced by a MxJ matrix of 1
-unmarkedFrameCOP(
+unmarkedFrameOccuCOP(
   y = y,
   siteCovs = site.covs,
   obsCovs = obs.covs.list
 )
 
 # Covariates are optional
-unmarkedFrameCOP(y = y)
+unmarkedFrameOccuCOP(y = y)
 }
