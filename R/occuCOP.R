@@ -49,8 +49,8 @@ setClass(
   }
 )
 
-## unmarkedFitCOP class ----
-setClass("unmarkedFitCOP",
+## unmarkedFitOccuCOP class ----
+setClass("unmarkedFitOccuCOP",
          representation(removed_obs = "matrix",
                         formlist = "list"),
          contains = "unmarkedFit")
@@ -331,13 +331,13 @@ setMethod("[", c("unmarkedFrameOccuCOP", "missing", "numeric", "missing"),
 
 
 ## fl_getY ----
-setMethod("fl_getY", "unmarkedFitCOP", function(fit, ...){
+setMethod("fl_getY", "unmarkedFitOccuCOP", function(fit, ...){
   getDesign(getData(fit), fit@formlist)$y
 })
 
 
 ## predict_inputs_from_umf ----
-setMethod("predict_inputs_from_umf", "unmarkedFitCOP",
+setMethod("predict_inputs_from_umf", "unmarkedFitOccuCOP",
           function(object, type, newdata, na.rm, re.form = NULL) {
             designMats = getDesign(umf = newdata,
                                    formlist = object@formlist,
@@ -351,14 +351,14 @@ setMethod("predict_inputs_from_umf", "unmarkedFitCOP",
 
 
 ## get_formula ----
-setMethod("get_formula", "unmarkedFitCOP", function(object, type, ...) {
+setMethod("get_formula", "unmarkedFitOccuCOP", function(object, type, ...) {
   fl <- object@formlist
   switch(type, psi = fl$psiformula, lambda = fl$lambdaformula)
 })
 
 
 ## get_orig_data ----
-setMethod("get_orig_data", "unmarkedFitCOP", function(object, type, ...){
+setMethod("get_orig_data", "unmarkedFitOccuCOP", function(object, type, ...){
   clean_covs <- clean_up_covs(object@data, drop_final=FALSE)
   datatype <- switch(type, psi = 'site_covs', lambda = 'obs_covs')
   clean_covs[[datatype]]
@@ -366,7 +366,7 @@ setMethod("get_orig_data", "unmarkedFitCOP", function(object, type, ...){
 
 
 ## getP ----
-setMethod("getP", "unmarkedFitCOP", function(object) {
+setMethod("getP", "unmarkedFitOccuCOP", function(object) {
   data <- object@data
   M = nrow(getY(data))
   J = ncol(getY(data))
@@ -380,7 +380,7 @@ setMethod("getP", "unmarkedFitCOP", function(object) {
 
 
 ## fitted ----
-setMethod("fitted", "unmarkedFitCOP", function(object) {
+setMethod("fitted", "unmarkedFitOccuCOP", function(object) {
   data <- object@data
   M = nrow(getY(data))
   J = ncol(getY(data))
@@ -396,7 +396,7 @@ setMethod("fitted", "unmarkedFitCOP", function(object) {
 
 
 ## residuals ----
-setMethod("residuals", "unmarkedFitCOP", function(object) {
+setMethod("residuals", "unmarkedFitOccuCOP", function(object) {
   y <- getY(object@data)
   e <- fitted(object)
   r <- y - e
@@ -405,7 +405,7 @@ setMethod("residuals", "unmarkedFitCOP", function(object) {
 
 
 ## plot ----
-setMethod("plot", c(x = "unmarkedFitCOP", y = "missing"), function(x, y, ...) {
+setMethod("plot", c(x = "unmarkedFitOccuCOP", y = "missing"), function(x, y, ...) {
   y <- getY(x)
   r <- residuals(x)
   e <- fitted(x)
@@ -433,7 +433,7 @@ setMethod("plot", c(x = "unmarkedFitCOP", y = "missing"), function(x, y, ...) {
 
 
 ## get_umf_components ----
-setMethod("get_umf_components", "unmarkedFitCOP",
+setMethod("get_umf_components", "unmarkedFitOccuCOP",
   function(object, formulas, guide, design, ...){
     sc <- generate_data(formulas$psi, guide, design$M)
     oc <- generate_data(formulas$lambda, guide, design$J*design$M)
@@ -443,7 +443,7 @@ setMethod("get_umf_components", "unmarkedFitCOP",
 
 
 ## simulate_fit ----
-setMethod("simulate_fit", "unmarkedFitCOP",
+setMethod("simulate_fit", "unmarkedFitOccuCOP",
   function(object, formulas, guide, design, ...){
     # Generate covariates and create a y matrix of zeros
     parts <- get_umf_components(object, formulas, guide, design, ...)
@@ -462,7 +462,7 @@ setMethod("simulate_fit", "unmarkedFitCOP",
 
 
 ## simulate ----
-setMethod("simulate", "unmarkedFitCOP",
+setMethod("simulate", "unmarkedFitOccuCOP",
   function(object, nsim = 1, seed = NULL, na.rm = TRUE){
   # set.seed(seed) 
   # Purposefully not implemented
@@ -494,14 +494,14 @@ setMethod("simulate", "unmarkedFitCOP",
 
 
 ## nonparboot ----
-setMethod("nonparboot", "unmarkedFitCOP",
+setMethod("nonparboot", "unmarkedFitOccuCOP",
   function(object, B = 0, keepOldSamples = TRUE, ...) {
-  stop("Not currently supported for unmarkedFitCOP", call.=FALSE)
+  stop("Not currently supported for unmarkedFitOccuCOP", call.=FALSE)
 })
 
 
 ## ranef ----
-setMethod("ranef", "unmarkedFitCOP", function(object, ...) {
+setMethod("ranef", "unmarkedFitOccuCOP", function(object, ...) {
   # Sites removed (srm) and sites kept (sk)
   srm <- object@sitesRemoved
   if (length(srm) > 0) {
@@ -942,7 +942,7 @@ occuCOP <- function(data,
   
   # Create unmarkedFit object--------------------------------------------------
   umfit <- new(
-    "unmarkedFitCOP",
+    "unmarkedFitOccuCOP",
     fitType = "occuCOP",
     call = match.call(),
     formula = as.formula(paste(

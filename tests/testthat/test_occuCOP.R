@@ -236,7 +236,7 @@ test_that("occuCOP can fit simple models", {
   expect_error(occuCOP(data = umf, na.rm = "no", psistarts = 0, lambdastarts = 0, L1=T))
 
   # Looking at at COP model outputs ----
-  expect_is(fit_default, "unmarkedFitCOP")
+  expect_is(fit_default, "unmarkedFitOccuCOP")
   expect_equivalent(coef(fit_default), c(0.13067954, 0.06077929), tol = 1e-5)
   
   ## backTransform
@@ -364,7 +364,7 @@ test_that("We can simulate COP data", {
   
   # With no covariates
   expect_no_error(simulate(
-    "COP",
+    "occuCOP",
     formulas = list(psi =  ~ 1, lambda =  ~ 1),
     coefs = list(
       psi = c(intercept = 0),
@@ -375,7 +375,7 @@ test_that("We can simulate COP data", {
   
   # With quantitative covariates
   expect_no_error(simulate(
-    "COP",
+    "occuCOP",
     formulas = list(psi =  ~ elev, lambda =  ~ rain),
     coefs = list(
       psi = c(intercept = qlogis(.5), elev = -0.5),
@@ -386,7 +386,7 @@ test_that("We can simulate COP data", {
   
   # With guides
   expect_no_error(simulate(
-    "COP",
+    "occuCOP",
     formulas = list(psi =  ~ elev, lambda =  ~ rain),
     coefs = list(
       psi = c(intercept = qlogis(.5), elev = -0.5),
@@ -398,7 +398,7 @@ test_that("We can simulate COP data", {
   
   # With qualitative covariates
   expect_no_error(umf <- simulate(
-    "COP",
+    "occuCOP",
     formulas = list(psi =  ~ elev + habitat, lambda =  ~ 1),
     coefs = list(
       psi = c(
@@ -413,7 +413,7 @@ test_that("We can simulate COP data", {
     guide = list(habitat = factor(levels = c("A", "B", "C")))
   ))
   
-  # From unmarkedFitCOP ----
+  # From unmarkedFitOccuCOP ----
   expect_no_error(umfit <- occuCOP(
     umf,
     psiformula =  ~ habitat,
@@ -428,7 +428,7 @@ test_that("occuCOP can fit and predict models with covariates", {
   # Simulate data with covariates ----
   set.seed(123)
   expect_no_error(umf <- simulate(
-    "COP",
+    "occuCOP",
     formulas = list(psi =  ~ elev + habitat, lambda =  ~ rain),
     coefs = list(
       psi = c(

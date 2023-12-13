@@ -91,7 +91,7 @@ occuCOP(data,
   
 }
 
-\value{\code{unmarkedFitCOP} object describing the model fit. See the \code{\linkS4class{unmarkedFit}} classes.}
+\value{\code{unmarkedFitOccuCOP} object describing the model fit. See the \code{\linkS4class{unmarkedFit}} classes.}
 
 \references{
 
