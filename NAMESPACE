@@ -23,7 +23,7 @@ importFrom(Rcpp, evalCpp)
 export(occu, occuFP, occuRN, pcount, pcountOpen, multinomPois, distsamp,
        colext, gmultmix, gdistsamp, gpcount, occuPEN, occuPEN_CV, occuMulti,
        occuMS, computeMPLElambda, pcount.spHDS, occuTTD, distsampOpen,
-       multmixOpen, nmixTTD, gdistremoval, goccu)
+       multmixOpen, nmixTTD, gdistremoval, goccu, occuCOP)
 export(removalPiFun, doublePiFun)
 export(makeRemPiFun, makeCrPiFun, makeCrPiFunMb, makeCrPiFunMh)
 
@@ -50,7 +50,8 @@ exportMethods(backTransform, coef, confint, coordinates, fitted, getData,
               "siteCovs<-", summary, update, vcov, yearlySiteCovs,
               "yearlySiteCovs<-", "[", smoothed, projected, nonparboot, logLik,
               LRT, ranef, bup, crossVal, posteriorSamples, sigma, randomTerms, 
-              optimizePenalty, unmarkedPowerList, plotEffectsData, plotEffects)
+              optimizePenalty, unmarkedPowerList, plotEffectsData, plotEffects,
+              getL)
 
 S3method("print", "unmarkedPostSamples")
 
@@ -60,7 +61,8 @@ export(unmarkedEstimate, fitList, mapInfo, unmarkedFrame,
     unmarkedFrameDS, unmarkedMultFrame, unmarkedFrameGMM,
     unmarkedFramePCO, unmarkedFrameGDS, unmarkedFrameGPC, unmarkedFrameOccuMulti,
     unmarkedFrameOccuMS, unmarkedFrameOccuTTD, unmarkedFrameDSO, 
-    unmarkedFrameMMO, unmarkedFrameGDR, unmarkedFrameGOccu)
+    unmarkedFrameMMO, unmarkedFrameGDR, unmarkedFrameGOccu,
+    unmarkedFrameOccuCOP)
 
 # Formatting
 export(csvToUMF, formatLong, formatWide, formatMult, formatDistData)

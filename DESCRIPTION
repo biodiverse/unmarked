@@ -12,6 +12,7 @@ Authors@R: c(
     person("Jeff", "Hostetler", role="aut"),
     person("Rebecca", "Hutchinson", role="aut"),
     person("Adam", "Smith", role="aut"),
+    person("Lea", "Pautrel", role="aut"),
     person("Marc", "Kery", role="ctb"),
     person("Mike", "Meredith", role="ctb"),
     person("Auriel", "Fournier", role="ctb"),
@@ -58,6 +59,7 @@ Collate: 'classes.R' 'unmarkedEstimate.R' 'mapInfo.R' 'unmarkedFrame.R'
     'simulate.R'
     'predict.R'
     'goccu.R'
+    'occuCOP.R'
     'RcppExports.R'
     'zzz.R'
 LinkingTo: 
