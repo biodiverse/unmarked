@@ -193,7 +193,7 @@ double nll_occuRNMulti(arma::vec beta, arma::mat state_ind, arma::mat det_ind, i
 
           par3_m = lp3(m) + k1 * lp3_sp1(m) + k2 * lp3_sp2(m);
           lik_sp3 = 0;
-          if(modOcc(1)){
+          if(modOcc(2)){
             lik_sp3 = lik_subord_occ(Kmin(m, 2), par3_m, J, r3_sub, y3.row(m));
           } else {
             lik_sp3 = lik_subord_abun(Kmin(m, 2), K(2), par3_m, J, r3_sub, y3.row(m));
