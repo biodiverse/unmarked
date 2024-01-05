@@ -95,7 +95,7 @@ occuCOP(data,
 
 \references{
 
-Pautrel, L., Moulherat, S., Gimenez, O. & Etienne, M.-P. Submitted. \emph{Analysing biodiversity observation data collected in continuous time: Should we use discrete or continuous-time occupancy models?} Preprint at \href{https://doi.org/10.1101/2023.11.17.567350}{https://doi.org/10.1101/2023.11.17.567350}.
+Pautrel, L., Moulherat, S., Gimenez, O. & Etienne, M.-P. Submitted. \emph{Analysing biodiversity observation data collected in continuous time: Should we use discrete or continuous-time occupancy models?} Preprint at \doi{10.1101/2023.11.17.567350}.
 
 }
 
