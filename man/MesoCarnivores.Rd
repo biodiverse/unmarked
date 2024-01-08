@@ -18,12 +18,12 @@
     \item{\code{redfox}}{A 1437x3 occupancy matrix for red fox}
     \item{\code{sitecovs}}{A data frame containing covariates for the 1437 sites, with the following columns:
       \itemize{
-        \item{\code{Dist_5km}{Proportion of disturbed land in 5 km radius}}
-        \item{\code{HDens_5km}{Housing density in 5 km radius}}
-        \item{\code{Latitude}{Latitude / 100}}
-        \item{\code{Longitude}{Longitude / 100}}
-        \item{\code{People_site}{Number of photos of people at site / 1000}}
-        \item{\code{Trail}{1 if camera was on trail, 0 if not}}
+        \item{\code{Dist_5km}}{Proportion of disturbed land in 5 km radius}
+        \item{\code{HDens_5km}}{Housing density in 5 km radius}
+        \item{\code{Latitude}}{Latitude / 100}
+        \item{\code{Longitude}}{Longitude / 100}
+        \item{\code{People_site}}{Number of photos of people at site / 1000}
+        \item{\code{Trail}}{1 if camera was on trail, 0 if not}
       }
     }
   }
