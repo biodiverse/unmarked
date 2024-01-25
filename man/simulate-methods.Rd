@@ -17,10 +17,12 @@
 \alias{simulate,unmarkedFitGDS-method}
 \alias{simulate,unmarkedFitGPC-method}
 \alias{simulate,unmarkedFitGDR-method}
+\alias{simulate,unmarkedFitIDS-method}
 \alias{simulate,unmarkedFitDailMadsen-method}
 \alias{simulate,unmarkedFitGOccu-method}
 \alias{simulate,unmarkedFitOccuCOP-method}
 \alias{simulate,character-method}
+
 \title{Methods for Function simulate in Package `unmarked'}
 \description{
 Simulate data from a fitted model.
