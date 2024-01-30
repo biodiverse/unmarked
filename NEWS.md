@@ -1,3 +1,10 @@
+# unmarked 1.4.0
+
+* Added count-data occupancy model (occuCOP)
+* Added multi-scale occupancy model (goccu) 
+* Added ZIP support to gdistsamp, gmultmix, and gpcount
+* Fixed bug in TMB engine for occu that resulted in incorrect detection coefficient estimates when there were many interspersed NAs in the encounter history
+
 # unmarked 1.3.3
 
 * Increase required R version to 4.0

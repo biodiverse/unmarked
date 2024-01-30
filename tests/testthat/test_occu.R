@@ -374,6 +374,13 @@ test_that("occu can handle random effects",{
   pb <- parboot(fm, nsim=1)
   expect_is(pb, "parboot")
 
+  # confint should only show fixed effects
+  ci <- confint(fm, type = 'state')
+  expect_equal(nrow(ci), 2)
+
+  ci <- confint(fm['state'])
+  expect_equal(nrow(ci), 2)
+
   # Check custom initial values
   expect_equal(fm@TMB$starts_order[1], "beta_det")
   fmi <- occu(~1~cov1 + (1|site_id), umf, starts=c(10,0,0,0))
@@ -406,4 +413,31 @@ test_that("occu can handle random effects",{
   #on.exit(options(warn=0))
   test <- modSel(fl) # shouldn't warn
   #options(warn=0)
+})
+
+test_that("TMB engine gives correct det estimates when there are lots of NAs", {
+
+  skip_on_cran()
+  set.seed(123)
+  M <- 200
+  J <- 10
+  psi <- 0.5
+
+  z <- rbinom(M, 1, psi)
+
+  x <- matrix(rnorm(M*J), M, J)
+
+  p <- plogis(0 + 0.3*x)
+
+  y <- matrix(NA, M, J)
+  for (i in 1:M){
+    y[i,] <- rbinom(J, 1, p[i,]) * z[i]
+  }
+  y[sample(1:(M*J), (M*J/2), replace=FALSE)] <- NA
+
+  umf <- unmarkedFrameOccu(y=y, obsCovs=list(x=x))
+
+  fit <- occu(~x~1, umf)
+  fitT <- occu(~x~1, umf, engine="TMB")
+  expect_equal(coef(fit), coef(fitT), tol=1e-5)
 })

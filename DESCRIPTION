@@ -1,6 +1,6 @@
 Package: unmarked
-Version: 1.3.2.9005
-Date: 2023-12-10
+Version: 1.4.1.9001
+Date: 2024-01-23
 Type: Package
 Title: Models for Data from Unmarked Animals
 Authors@R: c(
@@ -12,6 +12,7 @@ Authors@R: c(
     person("Jeff", "Hostetler", role="aut"),
     person("Rebecca", "Hutchinson", role="aut"),
     person("Adam", "Smith", role="aut"),
+    person("Lea", "Pautrel", role="aut"),
     person("Marc", "Kery", role="ctb"),
     person("Mike", "Meredith", role="ctb"),
     person("Auriel", "Fournier", role="ctb"),
@@ -51,12 +52,14 @@ Collate: 'classes.R' 'unmarkedEstimate.R' 'mapInfo.R' 'unmarkedFrame.R'
     'unmarkedCrossVal.R' 'piFun.R' 'vif.R' 'makePiFun.R' 'posteriorSamples.R'
     'nmixTTD.R'
     'gdistremoval.R'
+    'IDS.R'
     'plotEffects.R'
     'mixedModelTools.R'
     'power.R' 
     'simulate.R'
     'predict.R'
     'goccu.R'
+    'occuCOP.R'
     'RcppExports.R'
     'zzz.R'
 LinkingTo: 
