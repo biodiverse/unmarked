@@ -1,4 +1,5 @@
 context("mixed model tools")
+skip_on_cran()
 
 test_that("get_reTrms matches lme4::mkReTrms", {
 
@@ -65,11 +66,35 @@ test_that("get_reTrms matches lme4::mkReTrms", {
   expect_identical(r7$cnms, l7$cnms)
   attributes(l7$flist)$assign <- NULL
   expect_identical(r7$flist, l7$flist)
+
+  # Check that unused factor levels aren't dropped
+  dat2 <- data.frame(x = c(0.1, 0.2, -0.1),
+                    group = factor(c("a","b","c"), levels=c("a","b","c","d")))
+  form8 <- ~x + (1|group)
+  #l8 <- lme4::mkReTrms(lme4::findbars(form8), dat2, drop.unused.levels=FALSE)
+  r8 <- get_reTrms(form8, dat2)
+  expect_identical(r8$Z, Matrix::t(l8$Zt))
+
+  # Check that get_Z handles newdata
+  form9 <- ~x + (x||group) + (1|id)
+  nd <- data.frame(x=c(0.5,1), group=c("e","d"), id=c("i","i"))
+  Z <- get_Z(form9, dat, newdata=nd)
+  expect_equivalent(as.matrix(Z), matrix(c(0,1,0,0,0.5,0,0,0,1,
+                                      1,0,0,1,0,0,0,0,1), nrow=2, byrow=T))
+
+  # New level
+  nd <- data.frame(x=c(0.5,1), group=c("a","d"), id=c("i","i"))
+  expect_error(get_Z(form9, dat, newdata=nd))
   
-  #save(l1,l2,l3,l4,l5,l6,l7, file='lme4_output.Rdata')
+  #save(l1,l2,l3,l4,l5,l6,l7,l8, file='lme4_output.Rdata')
 })
 
 test_that("get_reTrms errors correctly", {
+  set.seed(123) 
+  dat <- data.frame(x = rnorm(20), y = rnorm(20), z = factor(sample(letters[1:3], 20, replace=T)),
+                    group = factor(sample(letters[4:6], 20, replace=T)),
+                    id = factor(sample(letters[7:9], 20, replace=T)))
+  
   form1 <- ~x + (x+z||group) + (y||id)
   expect_error(get_reTrms(form1, dat))
 

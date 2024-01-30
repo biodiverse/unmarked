@@ -1,6 +1,6 @@
 # Generate required random effects info----------------------------------------
 # Sort-of drop-in replacement for lme4::mkReTrms
-get_reTrms <- function(formula, data, newdata=NULL){
+get_reTrms <- function(formula, data){
   if(!has_random(formula)){
     stop("No random effect terms in formula", call.=FALSE)
   }
