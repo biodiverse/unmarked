@@ -29,8 +29,6 @@ Type objective_function<Type>::operator() () {
     return tmb_IDS(this);
   } else if(model == "tmb_goccu"){
     return tmb_goccu(this);
-  } else {
-    error("Unknown model.");
   }
   return 0;
 }

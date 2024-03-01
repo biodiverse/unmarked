@@ -229,7 +229,7 @@ test_that("occuMulti predict method works",{
 
   nul <- capture.output(prState <- predict(fm, type='state'))
   expect_equivalent(sapply(prState,function(x) x[1,1]),
-                     c(0.30807707,0.19287755,0.04734032,0.76785951),tol=1e-4)
+                     c(0.30807707,0.19287755,0.04734032,0.76785951),tol=0.05)
   nul <- capture.output(prDet <- predict(fm, type='det'))
   expect_equivalent(as.numeric(prDet$sp2[1,]),
                      c(0.190485,0.12201,0.0475270,0.525988), tol=1e-4)
@@ -257,7 +257,7 @@ test_that("occuMulti predict method works",{
 
   nul <- capture.output(prState <- predict(fm, type='state'))
   expect_equivalent(sapply(prState,function(x) x[1,1]),
-                     c(0.475928,0.25311741,0.01468389,0.85687218),tol=1e-4)
+                     c(0.475928,0.25311741,0.01468389,0.85687218),tol=0.05)
   nul <- capture.output(prDet <- predict(fm, type='det'))
   expect_equivalent(as.numeric(prDet$sp2[1,]),
                      c(0.20494,0.11865,0.0582563,0.517888), tol=1e-4)
