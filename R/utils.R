@@ -927,3 +927,33 @@ lapply2 <- function(X, FUN, ..., cl = NULL){
   }
   lapply(X=X, FUN=FUN, ...)
 }
+
+# Determine automatic K or check provided K for multinomial-type models
+# (gdistsamp, gmultmix, distsampOpen, multmixOpen, gdistremoval)
+check_K_multinomial <- function(K, K_adjust = 0, y, T = 1){
+
+  safe_sum <- function(x){
+    if(all(is.na(x))) return(NA) else return(sum(x, na.rm=TRUE))
+  }
+
+  if(T == 1){
+    yt <- apply(y, 1, safe_sum)
+  } else {
+    M <- nrow(y)
+    J <- ncol(y) / T
+    ya <- array(y, c(M, J, T))
+    ya <- aperm(ya, c(1,3,2))
+    yt <- apply(ya, 1:2, safe_sum)
+  }
+  Kmin <- max(yt, na.rm = TRUE)
+  if(missing(K)){
+    Kout <- Kmin + K_adjust
+    warning("K was not specified and was set to ", Kout, ".", call.=FALSE)
+  } else {
+    if(K <= Kmin){
+      stop("specified K is too small. Try a value larger than the max count at any site", call.=FALSE)
+    }
+    Kout <- K
+  }
+  Kout
+}

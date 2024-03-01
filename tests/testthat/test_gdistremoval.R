@@ -282,6 +282,10 @@ test_that("gdistremoval can fit models",{
   expect_is(fit, "unmarkedFitGDR")
   expect_equivalent(coef(fit), c(1.4571,0.3374,4.0404,-1.65389,0.16789), tol=1e-3)
 
+  # Check automatic setting of K
+  yt <- apply(umf@yDistance, 1, sum) 
+  expect_equal(max(yt)+40, fit@K)
+
   # With unequal period lengths
   umf2 <- unmarkedFrameGDR(dat$y, dat$yRem, siteCovs=sc, obsCovs=oc,
                          dist.breaks=c(0,25,50,75,100), unitsIn='m',
@@ -444,6 +448,17 @@ test_that("multi-period data works with gdistremoval",{
   expect_equivalent(coef(fit),
                      c(2.1013,-0.1142,-1.3187,-0.1483,3.3981,-0.5142,0.233678),
                      tol=1e-3)
+
+  # Check that automatic K value is correct
+  ya <- array(umf@y, c(30, 4, 5))
+  ya <- aperm(ya, c(1,3,2))
+  yt <- apply(ya, 1:2, function(x) {
+        if(all(is.na(x)))
+        return(NA)
+        else return(sum(x, na.rm=TRUE))
+  })
+  expect_false(max(umf@y)+40 == fit@K) # the incorrect way
+  expect_equal(max(yt)+40, fit@K) # the correct way
 
   # Predict
   pr <- predict(fit, 'phi')

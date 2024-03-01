@@ -64,6 +64,15 @@ test_that("multmixOpen can fit removal models",{
   expect_equivalent(coef(fit), c(1.38860,0.043406,-0.68448,
                                   1.40703,0.03174,-0.00235), tol=1e-5)
 
+  # Check auto K setting
+  fit <- expect_warning(multmixOpen(~x1, ~1, ~1, ~x1, data=umf))
+  expect_false(fit@K == max(umf@y) + 20) # Wrong way
+
+  ya <- array(umf@y, c(100, 3, 5))
+  yt <- apply(ya, c(1,3), sum, na.rm=TRUE)
+
+  expect_true(fit@K == max(yt) + 20) # correct way
+
   #Check predict
   pr <- predict(fit, type='lambda')
   expect_equivalent(as.numeric(pr[1,]),

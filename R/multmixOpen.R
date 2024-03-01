@@ -64,12 +64,7 @@ multmixOpen <- function(lambdaformula, gammaformula, omegaformula, pformula,
   if(is.null(Xiota.offset)) Xiota.offset <- rep(0, M*(T-1))
 
   #K stuff
-  if(missing(K)) {
-    K <- max(y, na.rm=T) + 20
-    warning("K was not specified and was set to ", K, ".")
-  }
-  if(K <= max(y, na.rm = TRUE))
-    stop("specified K is too small. Try a value larger than any observation")
+  K <- check_K_multinomial(K, K_adjust = 20, D$y, T)
   k <- 0:K
   lk <- length(k)
   #Some k-related indices to avoid repeated calculations in likelihood
