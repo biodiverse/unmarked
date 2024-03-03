@@ -84,6 +84,9 @@ setMethod("parboot", "unmarkedFit",  function(object, statistic=SSE, nsim=10,
   if(length(t0) == 1) t.star <- matrix(t.star, ncol=1)
 
   failed <- apply(t.star, 1, function(x) any(is.na(x)))
+  if(all(failed)){
+    stop("Model fitting failed in all sims.", call.=FALSE)
+  }
   if(sum(failed) > 0){
     warning(paste0("Model fitting failed in ",sum(failed), " sims."), call.=FALSE)
     t.star <- t.star[!failed,,drop=FALSE]
