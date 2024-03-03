@@ -399,8 +399,9 @@ if(engine =="C"){
     as.vector(t(out))
   }
   y_long <- long_format(y)
-  kmytC <- kmyt
-  kmytC[which(is.na(kmyt))] <- 0
+  # Vectorize these arrays as using arma::subcube sometimes crashes
+  kmytC <- as.vector(aperm(kmyt, c(3,2,1)))
+  lfac.kmytC <- as.vector(aperm(lfac.kmyt, c(3,2,1)))
   if(output!='density'){
     A <- rep(1, M)
   }
@@ -411,7 +412,7 @@ if(engine =="C"){
   nll <- function(params){
     nll_gdistsamp(params, n_param, y_long, mixture_code, keyfun, survey,
                   Xlam, Xlam.offset, A, Xphi, Xphi.offset, Xdet, Xdet.offset,
-                  db, a, t(u), w, k, lfac.k, lfac.kmyt, kmyt, Kmin, threads)
+                  db, a, t(u), w, k, lfac.k, lfac.kmytC, kmytC, Kmin, threads)
   }
 
 } else {
