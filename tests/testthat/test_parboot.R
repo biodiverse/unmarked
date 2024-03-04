@@ -69,6 +69,34 @@ test_that("parboot handles failing model fits", {
   expect_warning(pb <- parboot(fm, nsim=20, statistic=fail_func))
   expect_equal(nrow(pb@t.star), 13)
 
+  # Error message when all parboot samples are bad
+
+  # force error only when running function on new simulated datasets,
+  # but not for original dataset
+  fail_func <- function(x){
+    if(round(x@AIC, 5) == 23.29768){
+      return(0)
+    } else {
+      stop("fail")
+    }
+  }
+
+  set.seed(123)
+  expect_error(pb2 <- parboot(fm, nsim=20, statistic=fail_func))
+})
+
+test_that("parboot handles failing model fits in parallel", {
+  skip_on_cran()
+  skip_on_ci()
+  fail_func <- function(x){
+    rand <- rnorm(1)
+    if(rand > 0.5){
+      stop("fail")
+    }
+    return(rand)
+  }
+
+  set.seed(123)
   expect_warning(pb <- parboot(fm, nsim=20, statistic=fail_func, parallel=TRUE))
   expect_true(nrow(pb@t.star) < 20)
 
@@ -84,6 +112,15 @@ test_that("parboot handles statistic functions with additional arguments", {
   pb <- parboot(fm, nsim=10, statistic=opt_func, y=0.1)
   expect_equal(colnames(pb@t.star), c("res", "y"))
   expect_true(all(pb@t.star[,"y"]==0.1))
+})
+
+test_that("parboot handles statistic functions with additional arguments in parallel", {
+  skip_on_cran()
+  skip_on_ci()
+  opt_func <- function(x, y){
+    res <- mean(residuals(x), na.rm=TRUE)
+    c(res=res, y=y)
+  }
 
   pb <- parboot(fm, nsim=10, statistic=opt_func, y=0.1, parallel=TRUE)
   expect_equal(colnames(pb@t.star), c("res", "y"))

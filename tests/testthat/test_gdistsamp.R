@@ -96,6 +96,16 @@ test_that("gdistsamp with halfnorm keyfunction works",{
                       control=list(maxit=1))
     expect_equal(coef(fm_R), coef(fm_C))
 
+    # Check that automatic K value is correct
+    ya <- array(umf@y, c(R, J, T))
+    ya <- aperm(ya, c(1,3,2))
+    yt <- apply(ya, 1:2, function(x) {
+        if(all(is.na(x)))
+        return(NA)
+        else return(sum(x, na.rm=TRUE))
+    })
+    expect_equal(max(yt)+100, fm_C@K)
+
     #When output = density
     #fm_R <- gdistsamp(~1, ~1, ~1, umf, output="density", se=FALSE, engine="R")
     fm_C <- gdistsamp(~1, ~1, ~1, umf, output="density", se=FALSE, engine="C")

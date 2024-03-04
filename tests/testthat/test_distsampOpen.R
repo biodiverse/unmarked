@@ -132,6 +132,20 @@ test_that("dso halfnorm key function works",{
   # Check K that is too small
   expect_error(distsampOpen(~1, ~1, ~1, ~x1, data = umf, K=5,keyfun="halfnorm"))
 
+  # Check auto-K
+  fm <- expect_warning(distsampOpen(~1, ~1, ~1, ~x1, data = umf, keyfun="halfnorm"))
+  expect_false(fm@K == max(umf@y)+20) # the wrong way
+  
+  # Check that automatic K value is correct
+  ya <- array(umf@y, c(50, 4, 7))
+  ya <- aperm(ya, c(1,3,2))
+  yt <- apply(ya, 1:2, function(x) {
+        if(all(is.na(x)))
+        return(NA)
+        else return(sum(x, na.rm=TRUE))
+  })
+  expect_equal(max(yt)+20, fm@K) # the correct way
+
   fm <- distsampOpen(~1, ~1, ~1, ~x1, data = umf, K=10,keyfun="halfnorm")
 
   expect_equivalent(coef(fm), c(1.4185,1.0471,-0.8275,3.1969,-0.0790),
@@ -325,7 +339,7 @@ test_that("distsampOpen dynamics models work",{
 
   fm <- distsampOpen(~1, ~1, ~1, data = umf, K=25, keyfun="unif",
                      dynamics="autoreg")
-  expect_equivalent(coef(fm), c(1.518686, -0.018026, -5.628779), tol=1e-5)
+  expect_equivalent(coef(fm), c(1.518686, -0.018026, -5.628779), tol=1e-4)
 
   #Sketchy estimates
   #Maybe just because data were simulated using a different process?

@@ -111,7 +111,7 @@ test_that("simulate can generate new datasets from scratch",{
   forms_gmm <- list(lambda=~elev, phi=~1, det=~1)
   umf9 <- simulate("gmultmix", formulas=forms_gmm, design=design_colext, coefs=cf_gmm,
                    type='removal')
-  fm <- gmultmix(~elev,~1,~1, umf9)
+  fm <- expect_warning(gmultmix(~elev,~1,~1, umf9))
   expect_equivalent(coef(fm), c(1.9529,0.5321,0.0529,-0.0373), tol=1e-4)
 
   #gpcount

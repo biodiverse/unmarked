@@ -29,7 +29,7 @@ if(is.null(Xlam.offset)) Xlam.offset <- rep(0, nrow(Xlam))
 if(is.null(Xphi.offset)) Xphi.offset <- rep(0, nrow(Xphi))
 if(is.null(Xdet.offset)) Xdet.offset <- rep(0, nrow(Xdet))
 
-if(missing(K) || is.null(K)) K <- max(y, na.rm=TRUE) + 100
+K <- check_K_multinomial(K, K_adjust = 100, y, data@numPrimary)
 k <- 0:K
 lk <- length(k)
 M <- nrow(y)

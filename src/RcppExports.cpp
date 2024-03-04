@@ -141,7 +141,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // nll_gdistsamp
-double nll_gdistsamp(arma::vec beta, arma::uvec n_param, arma::vec y, int mixture, std::string keyfun, std::string survey, arma::mat Xlam, arma::vec Xlam_offset, arma::vec A, arma::mat Xphi, arma::vec Xphi_offset, arma::mat Xdet, arma::vec Xdet_offset, arma::vec db, arma::mat a, arma::mat u, arma::vec w, arma::vec k, arma::vec lfac_k, arma::cube lfac_kmyt, arma::cube kmyt, arma::uvec Kmin, int threads);
+double nll_gdistsamp(arma::vec beta, arma::uvec n_param, arma::vec y, int mixture, std::string keyfun, std::string survey, arma::mat Xlam, arma::vec Xlam_offset, arma::vec A, arma::mat Xphi, arma::vec Xphi_offset, arma::mat Xdet, arma::vec Xdet_offset, arma::vec db, arma::mat a, arma::mat u, arma::vec w, arma::vec k, arma::vec lfac_k, arma::vec lfac_kmyt, arma::vec kmyt, arma::uvec Kmin, int threads);
 RcppExport SEXP _unmarked_nll_gdistsamp(SEXP betaSEXP, SEXP n_paramSEXP, SEXP ySEXP, SEXP mixtureSEXP, SEXP keyfunSEXP, SEXP surveySEXP, SEXP XlamSEXP, SEXP Xlam_offsetSEXP, SEXP ASEXP, SEXP XphiSEXP, SEXP Xphi_offsetSEXP, SEXP XdetSEXP, SEXP Xdet_offsetSEXP, SEXP dbSEXP, SEXP aSEXP, SEXP uSEXP, SEXP wSEXP, SEXP kSEXP, SEXP lfac_kSEXP, SEXP lfac_kmytSEXP, SEXP kmytSEXP, SEXP KminSEXP, SEXP threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -165,8 +165,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::vec >::type w(wSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type k(kSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type lfac_k(lfac_kSEXP);
-    Rcpp::traits::input_parameter< arma::cube >::type lfac_kmyt(lfac_kmytSEXP);
-    Rcpp::traits::input_parameter< arma::cube >::type kmyt(kmytSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type lfac_kmyt(lfac_kmytSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type kmyt(kmytSEXP);
     Rcpp::traits::input_parameter< arma::uvec >::type Kmin(KminSEXP);
     Rcpp::traits::input_parameter< int >::type threads(threadsSEXP);
     rcpp_result_gen = Rcpp::wrap(nll_gdistsamp(beta, n_param, y, mixture, keyfun, survey, Xlam, Xlam_offset, A, Xphi, Xphi_offset, Xdet, Xdet_offset, db, a, u, w, k, lfac_k, lfac_kmyt, kmyt, Kmin, threads));
@@ -335,6 +335,23 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::colvec >::type V_offset(V_offsetSEXP);
     Rcpp::traits::input_parameter< std::string >::type link_psi(link_psiSEXP);
     rcpp_result_gen = Rcpp::wrap(nll_occu(y, X, V, beta_psi, beta_p, nd, knownOcc, navec, X_offset, V_offset, link_psi));
+    return rcpp_result_gen;
+END_RCPP
+}
+// nll_occuCOP
+double nll_occuCOP(arma::icolvec y, arma::icolvec L, arma::mat Xpsi, arma::mat Xlambda, arma::colvec beta_psi, arma::colvec beta_lambda, Rcpp::LogicalVector removed);
+RcppExport SEXP _unmarked_nll_occuCOP(SEXP ySEXP, SEXP LSEXP, SEXP XpsiSEXP, SEXP XlambdaSEXP, SEXP beta_psiSEXP, SEXP beta_lambdaSEXP, SEXP removedSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::icolvec >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::icolvec >::type L(LSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type Xpsi(XpsiSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type Xlambda(XlambdaSEXP);
+    Rcpp::traits::input_parameter< arma::colvec >::type beta_psi(beta_psiSEXP);
+    Rcpp::traits::input_parameter< arma::colvec >::type beta_lambda(beta_lambdaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::LogicalVector >::type removed(removedSEXP);
+    rcpp_result_gen = Rcpp::wrap(nll_occuCOP(y, L, Xpsi, Xlambda, beta_psi, beta_lambda, removed));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -585,6 +602,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_unmarked_nll_multmixOpen", (DL_FUNC) &_unmarked_nll_multmixOpen, 39},
     {"_unmarked_nll_nmixTTD", (DL_FUNC) &_unmarked_nll_nmixTTD, 13},
     {"_unmarked_nll_occu", (DL_FUNC) &_unmarked_nll_occu, 11},
+    {"_unmarked_nll_occuCOP", (DL_FUNC) &_unmarked_nll_occuCOP, 7},
     {"_unmarked_nll_occuMS", (DL_FUNC) &_unmarked_nll_occuMS, 15},
     {"_unmarked_nll_occuMulti_loglik", (DL_FUNC) &_unmarked_nll_occuMulti_loglik, 14},
     {"_unmarked_nll_occuMulti", (DL_FUNC) &_unmarked_nll_occuMulti, 15},

@@ -76,8 +76,19 @@ test_that("gmultmix removal model works",{
   umf <- unmarkedFrameGMM(y = y, siteCovs = siteCovs, obsCovs = obsCovs,
         yearlySiteCovs = yrSiteCovs, type="removal", numPrimary=2)
   #fm_R <- gmultmix(~x, ~yr, ~o1 + o2, data = umf, K=23, engine="R")
-  expect_warning(fm_C <- gmultmix(~x, ~yr, ~o1 + o2, data = umf, K=23, engine="C"))
+  expect_warning(fm_C <- gmultmix(~x, ~yr, ~o1 + o2, data = umf, engine="C"))
 
+  # Check K calculation
+  expect_false(fm_C@K == max(y) + 100) # wrong way to do it
+  # Correct way
+  ya <- array(y, c(5, 2, 2))
+  yt <- apply(ya, c(1,3), sum, na.rm=TRUE)
+  expect_true(fm_C@K == max(yt) + 100)
+  # Throw error when K is too low
+  expect_error(expect_warning(gmultmix(~x, ~yr, ~o1+o2, data=umf, K = 5)))
+
+  # Fit with the old K to keep tests correct
+  expect_warning(fm_C <- gmultmix(~x, ~yr, ~o1 + o2, data = umf, K = 23, engine="C"))
   expect_equal(fm_C@sitesRemoved, 3)
   coef_truth <- c(2.50638554, 0.06226627, 0.21787839, 6.46029769, -1.51885928,
             -0.03409375, 0.43424295)
@@ -164,7 +175,7 @@ test_that("gmultmix double model works",{
   umf2 <- umf[1:5,]
   expect_equal(numSites(umf2), 5)
 
-  fm <- gmultmix(~1,~1,~observer, umf)
+  fm <- expect_warning(gmultmix(~1,~1,~observer, umf))
   expect_equivalent(coef(fm), c(2.2586,0.17385,-0.7425), tol=1e-4)
 
   gp <- getP(fm)
@@ -195,7 +206,7 @@ test_that("gmultmix dependent double model works",{
   expect_warning(umf <- unmarkedFrameGMM(y=y[,1:2], obsCovs=list(observer=observer),
          type="depDouble",numPrimary=1))
 
-  fm <- gmultmix(~1,~1,~observer, umf)
+  fm <- expect_warning(gmultmix(~1,~1,~observer, umf))
   expect_equivalent(coef(fm), c(1.7762,0.2493,0.2008), tol=1e-4)
 
   gp <- getP(fm)
@@ -309,14 +320,14 @@ test_that("gmultmix ZIP model works",{
          type="double",numPrimary=1))
 
   # Compare R and C engines
-  fmR <- gmultmix(~1, ~1, ~observer, umf, mixture="ZIP", engine="R", se=FALSE,
-                  control=list(maxit=1))
-  fmC <- gmultmix(~1, ~1, ~observer, umf, mixture="ZIP", engine="C", se=FALSE,
-                  control=list(maxit=1))
+  fmR <- expect_warning(gmultmix(~1, ~1, ~observer, umf, mixture="ZIP", engine="R", se=FALSE,
+                  control=list(maxit=1)))
+  fmC <- expect_warning(gmultmix(~1, ~1, ~observer, umf, mixture="ZIP", engine="C", se=FALSE,
+                  control=list(maxit=1)))
   expect_equal(coef(fmR), coef(fmC))
 
   #  Fit model full
-  fm <- gmultmix(~1,~1,~observer, umf, mixture="ZIP")
+  fm <- expect_warning(gmultmix(~1,~1,~observer, umf, mixture="ZIP"))
   expect_equivalent(coef(fm), c(2.2289,0.1858,-0.9285,-0.9501), tol=1e-4)
 
   # Check methods
