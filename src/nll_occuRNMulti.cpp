@@ -143,6 +143,8 @@ double nll_occuRNMulti(arma::vec beta, arma::mat state_ind, arma::mat det_ind, i
 
     double par2_m, par3_m; // state parameters for species 2 and 3
 
+    //This can probably be hugely simplified by combining the cases
+    //in a smart way; kept them all separate for simplicity initially
     for (int k1 = Kmin(m, 0); k1<(K(0)+1); k1++){
 
       //Dominant species
@@ -224,6 +226,27 @@ double nll_occuRNMulti(arma::vec beta, arma::mat state_ind, arma::mat det_ind, i
         }
 
         lik_m += fg1 * lik_sp2 * lik_sp3;
+      } else if((S == 3) & (dep(1,0) & dep(2,0) & dep(2,1))){ // sp1 --> sp2 --> sp3 & sp1 --> sp3
+
+        lik_sp2 = 0;
+
+        par2_m = exp(lp2(m) + k1 * lp2_sp1(m));
+
+        for (int k2 = Kmin(m, 1); k2<(K(1)+1); k2++){
+          fg2 = calc_fg(k2, par2_m, J, r2_sub, y2.row(m));
+
+          lik_sp3 = 0;
+          par3_m = lp3(m) + k1 * lp2_sp1(m) + k2 * lp3_sp2(m);
+          if(modOcc(2)){
+            lik_sp3 = lik_subord_occ(Kmin(m, 2), par3_m, J, r3_sub, y3.row(m));
+          } else {
+            lik_sp3 = lik_subord_abun(Kmin(m, 2), K(2), par3_m, J, r3_sub, y3.row(m));
+          }
+          lik_sp2 += fg2 * lik_sp3;
+        }
+
+        lik_m += fg1 * lik_sp2;
+
       }
     }
 
