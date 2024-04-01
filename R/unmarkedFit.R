@@ -559,7 +559,7 @@ setMethod("fitted", "unmarkedFitDailMadsen",
     if(is.null(Xom.offset)) Xom.offset <- rep(0, M*(T-1))
     if(is.null(Xiota.offset)) Xiota.offset <- rep(0, M*(T-1))
 
-    lambda <- exp(Xlam %*% coef(object, 'lambda') + Xlam.offset)
+    lambda <- as.vector(exp(Xlam %*% coef(object, 'lambda') + Xlam.offset))
     if(identical(mixture, "ZIP")) {
         psi <- plogis(coef(object, type="psi"))
         lambda <- (1-psi)*lambda
@@ -618,7 +618,7 @@ setMethod("fitted", "unmarkedFitDailMadsen",
                 N[i,t] <- N[i,t-1]*exp(gamma[i,t-1]*(1-N[i,t-1]/omega[i,t-1]))+
                     iota[i, t-1]
             else if(identical(dynamics, "gompertz"))
-                N[i,1] <- N[i,t-1] * exp(gamma[i,t-1]*(1-log(N[i,t-1]+1)/
+                N[i,t] <- N[i,t-1] * exp(gamma[i,t-1]*(1-log(N[i,t-1]+1)/
                   log(omega[i,t-1]+1))) + iota[i, t-1]
             else
                 N[i,t] <- N[i,t-1] * omega[i,t-1] + gamma[i,t-1]
@@ -633,7 +633,7 @@ setMethod("fitted", "unmarkedFitDailMadsen",
                         N[i, t] <- N[i, t] * exp(gamma[i, t-1] * (1 - N[i,t] /
                             omega[i,t-1]))+ iota[i, t-1]
                     else if(identical(dynamics, "gompertz"))
-                        N[i, 1] <- N[i, t] * exp(gamma[i, t-1] * (1 -
+                        N[i, t] <- N[i, t] * exp(gamma[i, t-1] * (1 -
                             log(N[i, t]+1) / log(omega[i, t-1] + 1))) +
                             iota[i, t-1]
                     else
