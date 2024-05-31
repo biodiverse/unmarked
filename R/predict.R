@@ -742,15 +742,33 @@ setMethod("predict", "unmarkedFitOccuMulti",
         new_est@covMatBS <- matrix(NA, nrow=length(inds), ncol=length(inds))
       }
 
-      prmat <- t(apply(dmDet[[i]], 1, function(x){
-                    bt <- backTransform(linearComb(new_est, x))
-                    if(!se.fit){
-                      return(c(Predicted=bt@estimate, SE=NA, lower=NA, upper=NA))
-                    }
-                    ci <- confint(bt, level=level)
-                    names(ci) <- c("lower", "upper")
-                    c(Predicted=bt@estimate, SE=SE(bt), ci)
-                  }))
+      chunk_size <- 70
+      xmat <- dmDet[[i]]
+      if(is.vector(xmat)) xmat <- matrix(xmat, nrow=1)
+      nr <- nrow(xmat)
+      ind <- rep(1:ceiling(nr/chunk_size), each=chunk_size, length.out=nr)
+
+      x_chunk <- lapply(unique(ind),
+                    function(i) as.matrix(xmat[ind==i,,drop=FALSE]))
+
+      prmat <- lapply(x_chunk, function(x_i){
+        has_na <- apply(x_i, 1, function(x_i) any(is.na(x_i)))
+        # Work around linearComb bug where there can't be NAs in inputs
+        x_i[has_na,] <- 0
+        lc <- linearComb(new_est, x_i)
+        lc <- backTransform(lc)
+        out <- data.frame(Predicted=coef(lc), SE=NA, lower=NA, upper=NA)
+        if(se.fit){
+          se <- SE(lc)
+          ci <- confint(lc, level=level)
+          out$SE <- se
+          out$lower <- ci[,1]
+          out$upper <- ci[,2]
+        }
+        out[has_na,] <- NA
+        out
+      })
+      prmat <- do.call(rbind, prmat)
       rownames(prmat) <- NULL
       out[[i]] <- as.data.frame(prmat)
     }
