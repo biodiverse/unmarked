@@ -28,7 +28,9 @@ setMethod("predict", "unmarkedFit",
     if(inherits(newdata, c("RasterLayer","RasterStack","SpatRaster"))){
       is_raster <- TRUE
       orig_raster <- newdata
-      newdata <- newdata_from_raster(newdata, all.vars(orig_formula))
+      check_vars <- all.vars(orig_formula)
+      if(!is.null(re.form) && is.na(re.form)) check_vars <- all.vars(lme4::nobars(orig_formula))
+      newdata <- newdata_from_raster(newdata, check_vars)
     }
 
     # 3. Make model matrix and offset with newdata, informed by original data
@@ -288,7 +290,7 @@ raster_from_predict <- function(pr, object, appendData){
     raster::crs(new_rast) <- raster::crs(object)
     if(appendData) new_rast <- raster::stack(new_rast, object)
   } else if(inherits(object, "SpatRaster")){
-    new_rast <- data.frame(terra::crds(object), pr)
+    new_rast <- data.frame(terra::crds(object, na.rm=FALSE), pr)
     new_rast <- terra::rast(new_rast, type="xyz")
     terra::crs(new_rast) <- terra::crs(object)
     if(appendData) new_rast <- c(new_rast, object)

@@ -177,4 +177,34 @@ test_that("predicting from terra::rast works",{
   # Missing levels are handled
   nd_2 <- nd_raster[[1]]
   expect_error(predict(mod, 'state', newdata=nd_2))
+
+  # Missing data in raster handled
+  set.seed(123)
+  # Create rasters
+  # Elevation
+  r_elev <- data.frame(x=rep(1:10, 10), y=rep(1:10, each=10), z=rnorm(100))
+  r_elev$z[1] <- NA
+  r_elev <- terra::rast(r_elev, type="xyz")
+  expect_true(is.na(r_elev[91]))
+
+  #Group
+  r_group <- data.frame(x=rep(1:10, 10), y=rep(1:10, each=10),
+                      z=sample(1:length(levels(umf@siteCovs$group)), 100, replace=T))
+  # Convert to 'factor' raster
+  r_group <- terra::as.factor(terra::rast(r_group, type="xyz"))
+  levels(r_group) <- data.frame(ID=terra::levels(r_group)[[1]]$ID, group=levels(umf@siteCovs$group))
+
+  # Stack
+  nd_raster <- c(r_elev, r_group)
+  names(nd_raster) <- c("elev", "group")
+  terra::crs(nd_raster) <- "epsg:32616"
+
+  pr_na <- predict(mod, 'state', newdata=nd_raster)
+  expect_true(is.na(pr_na$Predicted[91]))
+
+  # Random effect in formula
+  mod2 <- update(mod, ~1 ~elev + (1|group))
+
+  expect_is(predict(mod2, 'state', newdata=nd_raster), 'SpatRaster')
+  expect_is(predict(mod2, 'state', newdata=nd_raster, re.form=NA), 'SpatRaster')
 })
