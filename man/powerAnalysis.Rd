@@ -1,5 +1,6 @@
 \name{powerAnalysis}
 \alias{powerAnalysis}
+\alias{powerAnalysis,unmarkedFit-method}
 
 \title{Conduct a power analysis on an unmarked model}
 
@@ -16,7 +17,7 @@ examples.
 }
 
 \usage{
-  powerAnalysis(object, coefs=NULL, design=NULL, alpha=0.05, nulls=list(),
+  \S4method{powerAnalysis}{unmarkedFit}(object, coefs=NULL, design=NULL, alpha=0.05, nulls=list(),
                 datalist=NULL, 
                 nsim=ifelse(is.null(datalist), 100, length(datalist)), 
                 parallel=FALSE)

@@ -9,7 +9,7 @@ des <- list(M=100, J=5)
 guide <- list(group=factor(levels=c("A","B","C")))
 forms <- list(state=~elev+group, det=~1)
 
-umf <- simulate("occu", design=des, formulas=forms, coefs=cf, guide=guide)
+umf <- expect_warning(simulate("occu", design=des, formulas=forms, coefs=cf, guide=guide))
 mod <- occu(~1~elev+group, umf)
 
 test_that("clean_up_covs works with dynamic model data",{

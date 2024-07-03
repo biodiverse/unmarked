@@ -3,10 +3,14 @@
 \alias{unmarkedPowerList,list-method}
 \alias{unmarkedPowerList,unmarkedFit-method}
 \alias{unmarkedPowerList-class}
+\alias{unmarkedPowerList_old-class}
 \alias{unmarkedPowerList-methods}
 \alias{show,unmarkedPowerList-method}
 \alias{summary,unmarkedPowerList-method}
 \alias{plot,unmarkedPowerList,ANY-method}
+\alias{show,unmarkedPowerList_old-method}
+\alias{summary,unmarkedPowerList_old-method}
+\alias{plot,unmarkedPowerList_old,ANY-method}
 
 \title{Create or summarize a series of unmarked power analyses}
 

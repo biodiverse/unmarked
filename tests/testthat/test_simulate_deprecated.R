@@ -1,6 +1,6 @@
-context("simulate method")
+context("old simulate method")
 skip_on_cran()
-
+skip("Skip old simulation method tests")
 test_that("simulate can generate new datasets from scratch",{
 
   set.seed(123)

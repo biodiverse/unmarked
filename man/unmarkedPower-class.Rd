@@ -1,9 +1,13 @@
 \name{unmarkedPower-methods}
 \alias{unmarkedPower-methods}
 \alias{unmarkedPower-class}
+\alias{unmarkedPower_old-class}
 \alias{show,unmarkedPower-method}
 \alias{summary,unmarkedPower-method}
 \alias{update,unmarkedPower-method}
+\alias{show,unmarkedPower_old-method}
+\alias{summary,unmarkedPower_old-method}
+\alias{update,unmarkedPower_old-method}
 
 \title{Methods for unmarkedPower objects}
 
