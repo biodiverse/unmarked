@@ -903,19 +903,6 @@ check_coefs_old <- function(coefs, fit, template=FALSE){
   coefs[required_subs]
 }
 
-wald <- function(est, se, null_hyp=NULL){
-  if(is.null(null_hyp) || is.na(null_hyp)) null_hyp <- 0
-  Z <- (est-null_hyp)/se
-  2*pnorm(abs(Z), lower.tail = FALSE)
-}
-
-diff_dir <- function(est, hyp, null_hyp=NULL){
-  if(is.null(null_hyp) || is.na(null_hyp)) null_hyp <- 0
-  dif <- est - null_hyp
-  dif_hyp <- hyp - null_hyp
-  dif * dif_hyp > 0
-}
-
 setMethod("summary", "unmarkedPower_old", function(object, ...){
   sum_dfs <- object@estimates
   npar <- nrow(sum_dfs[[1]])

@@ -1,10 +1,105 @@
-replace_estimates <- function(object, new_ests){
-  for (i in 1:length(new_ests)){
-    est <- object@estimates@estimates[[names(new_ests)[i]]]@estimates
-    stopifnot(length(est) == length(new_ests[[i]]))
-    object@estimates@estimates[[names(new_ests)[i]]]@estimates <- new_ests[[i]]
-  }
+setMethod("simulate", "unmarkedFrame",
+  function(object, nsim = 1, seed = NULL, model = NULL, coefs = NULL,
+           quiet = FALSE, ...){
+  object <- y_to_zeros(object)
+  fit <- get_fit(object, model, ...)
+  coefs <- check_coefs(coefs, fit, quiet = quiet)
+  #coefs <- unmarked:::generate_random_effects(coefs, fit)
+  fit <- replace_estimates(fit, coefs)
+  sims <- simulate(fit, nsim)
+  lapply(sims, function(x) replaceY(object, x))
+})
+
+setGeneric("y_to_zeros", function(object, ...){
+  standardGeneric("y_to_zeros")
+})
+
+# Other fit-specific methods at the bottom of the file
+setMethod("y_to_zeros", "unmarkedFrame", function(object, ...){
+  object@y[] <- 0
   object
+})
+
+get_fit <- function(object, model, ...){
+  fun <- get_fitting_function(object, model)
+  fun(..., data = object, method = "SANN",
+      control=list(maxit=0), se=FALSE)
+}
+
+setGeneric("get_fitting_function", function(object, model, ...){
+  standardGeneric("get_fitting_function")
+})
+
+# Other fit-specific methods at the bottom of the file
+setMethod("get_fitting_function", "unmarkedFrameOccu",
+          function(object, model, ...){
+ 
+  if(!(identical(model, occuRN) | identical(model, occu))){
+    stop("model argument must be occu or occuRN", call.=FALSE)
+  }
+  model
+})
+
+check_coefs <- function(coefs, fit, name = "coefs", quiet = FALSE){
+  required_subs <- names(fit@estimates@estimates)
+  required_coefs <- lapply(fit@estimates@estimates, function(x) names(x@estimates))
+  required_lens <- lapply(required_coefs, length)
+
+  formulas <- sapply(names(fit), function(x) get_formula(fit, x))
+
+  # If there are random effects, adjust the expected coefficient names
+  # to remove the b vector and add the grouping covariate name
+  rand <- lapply(formulas, lme4::findbars)
+  if(!all(sapply(rand, is.null))){
+    stopifnot(all(required_subs %in% names(formulas)))
+    rvar <- lapply(rand, function(x) unlist(lapply(x, all.vars)))
+    if(!all(sapply(rvar, length)<2)){
+      stop("Only 1 random effect per parameter is supported", call.=FALSE)
+    }
+    for (i in required_subs){
+      if(!is.null(rand[[i]][[1]])){
+        signame <- rvar[[i]]
+        old_coefs <- required_coefs[[i]]
+        new_coefs <- old_coefs[!grepl("b_", old_coefs, fixed=TRUE)]
+        new_coefs <- c(new_coefs, signame)
+        required_coefs[[i]] <- new_coefs
+      }
+    }
+  }
+
+  dummy_coefs <- lapply(required_coefs, function(x){
+                    out <- rep(0, length(x))
+                    names(out) <- x
+                    out
+                  })
+
+  if(is.null(coefs)){
+    cat(name, "should be a named list of vectors, with the following structure
+        (replace 0s with your values):\n\n")
+    print(dummy_coefs)
+    stop(paste("Specify", name, "argument as shown above", call.=FALSE))
+  }
+
+  for (i in 1:length(required_subs)){
+    if(!required_subs[i] %in% names(coefs)){
+      stop(paste0("Missing required list element '",
+                  required_subs[i], "' in ", name, " list"), call.=FALSE)
+    }
+
+    sub_coefs <- coefs[[required_subs[i]]]
+
+    if(!quiet){
+      message(paste0("Assumed parameter order for ", required_subs[i], ":\n",
+                  paste(required_coefs[[i]], collapse=", ")))
+    }
+    
+    if(length(sub_coefs) != required_lens[i]){
+      stop(paste0("Entry '",required_subs[[i]], "' in ", name, " list must be length ",
+                  required_lens[[i]]), call.=FALSE)
+    }
+
+  }
+  coefs[required_subs]
 }
 
 generate_random_effects <- function(coefs, fit){
@@ -42,4 +137,42 @@ generate_random_effects <- function(coefs, fit){
   }
   coefs
 }
+
+replace_estimates <- function(object, new_ests){
+  for (i in 1:length(new_ests)){
+    est <- object@estimates@estimates[[names(new_ests)[i]]]@estimates
+    stopifnot(length(est) == length(new_ests[[i]]))
+    object@estimates@estimates[[names(new_ests)[i]]]@estimates <- new_ests[[i]]
+  }
+  object
+}
+
+
+# y_to_zeros-------------------------------------------------------------------
+
+setMethod("y_to_zeros", "unmarkedFrameOccuMulti", function(object, ...){
+  newy <- lapply(object@ylist, function(x){
+    x[] <- 0
+    x
+  })
+  object@ylist <- newy
+  object
+})
+
+# get_fitting_function---------------------------------------------------------
+
+setMethod("get_fitting_function", "unmarkedFrameGDS",
+          function(object, model, ...){
+  gdistsamp
+})
+
+setMethod("get_fitting_function", "unmarkedFramePCount",
+          function(object, model, ...){
+  pcount
+})
+
+setMethod("get_fitting_function", "unmarkedFrameOccuMulti",
+          function(object, model, ...){
+  occuMulti
+})
 
