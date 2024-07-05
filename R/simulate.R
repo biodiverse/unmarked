@@ -4,7 +4,7 @@ setMethod("simulate", "unmarkedFrame",
   object <- y_to_zeros(object)
   fit <- get_fit(object, model, ...)
   coefs <- check_coefs(coefs, fit, quiet = quiet)
-  #coefs <- unmarked:::generate_random_effects(coefs, fit)
+  coefs <- generate_random_effects(coefs, fit)
   fit <- replace_estimates(fit, coefs)
   sims <- simulate(fit, nsim)
   lapply(sims, function(x) replaceY(object, x))
@@ -43,7 +43,6 @@ setMethod("get_fitting_function", "unmarkedFrameOccu",
 check_coefs <- function(coefs, fit, name = "coefs", quiet = FALSE){
   required_subs <- names(fit@estimates@estimates)
   required_coefs <- lapply(fit@estimates@estimates, function(x) names(x@estimates))
-  required_lens <- lapply(required_coefs, length)
 
   formulas <- sapply(names(fit), function(x) get_formula(fit, x))
 
@@ -66,6 +65,7 @@ check_coefs <- function(coefs, fit, name = "coefs", quiet = FALSE){
       }
     }
   }
+  required_lens <- lapply(required_coefs, length)
 
   dummy_coefs <- lapply(required_coefs, function(x){
                     out <- rep(0, length(x))
@@ -97,6 +97,7 @@ check_coefs <- function(coefs, fit, name = "coefs", quiet = FALSE){
       stop(paste0("Entry '",required_subs[[i]], "' in ", name, " list must be length ",
                   required_lens[[i]]), call.=FALSE)
     }
+    names(coefs[[required_subs[i]]]) <- required_coefs[[i]]
 
   }
   coefs[required_subs]
@@ -128,7 +129,12 @@ generate_random_effects <- function(coefs, fit){
         if(!is.factor(lvldata)){
           stop("Random effect covariates must be specified as factors with guide argument", call.=FALSE)
         }
-        b <- stats::rnorm(length(levels(lvldata)), 0, old_coefs[signame])
+        sigma <- old_coefs[signame]
+        if(sigma <= 0){
+          stop("estimate for random effect represents sigma and must be positive",
+               call.=FALSE)
+        }
+        b <- stats::rnorm(length(levels(lvldata)), 0, sigma)
         names(b) <- rep(paste0("b_",i), length(b))
         new_coefs <- c(new_coefs, b)
         coefs[[i]] <- new_coefs
