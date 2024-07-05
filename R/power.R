@@ -87,7 +87,21 @@ get_summary_df <- function(fit, effects, nulls){
     out
   })
   all_est <- do.call(rbind, all_est)
-  # TODO: Remove random effects
+
+  # Remove random effects from output list
+  effects <- unmarked:::check_coefs(effects, fit, quiet=TRUE)
+  rvars <- sapply(names(fit), function(x){
+                       bars <- lme4::findbars(unmarked:::get_formula(fit, x))
+                       all.vars(bars[[1]])
+                      })
+
+  for (i in names(effects)){
+    ef <- effects[[i]]
+    keep <- which(!names(ef) %in% rvars[[i]])
+    effects[[i]] <- ef[keep]
+    nulls[[i]] <- nulls[[i]][keep]
+  }
+
   all_est$Effect <- unlist(effects[est_names])
   all_est$Null <- unlist(nulls[est_names])
 
