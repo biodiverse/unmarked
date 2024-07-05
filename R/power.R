@@ -89,9 +89,9 @@ get_summary_df <- function(fit, effects, nulls){
   all_est <- do.call(rbind, all_est)
 
   # Remove random effects from output list
-  effects <- unmarked:::check_coefs(effects, fit, quiet=TRUE)
+  effects <- check_coefs(effects, fit, quiet=TRUE)
   rvars <- sapply(names(fit), function(x){
-                       bars <- lme4::findbars(unmarked:::get_formula(fit, x))
+                       bars <- lme4::findbars(get_formula(fit, x))
                        all.vars(bars[[1]])
                       })
 
@@ -239,9 +239,9 @@ plot_power <- function(object, ind, alpha, ...){
     abline(h = mean(sig_direct), lty=2, lwd=1.3, col='red')
   }
 
-  legend('bottomright', pch=19, col=c("gray", "red", "blue"), 
+  graphics::legend('bottomright', pch=19, col=c("gray", "red", "blue"), 
          legend=c("Non-significant", "Significant", "Sig & wrong sign"))
-  legend('bottomleft', lty=2, col=c("black", "red"),
+  graphics::legend('bottomleft', lty=2, col=c("black", "red"),
          legend=c("True effect size", "Avg significant effect"))
   invisible()
 }
