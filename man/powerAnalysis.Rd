@@ -1,65 +1,60 @@
 \name{powerAnalysis}
 \alias{powerAnalysis}
+\alias{powerAnalysis,unmarkedFrame-method}
+\alias{powerAnalysis,list-method}
 \alias{powerAnalysis,unmarkedFit-method}
 
-\title{Conduct a power analysis on an unmarked model}
+\title{Conduct a power analysis for an unmarked model}
 
 \description{
 This function uses a simulation-based approach to estimate power for parameters 
-in unmarked models. At a minimum, users must provide a fitted \code{unmarked} model object
-(preferably fit with simulated data) which ensures the model has been properly
-specified, a list of effect sizes for each parameter in the model (\code{coefs}), 
-and the desired Type I error (\code{alpha}). It is also possible to get power
-for a range of other sample sizes besides the sample size in the fitted
-model object using the \code{design} argument to subsample within the
-provided dataset. See the \code{unmarkedPower} vignette for more details and
+in unmarked models. At a minimum, users must provide an \code{unmarkedFrame}
+object describing the experimental design and a list of effect sizes for each 
+parameter in the model. See the \code{unmarkedPower} vignette for more details and
 examples.
 }
 
 \usage{
-  \S4method{powerAnalysis}{unmarkedFit}(object, coefs=NULL, design=NULL, alpha=0.05, nulls=list(),
-                datalist=NULL, 
-                nsim=ifelse(is.null(datalist), 100, length(datalist)), 
-                parallel=FALSE)
+  \S4method{powerAnalysis}{unmarkedFrame}(object, model = NULL, effects = NULL,
+    alpha=0.05, nsim = 100, nulls=NULL, ...)
+  \S4method{powerAnalysis}{list}(object, model = NULL, effects = NULL,
+    alpha=0.05, nsim = length(object), nulls=NULL, ...)
 }
 
 \arguments{
-  \item{object}{A fitted model inheriting class \code{unmarkedFit}. This
-    could potentially be fit using real data, but ideally you would simulate
-    an appropriate dataset using \code{simulate}}
-  \item{coefs}{A list containing the desired effect sizes for which you want
-    to estimate power. This list must follow a specific format. There is one
-    named entry in the list per submodel (e.g., occupancy, detection). To
-    get the required submodel names call \code{names(object)} on your fitted model.
-    Then, each list entry is a named vector with the names corresponding to the
-    parameter names for that submodel, and the values corresponding to the 
-    desired effect sizes. It may be easier to leave \code{coefs=NULL}, which
+  \item{object}{An \code{unmarkedFrame} object representing the desired study
+    design. The values in the response (\code{y}) don't matter and can be missing.
+    Alternatively, you can provide a list of such objects with the 
+    response data already simulated (such as the output from \code{simulate}).
+  }
+  \item{model}{The model to use when the \code{unmarkedFrame} type is used for
+    multiple model types. For example, if the \code{object} is an
+    \code{unmarkedFrameOccu}, model should be set to \code{occu} or \code{occuRN}.
+  }
+  \item{effects}{A list containing the desired effect sizes/parameter values
+    for which you want to estimate power. This list must follow a specific format. 
+    There is one named entry in the list per submodel (e.g., occupancy, detection). 
+    Each list element should be a numeric vector with length equal to the number
+    of parameters in that submodel. Parameter values are on the inverse link
+    scale. You can leave \code{effects=NULL}, which
     will generate an error message with a template that you can fill in.
   }
-  \item{design}{An optional list of design/sample size parameters containing 
-    at a minimum two named elements: \code{M}, the number of sites, and \code{J} 
-    the number of observations per site. If this list is provided, \code{unmarked} 
-    will subsample the provided dataset to the specified number of sites and
-    observations, allowing you to test power for different designs. If
-    your model has multiple primary periods you must also include \code{T},
-    the number of periods, in the list.
-  }
-  \item{alpha}{Desired Type I error rate}
-  \item{nulls}{If provided, a list matching the structure of \code{coefs} which
+  \item{alpha}{Desired Type I error rate.}
+  \item{nsim}{Number of simulations to conduct.}
+  \item{nulls}{If provided, a list matching the structure of \code{effects} which
     defines the null hypothesis value for each parameter. By default the null
     is 0 for all parameters.
   }
-  \item{datalist}{An optional list of previously-simulated datasets, in the form
-    of \code{unmarkedFrames} matching the model type of \code{object}, which
-    will be used for the power analysis simulations.
-  }
-  \item{nsim}{Number of simulations to conduct}
-  \item{parallel}{If \code{TRUE}, run folds in parallel. This may speed up 
-    the power analysis in some situations
-  }
+  \item{...}{Arguments to send to the fitting function for the model. 
+    Most importantly this will include formula argument(s), but could also include 
+    distributions, key functions, etc. For example, for simulating occupancy data, 
+    you must also supply the argument \code{formula = ~1~1} for a no-covariate model, 
+  \code{formula=~1~x} for a covariate effect of \code{x} on occupancy, etc.}
 } 
 
-\value{\code{unmarkedPower} object containing the results of the power analysis}
+\value{\code{unmarkedPower} object containing the results of the power analysis.
+      For information on interpretation of the output, see the power analysis
+      vignette.}
 
 \author{Ken Kellner \email{contact@kenkellner.com}}
 
@@ -71,36 +66,27 @@ examples.
 
 \dontrun{
 
-# Simulate an occupancy dataset
-# Covariates to include in simulation
-forms <- list(state=~elev, det=~1)
+# Create experimental design
+M <- 50
+J <- 3
+y <- matrix(NA, M, J)
+sc <- data.frame(x=rnorm(M))
+umf <- unmarkedFrameOccu(y, siteCovs=sc)
 
-# Covariate effects and intercept values
-coefs <- list(state=c(intercept=0, elev=-0.4), det=c(intercept=0))
+# Power analysis
+p <- powerAnalysis(umf, model=occu, formula=~1~x, 
+                   effects = list(state = c(-0.2, 0.3), det = 0))
 
-# Study design
-design <- list(M=300, J=8) # 300 sites, 8 occasions per site
+p
+summary(p, alpha=0.3)
+plot(p, ylim=c(-3, 3))
+plot(p, ylim=c(-3, 3))
 
-# Simulate an unmarkedFrameOccu
-occu_umf <- simulate("occu", formulas=forms, coefs=coefs, design=design)
-
-# Fit occupancy model to simulated data
-# This will contain all the model structure info powerAnalysis needs
-# The estimates from the model aren't used
-template_model <- occu(~1~elev, occu_umf)
-
-# If we run powerAnalysis without specifying coefs we'll get a template list
-powerAnalysis(template_model)
-
-# Set desired effect sizes to pass to coefs
-effect_sizes <- list(state=c(intercept=0, elev=-0.4), det=c(intercept=0))
-
-# Run power analysis and look at summary
-(pa <- powerAnalysis(template_model, coefs=effect_sizes, alpha=0.05))
-
-# Try a smaller sample size in the study design
-(pa2 <- powerAnalysis(template_model, coefs=effect_sizes, alpha=0.05,
-                      design=list(M=100, J=2)))
+# Simulate your own datasets first and pass to power analysis
+cf <- list(state=c(0,1), det=0)
+s <- simulate(umf, model = occu, formula=~1~x, coefs=cf, nsim = 100)
+p2 <- powerAnalysis(s, model=occu, formula=~1~x, effects=cf)
+p2
 
 }
 }
