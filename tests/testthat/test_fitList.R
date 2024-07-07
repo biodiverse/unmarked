@@ -31,6 +31,13 @@ test_that("fitList operations work",{
   expect_is(pr, "data.frame")
   expect_equal(dim(pr), c(5,4))
 
+  # Raster predict
+  r <- data.frame(x=rep(1:10, 10), y=rep(1:10, each=10), z=rnorm(100))
+  r <- raster::rasterFromXYZ(r)
+  names(r) <- "x"
+  pr <- predict(fl, type="state", newdata=r)
+  expect_is(pr, "RasterStack")
+
   mt <- modSel(fl)
   out <- capture.output(mt)
   expect_equal(out[1], "    nPars   AIC delta AICwt cumltvWt")
