@@ -140,9 +140,9 @@ setMethod("predict", "unmarkedFitList", function(object, type, newdata=NULL,
         ese <- lapply(fitList, predict, type = type, newdata = newdata,
             backTransform = backTransform, level=level)
 
-        if(inherits(newdata, "RasterStack")){
-          if(!require(raster)) stop("raster package is required")
-          ese <- lapply(ese, as.matrix)
+        if(inherits(newdata, "Raster")){
+          if(!requireNamespace("raster")) stop("raster package is required")
+          ese <- lapply(ese, raster::as.matrix)
         }
 
         E <- sapply(ese, function(x) x[,"Predicted"])
@@ -159,7 +159,7 @@ setMethod("predict", "unmarkedFitList", function(object, type, newdata=NULL,
         out$lower <- as.numeric(lower %*% wts)
         out$upper <- as.numeric(upper %*% wts)
 
-        if(inherits(newdata, "RasterStack")){
+        if(inherits(newdata, "Raster")){
           E.mat <- matrix(out[,1], dim(newdata)[1], dim(newdata)[2], byrow=TRUE)
           E.raster <- raster::raster(E.mat)
           raster::extent(E.raster) <- raster::extent(newdata)
