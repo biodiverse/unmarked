@@ -165,6 +165,13 @@ setMethod("y_to_zeros", "unmarkedFrameOccuMulti", function(object, ...){
   object
 })
 
+setMethod("y_to_zeros", "unmarkedFrameGDR", function(object, ...){
+  object@yDistance[] <- 0
+  object@yRemoval[] <- 0
+  object
+})
+
+
 # get_fitting_function---------------------------------------------------------
 
 setMethod("get_fitting_function", "unmarkedFrameGDS",
@@ -182,3 +189,7 @@ setMethod("get_fitting_function", "unmarkedFrameOccuMulti",
   occuMulti
 })
 
+setMethod("get_fitting_function", "unmarkedFrameGDR", 
+          function(object, model, ...){
+  gdistremoval
+})
