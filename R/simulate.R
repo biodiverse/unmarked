@@ -34,8 +34,8 @@ setGeneric("get_fitting_function", function(object, model, ...){
 setMethod("get_fitting_function", "unmarkedFrameOccu",
           function(object, model, ...){
  
-  if(!(identical(model, occuRN) | identical(model, occu))){
-    stop("model argument must be occu or occuRN", call.=FALSE)
+  if(!(identical(model, occuRN) | identical(model, occu) | identical(model, occuPEN))){
+    stop("model argument must be occu, occuRN, or occuPEN", call.=FALSE)
   }
   model
 })
@@ -174,14 +174,63 @@ setMethod("y_to_zeros", "unmarkedFrameGDR", function(object, ...){
 
 # get_fitting_function---------------------------------------------------------
 
+setMethod("get_fitting_function", "unmarkedFrameDS", 
+          function(object, model, ...){
+  if(!missing(model) && identical(model, IDS)) stop("IDS not supported", call.=FALSE)
+  distsamp
+})
+
+setMethod("get_fitting_function", "unmarkedFrameDSO", 
+          function(object, model, ...){
+  distsampOpen
+})
+
+setMethod("get_fitting_function", "unmarkedFrameGDR", 
+          function(object, model, ...){
+  gdistremoval
+})
+
 setMethod("get_fitting_function", "unmarkedFrameGDS",
           function(object, model, ...){
   gdistsamp
 })
 
-setMethod("get_fitting_function", "unmarkedFramePCount",
+setMethod("get_fitting_function", "unmarkedFrameGMM", 
           function(object, model, ...){
-  pcount
+  gmultmix
+})
+
+setMethod("get_fitting_function", "unmarkedFrameGPC", 
+          function(object, model, ...){
+  gpcount
+})
+
+setMethod("get_fitting_function", "unmarkedFrameGOccu",
+          function(object, model, ...){
+  goccu
+})
+
+setMethod("get_fitting_function", "unmarkedFrameOccuCOP",
+          function(object, model, ...){
+  occuCOP
+})
+
+setMethod("get_fitting_function", "unmarkedFrameOccuFP",
+          function(object, model, ...){
+  occuFP
+})
+
+setMethod("get_fitting_function", "unmarkedFrameOccuMS",
+          function(object, model, ...){
+  occuMS
+})
+
+setMethod("get_fitting_function", "unmarkedFrameOccuTTD",
+          function(object, model, ...){
+  if(!(identical(model, occuTTD) | identical(model, nmixTTD))){
+    stop("model argument must be occuTTD or nmixTTD", call.=FALSE)
+  }
+  model
 })
 
 setMethod("get_fitting_function", "unmarkedFrameOccuMulti",
@@ -189,7 +238,27 @@ setMethod("get_fitting_function", "unmarkedFrameOccuMulti",
   occuMulti
 })
 
-setMethod("get_fitting_function", "unmarkedFrameGDR", 
+setMethod("get_fitting_function", "unmarkedFrameMPois",
           function(object, model, ...){
-  gdistremoval
+  multinomPois
+})
+
+setMethod("get_fitting_function", "unmarkedFrameMMO", 
+          function(object, model, ...){
+  multmixOpen
+})
+
+setMethod("get_fitting_function", "unmarkedFramePCount",
+          function(object, model, ...){
+  pcount
+})
+
+setMethod("get_fitting_function", "unmarkedFramePCO", 
+          function(object, model, ...){
+  pcountOpen
+})
+
+setMethod("get_fitting_function", "unmarkedMultFrame", 
+          function(object, model, ...){
+  colext
 })
