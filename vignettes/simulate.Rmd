@@ -59,6 +59,7 @@ The values you put in this `y` matrix don't matter, you can put anything in ther
 It's only used to define the number of sites and occasions.
 
 ```{r}
+library(unmarked)
 set.seed(123)
 M <- 300
 J <- 8

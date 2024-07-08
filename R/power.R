@@ -248,5 +248,77 @@ plot_power <- function(object, ind, alpha, ...){
 
 # unmarkedPowerlist stuff------------------------------------------------------
 
+setClass("unmarkedPowerList", representation(powerAnalyses="list"))
+
 setGeneric("unmarkedPowerList", function(object, ...){
              standardGeneric("unmarkedPowerList")})
+
+setMethod("unmarkedPowerList", "unmarkedPower", function(object, ...){
+
+  all_objs <- c(object, list(...))
+  stopifnot(all(sapply(all_objs, inherits, "unmarkedPower")))
+  stopifnot(all(sapply(all_objs, function(x) x@alpha) == object@alpha))
+  
+  new("unmarkedPowerList", powerAnalyses = all_objs)
+})
+
+setMethod("summary", "unmarkedPowerList", function(object, showIntercepts=FALSE, ...){
+  out <- lapply(object@powerAnalyses, function(x){
+    stats <- summary(x, showIntercepts=showIntercepts)
+    cbind(M=x@M, T=x@T, J=x@J, stats)
+  })
+  out <- do.call(rbind, out)
+  ord <- order(out$M, out$T, out$J)
+  out <- out[ord,,drop=FALSE]
+  out$M <- factor(out$M)
+  out$T <- factor(out$T)
+  out$J <- factor(out$J)
+  rownames(out) <- NULL
+  out
+})
+
+setMethod("show", "unmarkedPowerList", function(object){
+  cat("Model:", deparse(object@powerAnalyses[[1]]@call[[1]]), "\n")
+  Ms <- sort(sapply(object@powerAnalyses, function(x) x@M))
+  cat("Number of sites (M):          ", paste(Ms, collapse=", "), "\n")
+  Ts <- sort(sapply(object@powerAnalyses, function(x) x@T))
+  cat("Number of primary periods (T):", paste(Ts, collapse=", "), "\n")
+  Js <- sort(sapply(object@powerAnalyses, function(x) x@J))
+  cat("Number of occasions (J):      ", paste(Js, collapse=", "), "\n")
+  cat("alpha:                        ", paste(object@powerAnalyses[[1]]@alpha, "\n"))
+  cat("\n")
+  print(summary(object))
+})
+
+setMethod("plot", "unmarkedPowerList", function(x, power=NULL, param=NULL, ...){
+  dat <- summary(x, showIntercepts=TRUE)
+  if(is.null(param)) param <- dat$Parameter[dat$Parameter != "(Intercept)"][1]
+  dat <- dat[dat$Parameter==param,,drop=FALSE]
+  ylim <- range(dat$Power, na.rm=T)
+  if(!is.null(power)) ylim[2] <- max(power, ylim[2])
+  xlim <- range(as.numeric(as.character(dat$M)), na.rm=T)
+  cols <- palette.colors(length(levels(dat$J)), palette="Dark 2")
+  old_par <- graphics::par()[c("mfrow","mar")]
+  nT <- length(levels(dat$T))
+  mar <- old_par$mar
+  if(nT == 1) mar <- c(5.1, 4.1, 2.1, 2.1)
+  graphics::par(mfrow=c(length(levels(dat$T)),1), mar=mar)
+  for (i in levels(dat$T)){
+    plot_title <- ""
+    if(nT > 1) plot_title <- paste0("T = ", i)
+    tsub <- dat[dat$T==i,,drop=FALSE]
+    Jlev <- levels(tsub$J)
+    jsub <- tsub[tsub$J==Jlev[1],,drop=FALSE]
+    plot(as.numeric(as.character(jsub$M)), jsub$Power, type="o",
+        col=cols[1], ylim=ylim, xlim=xlim, xlab="Sites",
+        ylab="Power", pch=19, main=plot_title)
+    if(!is.null(power)) abline(h=power, lty=2)
+    for (j in 2:length(Jlev)){
+      jsub <- tsub[tsub$J==Jlev[j],,drop=FALSE]
+      graphics::lines(as.numeric(as.character(jsub$M)), jsub$Power, type="o",
+            col=cols[j], pch=19)
+    }
+    graphics::legend('bottomright', lwd=1, pch=19, col=cols, legend=Jlev, title="Observations")
+  }
+  graphics::par(mfrow=old_par)
+})
