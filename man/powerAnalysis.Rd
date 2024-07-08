@@ -16,9 +16,9 @@ examples.
 
 \usage{
   \S4method{powerAnalysis}{unmarkedFrame}(object, model = NULL, effects = NULL,
-    alpha=0.05, nsim = 100, nulls=NULL, ...)
+    alpha=0.05, nsim = 100, parallel = FALSE, nulls=NULL, ...)
   \S4method{powerAnalysis}{list}(object, model = NULL, effects = NULL,
-    alpha=0.05, nsim = length(object), nulls=NULL, ...)
+    alpha=0.05, nsim = length(object), parallel = FALSE, nulls=NULL, ...)
 }
 
 \arguments{
@@ -41,6 +41,7 @@ examples.
   }
   \item{alpha}{Desired Type I error rate.}
   \item{nsim}{Number of simulations to conduct.}
+  \item{parallel}{Logical; run simulations in parallel?}
   \item{nulls}{If provided, a list matching the structure of \code{effects} which
     defines the null hypothesis value for each parameter. By default the null
     is 0 for all parameters.

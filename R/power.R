@@ -13,7 +13,7 @@ setGeneric("powerAnalysis", function(object, ...){
 # TODO: parallel processing
 setMethod("powerAnalysis", "unmarkedFrame",
           function(object, model = NULL, effects = NULL, alpha = 0.05,
-                   nsim = 100, nulls = NULL, ...){
+                   nsim = 100, parallel = FALSE, nulls = NULL, ...){
 
   test_data <- y_to_zeros(object)
   test_fit <- get_fit(test_data, model, ...)
@@ -22,13 +22,14 @@ setMethod("powerAnalysis", "unmarkedFrame",
   data_sims <- simulate(object, nsim = nsim, model = model, coefs = effects,
                         quiet = TRUE, ...)
 
-  powerAnalysis_internal(object, model, data_sims, effects, alpha, nulls, ...)
+  powerAnalysis_internal(object, model, data_sims, effects, alpha, 
+                         parallel, nulls, ...)
 })
 
 # list of unmarkedFrames (pre-simulated) method
 setMethod("powerAnalysis", "list",
           function(object, model = NULL, effects = NULL, alpha = 0.05,
-                   nsim = length(object), nulls = NULL, ...){
+                   nsim = length(object), parallel = FALSE, nulls = NULL, ...){
     
   data1 <- object[[1]]
   stopifnot(inherits(data1, "unmarkedFrame"))
@@ -40,11 +41,12 @@ setMethod("powerAnalysis", "list",
   fit <- get_fit(test_data, model, ...)
   effects <- check_coefs(effects, fit, name = "effects")
 
-  powerAnalysis_internal(data1, model, object, effects, alpha, nulls, ...)
+  powerAnalysis_internal(data1, model, object, effects, alpha, 
+                         parallel, nulls, ...)
 })
 
 powerAnalysis_internal <- function(object, model, data_sims, 
-                                   effects, alpha, nulls, ...){
+                                   effects, alpha, parallel, nulls, ...){
   
   fun <- get_fitting_function(object, model)
   test_fit <- get_fit(data_sims[[1]], model, ...)
@@ -61,10 +63,17 @@ powerAnalysis_internal <- function(object, model, data_sims,
     nulls <- check_coefs(nulls, test_fit, name = "nulls")
   }
 
+  cl <- NULL
+  if(parallel){
+    cl <- parallel::makeCluster(parallel::detectCores()-1)
+    on.exit(parallel::stopCluster(cl))
+    parallel::clusterEvalQ(cl, library(unmarked))
+  }
+  
   sum_dfs <- pbapply::pblapply(data_sims, function(x){
               fit <- fun(..., data = x)
-              get_summary_df(fit, effects, nulls)
-          })
+          }, cl=cl)
+  sum_dfs <- lapply(sum_dfs, get_summary_df, effects=effects, nulls=nulls)
 
   sites <- numSites(object)
   primaryPeriods <- ifelse(methods::.hasSlot(object, "numPrimary"),
