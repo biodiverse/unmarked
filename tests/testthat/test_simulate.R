@@ -129,8 +129,8 @@ test_that("simulate can generate new datasets from scratch",{
   forms_pco <- list(lambda=~elev, det=~1, gamma=~1, omega=~1)
   umf11 <- simulate("pcountOpen", formulas=forms_pco, design=design_pco,
                     coefs=cf_pco, K=15)
-  fm <- pcountOpen(~elev, ~1, ~1, ~1, data=umf11, K=15)
-  expect_equivalent(coef(fm), c(1.7703,0.0427,-0.2768,0.1288,0.0245), tol=1e-4)
+  fm <- pcountOpen(~elev, ~1, ~1, ~1, data=umf11, K=20)
+  expect_equivalent(coef(fm), c(1.9240,0.4434,-0.0921,0.02209,0.1561), tol=1e-4)
 
   #multmixOpen
   set.seed(123)
