@@ -127,7 +127,7 @@ generate_random_effects <- function(coefs, fit){
         }
 
         if(!is.factor(lvldata)){
-          stop("Random effect covariates must be specified as factors with guide argument", call.=FALSE)
+          stop("Random effect covariates must be specified as factors", call.=FALSE)
         }
         sigma <- old_coefs[signame]
         if(sigma <= 0){
