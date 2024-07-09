@@ -2206,9 +2206,9 @@ simOpenN <- function(object, na.rm)
     S <- G <- matrix(NA, M, T-1)
     for(i in 1:M) {
             switch(mix,
-                   P = N[i, 1] <- rpois(1, lambda),
+                   P = N[i, 1] <- rpois(1, lambda[i]),
                    NB = N[i, 1] <- rnbinom(1, size =
-                       exp(coef(object["alpha"])), mu = lambda),
+                       exp(coef(object["alpha"])), mu = lambda[i]),
                    ZIP = N[i,1] <- rzip(1, lambda[i], psi))
             if(delta[i, 1] > 1) {
                 for(d in 2:delta[i, 1]) {
