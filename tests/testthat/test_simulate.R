@@ -136,23 +136,20 @@ test_that("simulate can generate new datasets from scratch",{
 
   #multmixOpen
   set.seed(123)
-  umf12 <- simulate("multmixOpen", formulas=forms_pco, design=design_pco,
-                    coefs=cf_pco, K=15, type='removal')
-  expect_is(umf12, "unmarkedFrameMMO")
-  #fm <- multmixOpen(~elev,~1,~1,~1, data=umf12, K=15)
-  #expect_equivalent(coef(fm), c(1.8128,0.0171,-0.4220,0.1921,-0.1122),tol=1e-4)
+  temp <- unmarkedFrameMMO(y_pco, siteCovs=data.frame(elev=rnorm(100)), numPrimary=3, type='removal')
+  s <- expect_message(simulate(temp, lambdaformula=~elev, gammaformula=~1, 
+                               omegaformula=~1, pformula=~1, coefs=cf_pco, K=15)[[1]])
+  expect_is(s, "unmarkedFrameMMO")
 
   #distsampOpen
   set.seed(123)
   cf_dso <- cf_pco
-  cf_pco$det <- c(intercept=log(30))
-  design_dso <- list(M=200, J=5, T=5)
-  umf13 <- simulate("distsampOpen", formulas=forms_pco, design=design_dso,
-                    coefs=cf_dso, K=20, unitsIn='m',
-                    survey='point', dist.breaks=c(0,10,20,30,40,50))
-  expect_is(umf13, "unmarkedFrameDSO")
-  #fm <- distsampOpen(~elev,~1,~1,~1, data=umf13, K=20)
-  #expect_equivalent(coef(fm), c(1.70195,0.00067,-0.1141,0.09816,3.4179), tol=1e-4)
+  cf_dso$det <- c(intercept=log(30))
+  temp <- unmarkedFrameDSO(y_pco, siteCovs=data.frame(elev=rnorm(100)), numPrimary=3,
+                          dist.breaks=c(0,10,20,30,40,50),unitsIn='m', survey='point')
+  s <- expect_message(simulate(temp, lambdaformula=~elev, gammaformula=~1, 
+                               omegaformula=~1, pformula=~1, coefs=cf_dso, K=15)[[1]])
+  expect_is(s, "unmarkedFrameDSO")
 
   # occuMulti
   set.seed(123)
@@ -160,19 +157,13 @@ test_that("simulate can generate new datasets from scratch",{
   detFormulas <- c('~1','~1','~1')
   beta <- c(0.5,0.2,0.4,0.5,-0.1,-0.3,0.2,0.1,-1,0.1)
   p_true <- c(0.6,0.7,0.5)
-
   cf <- list(state=beta, det=log(p_true/(1-p_true)))
-  names(cf$state) <-  c("[sp1] intercept", "[sp1] occ_cov1",
-                      "[sp2] intercept", "[sp2] occ_cov2",
-                      "[sp3] intercept", "[sp3] occ_cov3",
-                      "[sp1:sp2] intercept","[sp1:sp3] intercept",
-                      "[sp2:sp3] intercept","[sp1:sp2:sp3] intercept")
-  names(cf$det) <- c("[sp1] intercept", "[sp2] intercept", "[sp3] intercept")
-
-  umf14 <- simulate("occuMulti", formulas=list(state=occFormulas, det=detFormulas),
-                design=list(M=200, J=5), coefs=cf)
-  fm <- occuMulti(detFormulas, occFormulas, umf14)
-  expect_equivalent(coef(fm, 'det'), c(0.3650,0.8762,-0.04653), tol=1e-4)
+  sc <- data.frame(occ_cov1=rnorm(300), occ_cov2=rnorm(300), occ_cov3=rnorm(300))
+  temp <- unmarkedFrameOccuMulti(list(sp1=y, sp2=y, sp3=y), siteCovs=sc)
+  s <- expect_message(simulate(temp, stateformulas=occFormulas, detformulas=detFormulas,
+                               coefs=cf)[[1]])
+  fm <- occuMulti(stateformulas=occFormulas, detformulas=detFormulas, s)
+  expect_equivalent(coef(fm, 'det'), c(0.2982,0.8416,-0.01816), tol=1e-4)
 
   # occuMS
   set.seed(123)
@@ -180,22 +171,30 @@ test_that("simulate can generate new datasets from scratch",{
   bdet <- c(-0.4, 0, -1.09, -0.84)
   detformulas <- c('~V1','~1','~1')
   stateformulas <- c('~V1','~V2')
-  forms <- list(det=detformulas, state=stateformulas)
   cf <- list(state=bstate, det=bdet)
-  expect_warning(umf15 <- simulate("occuMS", formulas=forms, coefs=cf, design=list(M=500, J=5, T=1)))
-  fm <- occuMS(forms$det, forms$state, data=umf15, parameterization="multinomial")
-  expect_equivalent(coef(fm, 'state'), c(-0.657,1.033,-0.633,-0.582), tol=1e-3)
+  sc <- data.frame(V1=rnorm(300), V2=rnorm(300))
+  y_ms <- y ## FIX THIS
+  y_ms[] <- 2
+  temp <- unmarkedFrameOccuMS(y_ms, siteCovs=sc)
+  s <- expect_message(simulate(temp, psiformulas=stateformulas, detformulas=detformulas,
+                               coefs=cf)[[1]])
+  fm <- occuMS(detformulas, stateformulas, data=s, parameterization="multinomial")
+  expect_equivalent(coef(fm, 'state'), c(-0.3121,0.8289,-0.4710,-0.8786), tol=1e-3)
 
   # gdistremoval
   set.seed(123)
-  formulas <- list(lambda=~sc1, rem=~oc1, dist=~1, phi=~1)
   cf <- list(lambda=c(intercept=log(5), sc1=0.7), dist=c(intercept=log(50)),
            rem=c(intercept=log(0.2/(1-0.2)), oc1=0.4))
-  design <- list(M=500, Jdist=4, Jrem=5, T=1)
-  umf16 <- simulate("gdistremoval", design=design, formulas=formulas, coefs=cf,
-                 dist.breaks=c(0,25,50,75,100), unitsIn='m', output='abund',K=15)
-  fm <- gdistremoval(~sc1, removalformula=~oc1, distanceformula=~1,
-                     data=umf16,K=15)
+  sc <- data.frame(sc1=rnorm(200))
+  oc <- data.frame(oc1=rnorm(200*5))
+  temp <- unmarkedFrameGDR(yDistance=matrix(NA, 200, 4), yRemoval=matrix(NA, 200, 5),
+                           siteCovs=sc, obsCovs=oc, dist.breaks=c(0,25,50,75,100), 
+                           unitsIn='m')
+  s <- expect_message(simulate(temp, lambdaformula=~sc1, removalformula=~oc1, distanceformula=~1,
+                               output='abund', coefs=cf)[[1]])
+
+  fm <- gdistremoval(lambdaformula=~sc1, removalformula=~oc1, distanceformula=~1,
+                     output='abund', K=50, data=s)
   expect_is(fm, "unmarkedFitGDS")
 
 })
