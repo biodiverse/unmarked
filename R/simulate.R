@@ -77,7 +77,7 @@ check_coefs <- function(coefs, fit, name = "coefs", quiet = FALSE){
     cat(name, "should be a named list of vectors, with the following structure
         (replace 0s with your values):\n\n")
     print(dummy_coefs)
-    stop(paste("Specify", name, "argument as shown above", call.=FALSE))
+    stop(paste("Specify", name, "argument as shown above"), call.=FALSE)
   }
 
   for (i in 1:length(required_subs)){
