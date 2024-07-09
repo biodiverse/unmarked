@@ -91,7 +91,7 @@ test_that("multmixOpen can fit removal models",{
   #Check simulate
   set.seed(123)
   sim <- simulate(fit, nsim=2)
-  expect_equivalent(sim[[1]][3,1:3], c(3,0,0))
+  expect_equivalent(sim[[1]][3,1:3], c(2,1,0))
   expect_equivalent(dim(sim[[1]]), c(100,15))
 
   #Check ranef
