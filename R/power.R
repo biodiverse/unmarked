@@ -4,72 +4,62 @@ setClass("unmarkedPower",
                  alpha="numeric", nulls="list")
 )
 
-powerAnalysis <- function(object, coefs=NULL, design=NULL, alpha=0.05, nulls=list(),
-                          datalist=NULL,
-                          nsim=ifelse(is.null(datalist), 100, length(datalist)),
-                          parallel=FALSE){
+setGeneric("powerAnalysis", function(object, ...){
+  standardGeneric("powerAnalysis")
+})
 
-  stopifnot(inherits(object, "unmarkedFit"))
+# unmarkedFrame method
+# TODO: random effects handling
+# TODO: parallel processing
+setMethod("powerAnalysis", "unmarkedFrame",
+          function(object, model = NULL, effects = NULL, alpha = 0.05,
+                   nsim = 100, parallel = FALSE, nulls = NULL, ...){
 
-  submodels <- names(object@estimates@estimates)
-  coefs <- check_coefs(coefs, object)
-  coefs <- generate_random_effects(coefs, object)
-  fit_temp <- replace_estimates(object, coefs)
+  test_data <- y_to_zeros(object)
+  test_fit <- get_fit(test_data, model, ...)
+  effects <- check_coefs(effects, test_fit, name = "effects")
 
-  T <- 1
-  bdata <- NULL
-  if(!is.null(datalist)){
-    if(length(datalist) != nsim){
-      stop("Length of data list must equal value of nsim", call.=FALSE)
-    }
-    tryCatch({test <- update(object, data=datalist[[1]], se=FALSE,
-                        control=list(maxit=1))
-    }, error=function(e){
-      stop("Incorrect format of entries in datalist", call.=FALSE)
-    })
-    bdata <- datalist
-    M <- numSites(bdata[[1]])
-    sims <- lapply(bdata, function(x){
-      #fit_temp@data <- x
-      #temporary workaround - not necessary??
-      #if(methods::.hasSlot(fit_temp, "knownOcc")){
-      #  fit_temp@knownOcc <- rep(FALSE, M)
-      #}
-      #simulate(fit_temp, 1)[[1]]
-      if(inherits(x, "unmarkedFrameOccuMulti")){
-        return(x@ylist)
-      } else if(inherits(x, "unmarkedFrameGDR")){
-        return(list(yDistance=x@yDistance, yRemoval=x@yRemoval))
-      } else {
-        return(x@y)
-      }
-    })
-    if(methods::.hasSlot(bdata[[1]], "numPrimary")){
-      T <- bdata[[1]]@numPrimary
-    }
-    J <- obsNum(bdata[[1]]) / T
-  } else if(is.null(design)){
-      sims <- simulate(fit_temp, nsim)
-      M <- numSites(object@data)
-      if(methods::.hasSlot(object@data, "numPrimary")){
-        T <- object@data@numPrimary
-      }
-      J <- obsNum(object@data) / T
+  data_sims <- simulate(object, nsim = nsim, model = model, coefs = effects,
+                        quiet = TRUE, ...)
+
+  powerAnalysis_internal(object, model, data_sims, effects, alpha, 
+                         parallel, nulls, ...)
+})
+
+# list of unmarkedFrames (pre-simulated) method
+setMethod("powerAnalysis", "list",
+          function(object, model = NULL, effects = NULL, alpha = 0.05,
+                   nsim = length(object), parallel = FALSE, nulls = NULL, ...){
+    
+  data1 <- object[[1]]
+  stopifnot(inherits(data1, "unmarkedFrame"))
+  stopifnot(all(sapply(object, function(x) identical(class(data1), class(x)))))
+  stopifnot(nsim <= length(object))
+  object <- object[1:nsim]
+
+  test_data <- y_to_zeros(data1)
+  fit <- get_fit(test_data, model, ...)
+  effects <- check_coefs(effects, fit, name = "effects")
+
+  powerAnalysis_internal(data1, model, object, effects, alpha, 
+                         parallel, nulls, ...)
+})
+
+powerAnalysis_internal <- function(object, model, data_sims, 
+                                   effects, alpha, parallel, nulls, ...){
+  
+  fun <- get_fitting_function(object, model)
+  test_fit <- get_fit(data_sims[[1]], model, ...)
+  modname <- test_fit@fitType
+
+  if(is.null(nulls)){
+    nulls <- effects
+    nulls <- lapply(nulls, function(x){
+                      x[] <- 0
+                      x
+                    })
   } else {
-    bdata <- bootstrap_data(fit_temp@data, nsim, design)
-    sims <- lapply(bdata, function(x){
-      fit_temp@data <- x
-      #temporary workaround
-      if(methods::.hasSlot(fit_temp, "knownOcc")){
-        fit_temp@knownOcc <- rep(FALSE, design$M)
-      }
-      simulate(fit_temp, 1)[[1]]
-    })
-    M <- design$M
-    if(methods::.hasSlot(fit_temp@data, "numPrimary")){
-      T <- fit_temp@data@numPrimary
-    }
-    J <- design$J
+    nulls <- check_coefs(nulls, test_fit, name = "nulls")
   }
 
   cl <- NULL
@@ -78,180 +68,58 @@ powerAnalysis <- function(object, coefs=NULL, design=NULL, alpha=0.05, nulls=lis
     on.exit(parallel::stopCluster(cl))
     parallel::clusterEvalQ(cl, library(unmarked))
   }
+  
+  sum_dfs <- pbapply::pblapply(data_sims, function(x){
+              fit <- fun(..., data = x)
+          }, cl=cl)
+  sum_dfs <- lapply(sum_dfs, get_summary_df, effects=effects, nulls=nulls)
 
-  if(!is.null(options()$unmarked_shiny)&&options()$unmarked_shiny){
-    ses <- options()$unmarked_shiny_session
-    ses <- shiny::getDefaultReactiveDomain()
-    pb <- shiny::Progress$new(ses, min=0, max=1)
-    pb$set(message="Running simulations")
-    if(!requireNamespace("pbapply", quietly=TRUE)){
-      stop("You need to install the pbapply package", call.=FALSE)
-    }
-    fits <- pbapply::pblapply(1:nsim, function(i, sims, fit, bdata=NULL){
-      if(!is.null(design)) fit@data <- bdata[[i]]
-      if(inherits(fit, "unmarkedFitOccuMulti")){
-        fit@data@ylist <- sims[[i]]
-      } else{
-        fit@data@y <- sims[[i]]
-      }
-      out <- update(fit, data=fit@data, se=TRUE)
-      pb$set(value=i/nsim, message=NULL, detail=NULL)
-      out
-    }, sims=sims, fit=object, bdata=bdata, cl=NULL)
-    pb$close()
+  sites <- numSites(object)
+  primaryPeriods <- ifelse(methods::.hasSlot(object, "numPrimary"),
+                           object@numPrimary, 1)
+  occasions <- ncol(object@y) / primaryPeriods
 
-  } else {
-
-    fits <- lapply2(1:nsim, function(i, sims, fit, bdata=NULL){
-      if(!is.null(design)) fit@data <- bdata[[i]]
-      if(inherits(fit, "unmarkedFitOccuMulti")){
-        fit@data@ylist <- sims[[i]]
-      } else if(inherits(fit, "unmarkedFitGDR")){
-        fit@data@yDistance <- sims[[i]]$yDistance
-        fit@data@yRemoval <- sims[[i]]$yRemoval
-      } else {
-        fit@data@y <- sims[[i]]
-      }
-      update(fit, data=fit@data, se=TRUE)
-    }, sims=sims, fit=object, bdata=bdata, cl=cl)
-
-  }
-
-  sum_dfs <- lapply(fits, get_summary_df)
-
-  new("unmarkedPower", call=object@call, data=object@data, M=M,
-      J=J, T=T, coefs=coefs, estimates=sum_dfs, alpha=alpha, nulls=nulls)
+  new("unmarkedPower", call=call(modname), data=object, 
+      M=sites, J=occasions, T=primaryPeriods, 
+      coefs=effects, estimates=sum_dfs, alpha=alpha, nulls=nulls)
 }
 
-bootstrap_data <- function(data, nsims, design){
-  M <- design$M
-  J <- design$J
-  sites <- 1:numSites(data)
-  if(!is.null(J) & methods::.hasSlot(data, "numPrimary")){
-    stop("Can't automatically bootstrap observations with > 1 primary period", call.=FALSE)
-  }
-  if(J > obsNum(data)){
-    stop("Can't currently bootstrap more than the actual number of observations", call.=FALSE)
-  }
-  obs <- 1:obsNum(data)
+get_summary_df <- function(fit, effects, nulls){
+  n_est <- length(fit@estimates@estimates)
+  est_names <- names(fit@estimates@estimates)
+  all_est <- lapply(1:n_est, function(i){
+    utils::capture.output(out <- summary(fit@estimates@estimates[[i]]))
+    out <- out[,1:2]
+    out <- cbind(submodel=est_names[i], param=rownames(out), out)
+    rownames(out) <- NULL
+    out
+  })
+  all_est <- do.call(rbind, all_est)
 
-  if(M > numSites(data)){
-    M_samps <- lapply(1:nsims, function(i) sample(sites, M, replace=TRUE))
-  } else if(M < numSites(data)){
-    M_samps <- lapply(1:nsims, function(i) sample(sites, M, replace=FALSE))
-  } else {
-    M_samps <- replicate(nsims, sites, simplify=FALSE)
-  }
+  # Remove random effects from output list
+  effects <- check_coefs(effects, fit, quiet=TRUE)
+  rvars <- sapply(names(fit), function(x){
+                       bars <- lme4::findbars(get_formula(fit, x))
+                       all.vars(bars[[1]])
+                      })
 
-  if(J > obsNum(data)){
-    J_samps <- lapply(1:nsims, function(i) sample(obs, J, replace=TRUE))
-  } else if(J < obsNum(data)){
-    J_samps <- lapply(1:nsims, function(i) sample(obs, J, replace=FALSE))
-  } else {
-    J_samps <- replicate(nsims, obs, simplify=FALSE)
+  for (i in names(effects)){
+    ef <- effects[[i]]
+    keep <- which(!names(ef) %in% rvars[[i]])
+    effects[[i]] <- ef[keep]
+    nulls[[i]] <- nulls[[i]][keep]
   }
 
-  lapply(1:nsims, function(i) data[M_samps[[i]], J_samps[[i]]])
-}
+  all_est$Effect <- unlist(effects[est_names])
+  all_est$Null <- unlist(nulls[est_names])
 
-check_coefs <- function(coefs, fit, template=FALSE){
-  required_subs <- names(fit@estimates@estimates)
-  required_coefs <- lapply(fit@estimates@estimates, function(x) names(x@estimates))
-  required_lens <- lapply(required_coefs, length)
-
-  formulas <- sapply(names(fit), function(x) get_formula(fit, x))
-
-  # If there are random effects, adjust the expected coefficient names
-  # to remove the b vector and add the grouping covariate name
-  rand <- lapply(formulas, lme4::findbars)
-  if(!all(sapply(rand, is.null))){
-    stopifnot(all(required_subs %in% names(formulas)))
-    rvar <- lapply(rand, function(x) unlist(lapply(x, all.vars)))
-    if(!all(sapply(rvar, length)<2)){
-      stop("Only 1 random effect per parameter is supported", call.=FALSE)
-    }
-    for (i in required_subs){
-      if(!is.null(rand[[i]][[1]])){
-        signame <- rvar[[i]]
-        old_coefs <- required_coefs[[i]]
-        new_coefs <- old_coefs[!grepl("b_", old_coefs, fixed=TRUE)]
-        new_coefs <- c(new_coefs, signame)
-        required_coefs[[i]] <- new_coefs
-      }
-    }
+  for (i in 1:nrow(all_est)){
+    # wald and diff_dir in utils.R
+    all_est$P[i] <- wald(all_est$Estimate[i], all_est$SE[i], all_est$Null[i])
+    all_est$Direct[i] <- diff_dir(all_est$Estimate[i], all_est$Effect[i],
+                                          all_est$Null[i])
   }
-
-  dummy_coefs <- lapply(required_coefs, function(x){
-                    out <- rep(0, length(x))
-                    x <- gsub("(Intercept)", "intercept", x, fixed=TRUE)
-                    names(out) <- x
-                    out
-                  })
-
-  if(template) return(dummy_coefs)
-
-  if(is.null(coefs)){
-    cat("coefs argument should be a named list of named vectors, with the following structure
-        (replacing 0s with your desired coefficient values):\n\n")
-    print(dummy_coefs)
-    stop("Supply coefs argument as specified above", call.=FALSE)
-  }
-
-  for (i in 1:length(required_subs)){
-    if(!required_subs[i] %in% names(coefs)){
-      stop(paste0("Missing required list element '",required_subs[i], "' in coefs list"), call.=FALSE)
-    }
-
-    sub_coefs <- coefs[[required_subs[i]]]
-
-    if(is.null(sub_coefs)){
-      stop(paste("Required coefficients for the", required_subs[i], "submodel are:",
-                  paste(required_coefs[[i]],collapse=", ")))
-    }
-
-    is_named <- !is.null(names(sub_coefs)) & !any(names(sub_coefs)=="")
-
-    if(!is_named){
-      warning(paste("At least one coefficient in vector for submodel",required_subs[i],
-                    "is unnamed; assuming the following order:\n",
-                    paste(required_coefs[[i]], collapse=", ")))
-      if(length(sub_coefs) != required_lens[i]){
-        stop(paste0("Entry '",required_subs[[i]], "' in coefs list must be length ",
-        required_lens[[i]]), call.=FALSE)
-      }
-    } else {
-      rsi <- required_subs[i]
-      change_int <- names(coefs[[rsi]])%in%c("intercept","Intercept")
-      names(coefs[[rsi]])[change_int] <- "(Intercept)"
-      change_int <- names(coefs[[rsi]])%in%c("sigmaintercept","sigmaIntercept")
-      names(coefs[[rsi]])[change_int] <- "sigma(Intercept)"
-      change_int <- names(coefs[[rsi]])%in%c("shapeintercept","shapeIntercept")
-      names(coefs[[rsi]])[change_int] <- "shape(Intercept)"
-      change_int <- names(coefs[[rsi]])%in%c("rateintercept","rateIntercept")
-      names(coefs[[rsi]])[change_int] <- "rate(Intercept)"
-      change_int <- grepl(" intercept", names(coefs[[rsi]]))
-      names(coefs[[rsi]])[change_int] <- gsub(" intercept", " (Intercept)",
-                                              names(coefs[[rsi]])[change_int])
-      change_int <- grepl(" Intercept", names(coefs[[rsi]]))
-      names(coefs[[rsi]])[change_int] <- gsub(" Intercept", " (Intercept)",
-                                              names(coefs[[rsi]])[change_int])
-      sub_coefs <- coefs[[rsi]]
-
-      not_inc <- !required_coefs[[i]] %in% names(sub_coefs)
-      extra <- !names(sub_coefs) %in% required_coefs[[i]]
-
-      if(any(not_inc)){
-        stop(paste("The following required coefficients in the", required_subs[i], "submodel were not found:",
-                   paste(required_coefs[[i]][not_inc], collapse=", ")))
-      }
-      if(any(extra)){
-        warning(paste("Ignoring extra coefficients in the", required_subs[i], "submodel:",
-                      paste(names(sub_coefs)[extra], collapse=", ")))
-      }
-      coefs[[rsi]] <- coefs[[rsi]][required_coefs[[i]]]
-    }
-  }
-  coefs[required_subs]
+  all_est
 }
 
 wald <- function(est, se, null_hyp=NULL){
@@ -267,120 +135,172 @@ diff_dir <- function(est, hyp, null_hyp=NULL){
   dif * dif_hyp > 0
 }
 
-setMethod("summary", "unmarkedPower", function(object, ...){
-  sum_dfs <- object@estimates
-  npar <- nrow(sum_dfs[[1]])
+setMethod("summary", "unmarkedPower", 
+          function(object, alpha, showIntercepts=FALSE, ...){
 
-  nulls <- object@nulls
-  nulls <- lapply(nulls, function(x){
-    nm <- names(x)
-    nm[nm %in% c("Intercept","intercept")] <- "(Intercept)"
-    names(x) <- nm
-    x
-  })
+  out <- object@estimates[[1]][,c(1,2,5,6)]
+  names(out)[1:2] <- c("Submodel", "Parameter")
 
-  coefs_no_rand <- unlist(object@coefs)[!grepl("b_", names(unlist(object@coefs)))]
+  if(missing(alpha)){
+    alpha <- object@alpha
+  }
+  stopifnot(alpha >= 0 & alpha <= 1)
 
-  pow <- sapply(1:npar, function(ind){
-    submod <- sum_dfs[[1]]$submodel[ind]
-    param <- sum_dfs[[1]]$param[ind]
-    ni <- nulls[[submod]][param]
+  for (i in 1:nrow(out)){
+    pcrit <- sapply(object@estimates, function(x) x$P[i]) < alpha
+    direct <- sapply(object@estimates, function(x) x$Direct[i])
+    ests <- sapply(object@estimates, function(x) x$Estimate[i])
 
-    pcrit <- sapply(sum_dfs, function(x) wald(x$Estimate[ind], x$SE[ind], ni)) < object@alpha
-    direct <- sapply(sum_dfs, function(x) diff_dir(x$Estimate[ind], coefs_no_rand[ind], ni))
-    mean(pcrit & direct, na.rm=T)
-  })
+    out$Power[i] <- mean(pcrit & direct, na.rm=TRUE)
+    out$`Type S`[i] <- sum(pcrit & !direct, na.rm=TRUE) / sum(pcrit, na.rm=TRUE)
+    out$`Type M`[i] <- NA
 
-  all_nulls <- sapply(1:npar, function(ind){
-    submod <- sum_dfs[[1]]$submodel[ind]
-    param <- sum_dfs[[1]]$param[ind]
-    ni <- nulls[[submod]][param]
-    if(is.null(ni) || is.na(ni)) ni <- 0
-    ni
-  })
+    # Calculate Type M
+    # Adjust for null != 0
+    diff_null <- out$Effect[i] - out$Null[i]
+    # Don't calculate if effect size is 0
+    if(diff_null != 0){
+      diffs <- ests - out$Null[i]
+      out$`Type M`[i] <- mean(abs(diffs[pcrit]), na.rm=TRUE) / abs(diff_null) 
+    }
+  }
 
-  effect_no_random <- unlist(object@coefs)[!grepl("b_",names(unlist(object@coefs)))]
+  if(!showIntercepts){
+    no_int <- !grepl("(Intercept)",out$Parameter, fixed=TRUE)
+    multi_interact <- grepl("\\[.*:.*\\]", out$Parameter)
+    keep <- no_int | multi_interact
+    if(sum(keep) > 0) out <- out[keep,,drop=FALSE]
+  }
 
-  out <- cbind(sum_dfs[[1]][,1:2], effect=effect_no_random, null=all_nulls,  power=pow)
-  rownames(out) <- NULL
-  names(out) <- c("Submodel", "Parameter", "Effect", "Null", "Power")
   out
 })
 
 setMethod("show", "unmarkedPower", function(object){
-  cat("\nModel:\n")
-  print(object@call)
-  cat("\n")
+  cat("Model:", deparse(object@call[[1]]))
+  cat("\nSites:", object@M)
+  cat("\nPrimary Periods:", object@T)
+  cat("\nOccasions:", object@J)
+  cat("\nalpha:", object@alpha)
+  cat("\n\n")
 
   cat("Power Statistics:\n")
   sumtab <- summary(object)
   sumtab$Power <- round(sumtab$Power, 3)
+  sumtab$`Type M` <- round(sumtab$`Type M`, 3)
+  sumtab$`Type S` <- round(sumtab$`Type S`, 3)
+
+  if(all(sumtab$Null == 0)){
+    sumtab$Null <- NULL
+  }
+
   print(sumtab, row.names=FALSE)
 })
 
-replace_estimates <- function(object, new_ests){
-  for (i in 1:length(new_ests)){
-    est <- object@estimates@estimates[[names(new_ests)[i]]]@estimates
-    stopifnot(length(est) == length(new_ests[[i]]))
-    object@estimates@estimates[[names(new_ests)[i]]]@estimates <- new_ests[[i]]
+setMethod("plot", c(x="unmarkedPower", y="missing"),
+          function(x, y, alpha, showIntercepts = FALSE, ...){
+  if(missing(alpha)) alpha <- x@alpha
+  stopifnot(alpha >= 0 & alpha <= 1)
+  pars <- x@estimates[[1]]$param
+  inds <- 1:length(pars)
+  if(!showIntercepts){
+    no_int <- !grepl("(Intercept)", pars, fixed=TRUE)
+    multi_interact <- grepl("\\[.*:.*\\]", pars)
+    keep <- no_int | multi_interact
+    if(sum(keep) > 0) inds <- which(keep)
+    #inds <- which(pars != "(Intercept)")
   }
-  object
+  
+  if(length(inds) > 1){
+    old_ask <- devAskNewPage()
+    devAskNewPage(TRUE)
+  }
+  sapply(inds, function(i) plot_power(x, i, alpha=alpha, ...))
+  if(length(inds) > 1) devAskNewPage(old_ask)
+  invisible()
+})
+
+plot_power <- function(object, ind, alpha, ...){
+
+  submod <- object@estimates[[1]]$submodel[ind]
+  param <- object@estimates[[1]]$param[ind]
+  parname <- paste(submod, param, sep=" / ")
+  effect <- object@estimates[[1]]$Effect[ind]
+
+  ests <- sapply(object@estimates, function(x) x$Estimate[ind])
+  pval <- sapply(object@estimates, function(x) x$P[ind])
+  direct <- sapply(object@estimates, function(x) x$Direct[ind])
+  
+  if(missing(alpha)){
+    alpha <- object@alpha
+  }
+  stopifnot(alpha >= 0 & alpha <= 1)
+
+  idx <- 1:length(ests)
+  plot(idx, ests, pch=19, col="gray",
+       xlab="Simulation", ylab="Estimated effect size", main=parname, ...)
+  points(idx[pval < alpha & direct], ests[pval < alpha & direct], pch=19, col='red')
+  points(idx[pval < alpha & !direct], ests[pval < alpha & !direct], pch=19, col='blue')
+  abline(h = effect, lty=2, lwd=1.3)
+
+  sig_direct <- ests[pval < alpha & direct]
+  if(length(sig_direct > 0)){
+    abline(h = mean(sig_direct), lty=2, lwd=1.3, col='red')
+  }
+
+  graphics::legend('bottomright', pch=19, col=c("gray", "red", "blue"), 
+         legend=c("Non-significant", "Significant", "Sig & wrong sign"))
+  graphics::legend('bottomleft', lty=2, col=c("black", "red"),
+         legend=c("True effect size", "Avg significant effect"))
+  invisible()
 }
 
-get_summary_df <- function(fit){
-  n_est <- length(fit@estimates@estimates)
-  #est_names <- unname(sapply(fit@estimates@estimates, function(x) x@name))
-  est_names <- names(fit@estimates@estimates)
-  all_est <- lapply(1:n_est, function(i){
-    utils::capture.output(out <- summary(fit@estimates@estimates[[i]]))
-    out <- cbind(submodel=est_names[i], param=rownames(out), out)
-    rownames(out) <- NULL
-    out
-  })
-  do.call(rbind, all_est)
-}
+# unmarkedPowerlist stuff------------------------------------------------------
 
 setClass("unmarkedPowerList", representation(powerAnalyses="list"))
 
 setGeneric("unmarkedPowerList", function(object, ...){
              standardGeneric("unmarkedPowerList")})
 
-setMethod("unmarkedPowerList", "list", function(object, ...){
-  new("unmarkedPowerList", powerAnalyses=object)
+setMethod("unmarkedPowerList", "unmarkedPower", function(object, ...){
+
+  all_objs <- c(object, list(...))
+  stopifnot(all(sapply(all_objs, inherits, "unmarkedPower")))
+  stopifnot(all(sapply(all_objs, function(x) x@alpha) == object@alpha))
+  
+  new("unmarkedPowerList", powerAnalyses = all_objs)
 })
 
-setMethod("unmarkedPowerList", "unmarkedFit",
-  function(object, coefs, design, alpha=0.05, nulls=list(),
-           nsim=100, parallel=FALSE, ...){
-
-  ndesigns <- nrow(design)
-  out <- lapply(1:ndesigns, function(i){
-    cat(paste0("M = ",design$M[i],", J = ",design$J[i],"\n"))
-    powerAnalysis(object, coefs, as.list(design[i,]), alpha=alpha, nsim=nsim,
-                  nulls=nulls, parallel=FALSE)
-  })
-  unmarkedPowerList(out)
-})
-
-setMethod("summary", "unmarkedPowerList", function(object, ...){
+setMethod("summary", "unmarkedPowerList", function(object, showIntercepts=FALSE, ...){
   out <- lapply(object@powerAnalyses, function(x){
-    stats <- summary(x)
+    stats <- summary(x, showIntercepts=showIntercepts)
     cbind(M=x@M, T=x@T, J=x@J, stats)
   })
   out <- do.call(rbind, out)
+  ord <- order(out$M, out$T, out$J)
+  out <- out[ord,,drop=FALSE]
   out$M <- factor(out$M)
   out$T <- factor(out$T)
   out$J <- factor(out$J)
+  rownames(out) <- NULL
   out
 })
 
 setMethod("show", "unmarkedPowerList", function(object){
+  cat("Model:", deparse(object@powerAnalyses[[1]]@call[[1]]), "\n")
+  Ms <- sort(sapply(object@powerAnalyses, function(x) x@M))
+  cat("Number of sites (M):          ", paste(Ms, collapse=", "), "\n")
+  Ts <- sort(sapply(object@powerAnalyses, function(x) x@T))
+  cat("Number of primary periods (T):", paste(Ts, collapse=", "), "\n")
+  Js <- sort(sapply(object@powerAnalyses, function(x) x@J))
+  cat("Number of occasions (J):      ", paste(Js, collapse=", "), "\n")
+  cat("alpha:                        ", paste(object@powerAnalyses[[1]]@alpha, "\n"))
+  cat("\n")
   print(summary(object))
 })
 
 setMethod("plot", "unmarkedPowerList", function(x, power=NULL, param=NULL, ...){
-  dat <- summary(x)
-  if(is.null(param)) param <- dat$Parameter[1]
+  dat <- summary(x, showIntercepts=TRUE)
+  if(is.null(param)) param <- dat$Parameter[dat$Parameter != "(Intercept)"][1]
   dat <- dat[dat$Parameter==param,,drop=FALSE]
   ylim <- range(dat$Power, na.rm=T)
   if(!is.null(power)) ylim[2] <- max(power, ylim[2])
@@ -410,35 +330,3 @@ setMethod("plot", "unmarkedPowerList", function(x, power=NULL, param=NULL, ...){
   }
   graphics::par(mfrow=old_par)
 })
-
-setMethod("update", "unmarkedPower", function(object, ...){
-  args <- list(...)
-  if(!is.null(args$alpha)) object@alpha <- args$alpha
-  if(!is.null(args$coefs)){
-    if(!is.list(args$coefs) || all(names(args$coefs) == names(object@coefs))){
-      stop("coefs list structure is incorrect", call.=FALSE)
-      object@coefs <- args$coefs
-    }
-  }
-  if(!is.null(args$nulls)) object@nulls <- args$nulls
-  object
-})
-
-shinyPower <- function(object, ...){
-
-  if(!inherits(object, "unmarkedFit")){
-    stop("Requires unmarkedFit object", call.=FALSE)
-  }
-  if(!requireNamespace("shiny")){
-    stop("Install the shiny library to use this function", call.=FALSE)
-  }
-  if(!requireNamespace("pbapply")){
-    stop("Install the pbapply library to use this function", call.=FALSE)
-  }
-  options(unmarked_shiny=TRUE)
-  on.exit(options(unmarked_shiny=FALSE))
-  .shiny_env$.SHINY_MODEL <- object
-
-  shiny::runApp(system.file("shinyPower", package="unmarked"))
-
-}
