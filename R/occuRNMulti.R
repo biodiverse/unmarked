@@ -29,7 +29,7 @@ occuRNMulti <- function(detformulas, stateformulas, data, modelOccupancy,
     if(any(sp_mismatch)){
       stop(paste("Species", 
                  paste(names(modelOccupancy)[sp_mismatch], collapse=", "),
-                 "cannot use occupancy models."), call.=FALSE)
+                 "cannot use occupancy model."), call.=FALSE)
     }
   }
   
@@ -216,4 +216,142 @@ create_dep_matrix <- function(stateformulas){
   dep
 }
 
+setMethod("predict", "unmarkedFitOccuRNMulti",
+          function(object, type, species, newdata,
+                   level = 0.95, nsims = 100, ...){
 
+  stopifnot(type %in% c("state", "det"))
+  if(!missing(species)){
+    stopifnot(species %in% names(object@data@ylist))
+  }
+  if(type == "state"){
+    samps <- MASS::mvrnorm(nsims, mu=object@estimates@estimates$state@estimates,
+                         Sigma = object@estimates@estimates$state@covMat)
+
+    # Function to extract correct parts of state coefs vector
+    get_species_b <- function(b, object, sp){
+      nm <- names(b)
+      allsp <- names(object@data@ylist)
+      ind <- which(allsp == sp)
+      out <- list()
+      other <- c(1:length(allsp))[-ind]
+      match1 <- grepl(paste0("[", allsp[ind], "]"), nm, fixed=TRUE)
+      out[[1]] <- b[match1]
+
+      match2 <- grepl(paste0("[", sp, ":", allsp[other[1]],"]"), nm, fixed=TRUE)
+      if(sum(match2 > 0)){
+        out[[allsp[other[1]]]] <- b[match2]
+      }
+      match3 <- grepl(paste0("[", sp, ":", allsp[other[2]],"]"), nm, fixed=TRUE)
+      if(sum(match3 > 0)){
+        out[[allsp[other[2]]]] <- b[match3]
+      }
+      out
+    }
+
+    depmat <- create_dep_matrix(object@stateformulas)
+
+    top <- apply(depmat, 1, function(x) sum(x) == 0)
+    sp_top <- colnames(depmat)[top]
+    lev2 <- apply(depmat[!top,!top,drop=FALSE], 1, function(x) sum(x) == 0)
+    sp_2nd <- names(lev2)[lev2]
+    sp_3rd <- names(lev2)[!lev2]
+
+    if(missing(newdata) || is.null(newdata)){
+      
+      X <- lapply(object@stateformulas, function(x){
+        if(is.list(x)){
+          lapply(x, function(z) model.matrix(z, object@data@siteCovs))
+        } else {
+          model.matrix(x, object@data@siteCovs)
+        }
+      })
+      nr <- nrow(object@data@siteCovs)
+    } else {
+      X <- lapply(object@stateformulas, function(x){
+        if(is.list(x)){
+          lapply(x, function(z) unmarked:::make_mod_matrix(z, object@data@siteCovs, newdata)$X)
+        } else {
+          unmarked:::make_mod_matrix(x, object@data@siteCovs, newdata)$X
+        }
+      })
+      nr <- nrow(newdata)
+    }
+
+    coef_est <- matrix(object@estimates@estimates$state@estimates, nrow=1)
+    colnames(coef_est) <- names(object@estimates@estimates$state@estimates)
+    point_est <- calc_dependent_abundance(coef_est, X, object, nr, sp_top, sp_2nd, sp_3rd)
+
+    message('Bootstrapping confidence intervals with ',nsims,' samples')
+    post <- calc_dependent_abundance(samps, X, object, nr, sp_top, sp_2nd, sp_3rd)
+
+    # Summarize bootstrap
+    cis <- lapply(post, function(x){
+      data.frame(
+        SE = apply(x, 1, sd, na.rm=TRUE),
+        upper = apply(x, 1, quantile, 0.025, na.rm=TRUE),
+        lower = apply(x, 1, quantile, 0.975, na.rm=TRUE)
+      )
+    })
+
+    out <- mapply(function(x, y){
+      cbind(Predicted = x, y)
+    }, point_est, cis, SIMPLIFY=FALSE)
+
+    if(!missing(species)){
+      out <- out[[species]]
+    }
+    return(out)
+  } else if(type == "det"){
+    stop("det not supported yet")
+  }
+})
+
+calc_dependent_abundance <- function(samps, X, object, nr, sp_top, sp_2nd, sp_3rd){
+  nsims <- nrow(samps)
+
+  all_species <- names(object@data@ylist)
+
+  post <- lapply(1:length(all_species), function(x) matrix(NA, nr, nsims))
+  names(post) <- all_species
+
+  for (k in 1:nsims){
+
+    b <- samps[k,]
+    ests <- list()
+
+    # Top-level species that don't depend on other species abundance
+    for (i in sp_top){
+      beta <- get_species_b(b, object, i)[[1]]
+      ests[[i]] <- exp(X[[i]] %*% beta)
+      post[[i]][,k] <- ests[[i]]
+    }
+    # 2nd-level species that depend only on top-level species
+    for (i in sp_2nd){
+      Xsub <- X[[i]]
+      beta <- get_species_b(b, object, i)
+      lp <- Xsub[[1]] %*% beta[[1]]
+      for (j in 2:length(Xsub)){
+        other_sp <- names(Xsub)[j]
+        add <- Xsub[[other_sp]] %*% beta[[other_sp]] * ests[[other_sp]]
+        lp <- lp + add
+      }
+      ests[[i]] <- exp(lp)
+      post[[i]][,k] <- ests[[i]]
+    }
+    # 3rd-level species that depend on at least one 2nd-level species
+    for (i in sp_3rd){
+      Xsub <- X[[i]]
+      beta <- get_species_b(b, object, i)
+      lp <- Xsub[[1]] %*% beta[[1]]
+      for (j in 2:length(Xsub)){
+        other_sp <- names(Xsub)[j]
+        add <- Xsub[[other_sp]] %*% beta[[other_sp]] * ests[[other_sp]]
+        lp <- lp + add
+      }
+      ests[[i]] <- exp(lp)
+      post[[i]][,k] <- ests[[i]]
+    }
+  }
+  post
+}
