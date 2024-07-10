@@ -363,7 +363,7 @@ test_that("We can simulate COP data", {
   # From scratch ----
   
   # With no covariates
-  expect_no_error(simulate(
+  expect_no_error(expect_warning(simulate(
     "occuCOP",
     formulas = list(psi =  ~ 1, lambda =  ~ 1),
     coefs = list(
@@ -371,10 +371,10 @@ test_that("We can simulate COP data", {
       lambda = c(intercept = 0)
     ),
     design = list(M = 100, J = 100)
-  ))
+  )))
   
   # With quantitative covariates
-  expect_no_error(simulate(
+  expect_no_error(expect_warning(simulate(
     "occuCOP",
     formulas = list(psi =  ~ elev, lambda =  ~ rain),
     coefs = list(
@@ -382,10 +382,10 @@ test_that("We can simulate COP data", {
       lambda = c(intercept = log(3), rain = -1)
     ),
     design = list(M = 100, J = 5)
-  ))
+  )))
   
   # With guides
-  expect_no_error(simulate(
+  expect_no_error(expect_warning(simulate(
     "occuCOP",
     formulas = list(psi =  ~ elev, lambda =  ~ rain),
     coefs = list(
@@ -394,10 +394,10 @@ test_that("We can simulate COP data", {
     ),
     design = list(M = 100, J = 5),
     guide = list(elev=list(dist=rnorm, mean=12, sd=0.5))
-  ))
+  )))
   
   # With qualitative covariates
-  expect_no_error(umf <- simulate(
+  expect_no_error(umf <- expect_warning(simulate(
     "occuCOP",
     formulas = list(psi =  ~ elev + habitat, lambda =  ~ 1),
     coefs = list(
@@ -411,7 +411,7 @@ test_that("We can simulate COP data", {
     ),
     design = list(M = 100, J = 5),
     guide = list(habitat = factor(levels = c("A", "B", "C")))
-  ))
+  )))
   
   # From unmarkedFitOccuCOP ----
   expect_no_error(umfit <- occuCOP(
@@ -427,7 +427,7 @@ test_that("We can simulate COP data", {
 test_that("occuCOP can fit and predict models with covariates", {
   # Simulate data with covariates ----
   set.seed(123)
-  expect_no_error(umf <- simulate(
+  expect_no_error(umf <- expect_warning(simulate(
     "occuCOP",
     formulas = list(psi =  ~ elev + habitat, lambda =  ~ rain),
     coefs = list(
@@ -441,7 +441,7 @@ test_that("occuCOP can fit and predict models with covariates", {
     ),
     design = list(M = 100, J = 5),
     guide = list(habitat = factor(levels = c("A", "B", "C")))
-  ))
+  )))
   
   # Fit ----
   expect_no_error(umfit <- occuCOP(

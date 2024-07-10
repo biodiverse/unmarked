@@ -559,7 +559,7 @@ setMethod("fitted", "unmarkedFitDailMadsen",
     if(is.null(Xom.offset)) Xom.offset <- rep(0, M*(T-1))
     if(is.null(Xiota.offset)) Xiota.offset <- rep(0, M*(T-1))
 
-    lambda <- exp(Xlam %*% coef(object, 'lambda') + Xlam.offset)
+    lambda <- as.vector(exp(Xlam %*% coef(object, 'lambda') + Xlam.offset))
     if(identical(mixture, "ZIP")) {
         psi <- plogis(coef(object, type="psi"))
         lambda <- (1-psi)*lambda
@@ -618,7 +618,7 @@ setMethod("fitted", "unmarkedFitDailMadsen",
                 N[i,t] <- N[i,t-1]*exp(gamma[i,t-1]*(1-N[i,t-1]/omega[i,t-1]))+
                     iota[i, t-1]
             else if(identical(dynamics, "gompertz"))
-                N[i,1] <- N[i,t-1] * exp(gamma[i,t-1]*(1-log(N[i,t-1]+1)/
+                N[i,t] <- N[i,t-1] * exp(gamma[i,t-1]*(1-log(N[i,t-1]+1)/
                   log(omega[i,t-1]+1))) + iota[i, t-1]
             else
                 N[i,t] <- N[i,t-1] * omega[i,t-1] + gamma[i,t-1]
@@ -633,7 +633,7 @@ setMethod("fitted", "unmarkedFitDailMadsen",
                         N[i, t] <- N[i, t] * exp(gamma[i, t-1] * (1 - N[i,t] /
                             omega[i,t-1]))+ iota[i, t-1]
                     else if(identical(dynamics, "gompertz"))
-                        N[i, 1] <- N[i, t] * exp(gamma[i, t-1] * (1 -
+                        N[i, t] <- N[i, t] * exp(gamma[i, t-1] * (1 -
                             log(N[i, t]+1) / log(omega[i, t-1] + 1))) +
                             iota[i, t-1]
                     else
@@ -2206,9 +2206,9 @@ simOpenN <- function(object, na.rm)
     S <- G <- matrix(NA, M, T-1)
     for(i in 1:M) {
             switch(mix,
-                   P = N[i, 1] <- rpois(1, lambda),
+                   P = N[i, 1] <- rpois(1, lambda[i]),
                    NB = N[i, 1] <- rnbinom(1, size =
-                       exp(coef(object["alpha"])), mu = lambda),
+                       exp(coef(object["alpha"])), mu = lambda[i]),
                    ZIP = N[i,1] <- rzip(1, lambda[i], psi))
             if(delta[i, 1] > 1) {
                 for(d in 2:delta[i, 1]) {

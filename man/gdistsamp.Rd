@@ -1,12 +1,13 @@
 \name{gdistsamp}
 \alias{gdistsamp}
 \title{
-Fit the generalized distance sampling model of Chandler et al. (2011).
+  Fit the generalized distance sampling model of Chandler et al. (2011).
 }
 \description{
-Extends the distance sampling model of Royle et al. (2004) to estimate
-the probability of being available for detection. Also allows abundance
-to be modeled using the negative binomial distribution.
+  Extends the distance sampling model of Royle et al. (2004) to estimate
+  the probability of being available for detection. Also allows
+  abundance to be modeled using the negative binomial and zero-inflated
+  Poisson distributions. 
 }
 \usage{
 gdistsamp(lambdaformula, phiformula, pformula, data, keyfun =
@@ -72,49 +73,87 @@ starts, method = "BFGS", se = TRUE, engine=c("C","R"), rel.tol=1e-4, threads=1, 
       bounds}
 
 }
+
 \details{
-  This model extends the model of Royle et al. (2004) by estimating the
-  probability of being available for detection \eqn{\phi}{phi}. This
-  effectively relaxes the assumption that \eqn{g(0)=1}. In other words,
-  inividuals at a distance of 0 are not assumed to be detected with
-  certainty. To estimate this additional parameter, replicate distance
-  sampling data must be collected at each transect. Thus the data are
-  collected at i = 1, 2, ..., R transects on t = 1, 2, ..., T
-  occassions. As with the model of Royle et al. (2004), the detections
-  must be binned into distance classes. These data must be formatted in
-  a matrix with R rows, and JT columns where J is the number of distance
-  classses. See \code{\link{unmarkedFrameGDS}} for more information.
+
+  Extends the model of Royle et al. (2004) by estimating the probability
+  of being available for detection \eqn{\phi}{phi}. To estimate this
+  additional parameter, replicate distance sampling data must be
+  collected at each transect. Thus the data are collected at i = 1, 2,
+  ..., R transects on t = 1, 2, ..., T occassions. As with the model of
+  Royle et al. (2004), the detections must be binned into distance
+  classes. These data must be formatted in a matrix with R rows, and JT
+  columns where J is the number of distance classses. See
+  \code{\link{unmarkedFrameGDS}} for more information about data
+  formatting.
+
+  The definition of availability depends on the context. The model is
+  \deqn{M_i \sim \text{Pois}(\lambda)}{M(i)~Pois(lambda)}
+  \deqn{N_{i,t} \sim \text{Bin}(M_i, \phi)}{N(i,t)~Bin(M(i), phi)}
+  \deqn{y_{i,1,t}, \dots, y_{i,J,t} \sim \text{Multinomial}(N_{i,t},
+  \pi_{i,1,t}, \dots, \pi_{i,J,t})}{y(i,1,t), ..., y(i,J,t) ~
+  Multinomial(N(i,t), pi(i,1,t), ..., pi(i,J,t))} 
+
+  If there is no movement, then \eqn{M_i}{M(i)} is local abundance, and
+  \eqn{N_{i,t}}{N(i,t)} is the number of individuals that are available
+  to be detected. In this case, \eqn{\phi=g_0}{phi=g(0)}. Animals might
+  be missed on the transect line because they are difficult to see or
+  detected. This relaxes the assumption of conventional distance
+  sampling that \eqn{g_0=1}{g(0)=1}. 
+
+  However, when there is movement in the form of temporary emigration,
+  local abundance is \eqn{N_{i,t}}{N(i,t)};  it's the fraction of
+  \eqn{M_i}{M(i)} that are on the plot at time t. In this case,
+  \eqn{\phi}{phi} is the temporary emigration parameter, and we need to
+  assume that \eqn{g_0=1}{g(0)=1} in order to interpret
+  \eqn{N_{i,t}}{N(i,t)} as local abundance. See Chandler et al. (2011)
+  for an analysis of the model under this form of temporary emigration.
+
+  If there is movement and \eqn{g_0<1}{g(0)<1} then it
+  isn't possible to estimate local abundance at time t. In this case,
+  \eqn{M_i}{M(i)} would be the total number of individuals that ever use
+  plot i (the super-population), and \eqn{N_{i,t}}{N(i,t)} would be the
+  number available to be detected at time t. Since a fraction of the
+  unavailable individuals could be off the plot, and another fraction
+  could be on the plot, it isn't possible to infer local abundance and
+  density during occasion t.   
+
 }
 
 \note{
-  If you aren't interested in estimating phi, but you want to
-  use the negative binomial distribution, simply set numPrimary=1 when
-  formatting the data.
-  }
+  If you aren't interested in estimating \eqn{\phi}{phi}, but you want
+  to use the negative binomial or ZIP distributions, set numPrimary=1
+  when formatting the data. 
+}
 
 \value{
-    An object of class unmarkedFitGDS.
-    }
-\references{
-    Royle, J. A., D. K. Dawson, and S. Bates. 2004. Modeling
-    abundance effects in distance sampling. \emph{Ecology}
-    85:1591-1597.
+  An object of class unmarkedFitGDS.
+}
 
-    Chandler, R. B, J. A. Royle, and D. I. King. 2011. Inference about
+\references{
+
+  Royle, J. A., D. K. Dawson, and S. Bates. 2004. Modeling abundance
+    effects in distance sampling. \emph{Ecology} 85:1591-1597.
+
+  Chandler, R. B, J. A. Royle, and D. I. King. 2011. Inference about
     density and temporary emigration in unmarked
-    populations. \emph{Ecology}  92:1429--1435.
-    }
+    populations. \emph{Ecology}  92:1429--1435. 
+}
+
 \author{
-    Richard Chandler \email{rbchan@uga.edu}
-    }
+  Richard Chandler \email{rbchan@uga.edu}
+}
+
 \note{
-    You cannot use obsCovs, but you can use yearlySiteCovs (a confusing name
-    since this model isn't for multi-year data. It's just a hold-over
-    from the colext methods of formatting data upon which it is based.)
-    }
+  You cannot use obsCovs, but you can use yearlySiteCovs (a confusing
+  name since this model isn't for multi-year data. It's just a hold-over
+  from the colext methods of formatting data upon which it is based.) 
+}
+
 \seealso{
-    \code{\link{distsamp}}
-    }
+  \code{\link{distsamp}}
+}
+
 \examples{
 
 

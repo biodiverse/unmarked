@@ -13,7 +13,7 @@ test_that("IDS can fit models with covariates", {
   # Survey durations, loosely based on real data
   durs <- list(ds = rep(5, design$Mds), pc=runif(design$Mpc, 3, 30))
 
-  sim_umf <- simulate("IDS", # name of model we are simulating for
+  sim_umf <- expect_warning(simulate("IDS", # name of model we are simulating for
                     nsim=1, # number of replicates
                     formulas=formulas, 
                     coefs=coefs,
@@ -25,7 +25,7 @@ test_that("IDS can fit models with covariates", {
                     # could also have e.g. keyfun here
                     durationDS=durs$ds, durationPC=durs$pc, durationOC=durs$oc,
                     maxDistPC=0.5, maxDistOC=0.5,
-                    unitsOut="kmsq") 
+                    unitsOut="kmsq"))
   set.seed(123)
   mod_sim <- IDS(lambdaformula = ~elev, detformulaDS = ~1,
                 dataDS=sim_umf$ds, dataPC=sim_umf$pc,
@@ -85,7 +85,7 @@ test_that("IDS can fit models with occupancy data", {
               ds = c(intercept=-2.5),
               oc = c(intercept = -2))
 
-  sim_umf <- simulate("IDS", # name of model we are simulating for
+  sim_umf <- expect_warning(simulate("IDS", # name of model we are simulating for
                     nsim=1, # number of replicates
                     formulas=formulas, 
                     coefs=coefs,
@@ -96,7 +96,7 @@ test_that("IDS can fit models with occupancy data", {
                     # arguments used by IDS
                     # could also have e.g. keyfun here
                     maxDistPC=0.5, maxDistOC=0.5,
-                    unitsOut="kmsq")
+                    unitsOut="kmsq"))
 
   mod_oc <- IDS(lambdaformula = ~elev, detformulaDS = ~1, detformulaOC = ~1,
                 dataDS=sim_umf$ds, dataPC=sim_umf$pc, dataOC=sim_umf$oc,
@@ -146,7 +146,7 @@ test_that("IDS handles missing values", {
   # Survey durations, loosely based on real data
   durs <- list(ds = rep(5, design$Mds), pc=runif(design$Mpc, 3, 30))
 
-  sim_umf <- simulate("IDS", # name of model we are simulating for
+  sim_umf <- expect_warning(simulate("IDS", # name of model we are simulating for
                     nsim=1, # number of replicates
                     formulas=formulas, 
                     coefs=coefs,
@@ -157,7 +157,7 @@ test_that("IDS handles missing values", {
                     # arguments used by IDS
                     # could also have e.g. keyfun here
                     maxDistPC=0.5, maxDistOC=0.5,
-                    unitsOut="kmsq")
+                    unitsOut="kmsq"))
 
   sim_umf$pc@y[1,1] <- NA
   sim_umf$pc@y[2,] <- NA

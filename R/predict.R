@@ -28,7 +28,9 @@ setMethod("predict", "unmarkedFit",
     if(inherits(newdata, c("RasterLayer","RasterStack","SpatRaster"))){
       is_raster <- TRUE
       orig_raster <- newdata
-      newdata <- newdata_from_raster(newdata, all.vars(orig_formula))
+      check_vars <- all.vars(orig_formula)
+      if(!is.null(re.form) && is.na(re.form)) check_vars <- all.vars(lme4::nobars(orig_formula))
+      newdata <- newdata_from_raster(newdata, check_vars)
     }
 
     # 3. Make model matrix and offset with newdata, informed by original data
@@ -270,7 +272,7 @@ newdata_from_raster <- function(object, vars){
     names(nd)[is_fac] <- gsub(rem_string, "", names(nd)[is_fac])
   } else if(inherits(object, "SpatRaster")){
     if(!requireNamespace("terra", quietly=TRUE)) stop("terra package required", call.=FALSE)
-    nd <- terra::as.data.frame(object)
+    nd <- terra::as.data.frame(object, na.rm=FALSE)
   }
   # Check if variables are missing
   no_match <- vars[! vars %in% names(nd)]
@@ -288,7 +290,7 @@ raster_from_predict <- function(pr, object, appendData){
     raster::crs(new_rast) <- raster::crs(object)
     if(appendData) new_rast <- raster::stack(new_rast, object)
   } else if(inherits(object, "SpatRaster")){
-    new_rast <- data.frame(terra::crds(object), pr)
+    new_rast <- data.frame(terra::crds(object, na.rm=FALSE), pr)
     new_rast <- terra::rast(new_rast, type="xyz")
     terra::crs(new_rast) <- terra::crs(object)
     if(appendData) new_rast <- c(new_rast, object)
@@ -742,15 +744,33 @@ setMethod("predict", "unmarkedFitOccuMulti",
         new_est@covMatBS <- matrix(NA, nrow=length(inds), ncol=length(inds))
       }
 
-      prmat <- t(apply(dmDet[[i]], 1, function(x){
-                    bt <- backTransform(linearComb(new_est, x))
-                    if(!se.fit){
-                      return(c(Predicted=bt@estimate, SE=NA, lower=NA, upper=NA))
-                    }
-                    ci <- confint(bt, level=level)
-                    names(ci) <- c("lower", "upper")
-                    c(Predicted=bt@estimate, SE=SE(bt), ci)
-                  }))
+      chunk_size <- 70
+      xmat <- dmDet[[i]]
+      if(is.vector(xmat)) xmat <- matrix(xmat, nrow=1)
+      nr <- nrow(xmat)
+      ind <- rep(1:ceiling(nr/chunk_size), each=chunk_size, length.out=nr)
+
+      x_chunk <- lapply(unique(ind),
+                    function(i) as.matrix(xmat[ind==i,,drop=FALSE]))
+
+      prmat <- lapply(x_chunk, function(x_i){
+        has_na <- apply(x_i, 1, function(x_i) any(is.na(x_i)))
+        # Work around linearComb bug where there can't be NAs in inputs
+        x_i[has_na,] <- 0
+        lc <- linearComb(new_est, x_i)
+        lc <- backTransform(lc)
+        out <- data.frame(Predicted=coef(lc), SE=NA, lower=NA, upper=NA)
+        if(se.fit){
+          se <- SE(lc)
+          ci <- confint(lc, level=level)
+          out$SE <- se
+          out$lower <- ci[,1]
+          out$upper <- ci[,2]
+        }
+        out[has_na,] <- NA
+        out
+      })
+      prmat <- do.call(rbind, prmat)
       rownames(prmat) <- NULL
       out[[i]] <- as.data.frame(prmat)
     }

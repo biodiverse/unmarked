@@ -353,10 +353,23 @@ test_that("pcountOpen can fit models with various dynamics",{
                        c(1.2131713,  0.7301736,  1.1949289),
                        tolerance=1e-5)
 
+    # issue #278
+    ft2 <- fitted(m2)
+    expect_equal(dim(ft2), c(20,5)) 
+
     m3 <- pcountOpen(~1, ~1, ~1, ~1, umf, K=20, dynamics="trend")
     expect_equivalent(coef(m3),
                        c(1.67211946, -0.06534021, 0.18287762),
                        tolerance=1e-5)
+
+    m4 <- pcountOpen(~1, ~1, ~1, ~1, umf, K=20, dynamics="gompertz")
+    expect_equivalent(coef(m3),
+                       c(1.67211946, -0.06534021, 0.18287762),
+                       tolerance=1e-5)
+    
+    # issue #278
+    ft4 <- fitted(m4)
+    expect_true(all(!is.na(ft4)))
 
 })
 

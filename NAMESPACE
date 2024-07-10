@@ -40,7 +40,7 @@ exportClasses(unmarkedFit, unmarkedFitOccu, unmarkedFitOccuFP, unmarkedFitDS,
               unmarkedFrameGPC, unmarkedEstimate, unmarkedFitList,
               unmarkedModSel, unmarkedRanef, unmarkedFrameOccuMulti,
               unmarkedFrameOccuMS, unmarkedFrameGDR, unmarkedCrossVal,
-              unmarkedPostSamples, unmarkedPower, unmarkedPowerList)
+              unmarkedPostSamples, unmarkedPower_old, unmarkedPowerList_old)
 
 # Methods
 exportMethods(backTransform, coef, confint, coordinates, fitted, getData,
