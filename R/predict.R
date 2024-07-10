@@ -272,7 +272,7 @@ newdata_from_raster <- function(object, vars){
     names(nd)[is_fac] <- gsub(rem_string, "", names(nd)[is_fac])
   } else if(inherits(object, "SpatRaster")){
     if(!requireNamespace("terra", quietly=TRUE)) stop("terra package required", call.=FALSE)
-    nd <- terra::as.data.frame(object)
+    nd <- terra::as.data.frame(object, na.rm=FALSE)
   }
   # Check if variables are missing
   no_match <- vars[! vars %in% names(nd)]
