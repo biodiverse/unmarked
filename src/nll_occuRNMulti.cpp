@@ -55,8 +55,8 @@ double nll_occuRNMulti(arma::vec beta, arma::mat state_ind, arma::mat det_ind, i
   double nll = 0;
 
   mat y1 = as<mat>(ylist[0]);
-  unsigned M = y1.n_rows;
-  unsigned J = y1.n_cols;
+  int M = y1.n_rows;
+  int J = y1.n_cols;
 
   //Parameters for dominant species
   mat X1 = as<mat>(Xlist[0]);
