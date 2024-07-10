@@ -51,7 +51,6 @@ powerAnalysis_internal <- function(object, model, data_sims,
   fun <- get_fitting_function(object, model)
   test_fit <- get_fit(data_sims[[1]], model, ...)
   modname <- test_fit@fitType
-  modname <- "test"
 
   if(is.null(nulls)){
     nulls <- effects
