@@ -4,7 +4,8 @@ setClass("unmarkedFrameOccuRNMulti",
 setClass("unmarkedFitOccuRNMulti",
          representation(
             detformulas = "list",
-            stateformulas = "list"),
+            stateformulas = "list",
+            modelOccupancy = "numeric"),
          contains = "unmarkedFit")
 
 occuRNMulti <- function(detformulas, stateformulas, data, modelOccupancy,
@@ -104,6 +105,7 @@ occuRNMulti <- function(detformulas, stateformulas, data, modelOccupancy,
 
   umfit <- new("unmarkedFitOccuRNMulti", fitType = "occuRNMulti", call = match.call(),
                 detformulas = detformulas, stateformulas = stateformulas,
+                modelOccupancy = modelOccupancy,
                 formula = ~1, data = data,
                 #sitesRemoved = designMats$removed.sites,
                 estimates = estimateList, AIC = fmAIC, opt = fm,
@@ -225,31 +227,9 @@ setMethod("predict", "unmarkedFitOccuRNMulti",
     stopifnot(species %in% names(object@data@ylist))
   }
   if(type == "state"){
-    samps <- MASS::mvrnorm(nsims, mu=object@estimates@estimates$state@estimates,
-                         Sigma = object@estimates@estimates$state@covMat)
+    samps <- MASS::mvrnorm(nsims, mu=coef(object), Sigma = vcov(object))
 
-    # Function to extract correct parts of state coefs vector
-    get_species_b <- function(b, object, sp){
-      nm <- names(b)
-      allsp <- names(object@data@ylist)
-      ind <- which(allsp == sp)
-      out <- list()
-      other <- c(1:length(allsp))[-ind]
-      match1 <- grepl(paste0("[", allsp[ind], "]"), nm, fixed=TRUE)
-      out[[1]] <- b[match1]
-
-      match2 <- grepl(paste0("[", sp, ":", allsp[other[1]],"]"), nm, fixed=TRUE)
-      if(sum(match2 > 0)){
-        out[[allsp[other[1]]]] <- b[match2]
-      }
-      match3 <- grepl(paste0("[", sp, ":", allsp[other[2]],"]"), nm, fixed=TRUE)
-      if(sum(match3 > 0)){
-        out[[allsp[other[2]]]] <- b[match3]
-      }
-      out
-    }
-
-    depmat <- create_dep_matrix(object@stateformulas)
+    depmat <- unmarked:::create_dep_matrix(object@stateformulas)
 
     top <- apply(depmat, 1, function(x) sum(x) == 0)
     sp_top <- colnames(depmat)[top]
@@ -277,13 +257,13 @@ setMethod("predict", "unmarkedFitOccuRNMulti",
       })
       nr <- nrow(newdata)
     }
-
-    coef_est <- matrix(object@estimates@estimates$state@estimates, nrow=1)
-    colnames(coef_est) <- names(object@estimates@estimates$state@estimates)
-    point_est <- calc_dependent_abundance(coef_est, X, object, nr, sp_top, sp_2nd, sp_3rd)
+    
+    coef_est <- matrix(coef(object), nrow=1)
+    colnames(coef_est) <- names(coef(object))
+    point_est <- calc_dependent_response(coef_est, X, object, nr, sp_top, sp_2nd, sp_3rd, ilink)
 
     message('Bootstrapping confidence intervals with ',nsims,' samples')
-    post <- calc_dependent_abundance(samps, X, object, nr, sp_top, sp_2nd, sp_3rd)
+    post <- calc_dependent_response(samps, X, object, nr, sp_top, sp_2nd, sp_3rd, ilink)
 
     # Summarize bootstrap
     cis <- lapply(post, function(x){
@@ -307,7 +287,29 @@ setMethod("predict", "unmarkedFitOccuRNMulti",
   }
 })
 
-calc_dependent_abundance <- function(samps, X, object, nr, sp_top, sp_2nd, sp_3rd){
+# Function to extract correct parts of state coefs vector
+get_species_b <- function(b, object, sp){
+  b <- b[!grepl("^p\\(", names(b))] # remove detection coefficients
+  nm <- names(b)
+  allsp <- names(object@data@ylist)
+  ind <- which(allsp == sp)
+  out <- list()
+  other <- c(1:length(allsp))[-ind]
+  match1 <- grepl(paste0("[", allsp[ind], "]"), nm, fixed=TRUE)
+  out[[1]] <- b[match1]
+
+  match2 <- grepl(paste0("[", sp, ":", allsp[other[1]],"]"), nm, fixed=TRUE)
+  if(sum(match2 > 0)){
+    out[[allsp[other[1]]]] <- b[match2]
+  }
+  match3 <- grepl(paste0("[", sp, ":", allsp[other[2]],"]"), nm, fixed=TRUE)
+  if(sum(match3 > 0)){
+    out[[allsp[other[2]]]] <- b[match3]
+  }
+  out
+}
+
+calc_dependent_response <- function(samps, X, object, nr, sp_top, sp_2nd, sp_3rd, ilink){
   nsims <- nrow(samps)
 
   all_species <- names(object@data@ylist)
@@ -328,6 +330,11 @@ calc_dependent_abundance <- function(samps, X, object, nr, sp_top, sp_2nd, sp_3r
     }
     # 2nd-level species that depend only on top-level species
     for (i in sp_2nd){
+      if(object@modelOccupancy[i]){
+        ilink <- plogis
+      } else {
+        ilink <- eval(str2lang(object@estimates@estimates$lam@invlink))
+      }
       Xsub <- X[[i]]
       beta <- get_species_b(b, object, i)
       lp <- Xsub[[1]] %*% beta[[1]]
@@ -336,11 +343,16 @@ calc_dependent_abundance <- function(samps, X, object, nr, sp_top, sp_2nd, sp_3r
         add <- Xsub[[other_sp]] %*% beta[[other_sp]] * ests[[other_sp]]
         lp <- lp + add
       }
-      ests[[i]] <- exp(lp)
+      ests[[i]] <- ilink(lp)
       post[[i]][,k] <- ests[[i]]
     }
     # 3rd-level species that depend on at least one 2nd-level species
     for (i in sp_3rd){
+      if(object@modelOccupancy[i]){
+        ilink <- plogis
+      } else {
+        ilink <- eval(str2lang(object@estimates@estimates$lam@invlink))
+      }
       Xsub <- X[[i]]
       beta <- get_species_b(b, object, i)
       lp <- Xsub[[1]] %*% beta[[1]]
@@ -349,7 +361,7 @@ calc_dependent_abundance <- function(samps, X, object, nr, sp_top, sp_2nd, sp_3r
         add <- Xsub[[other_sp]] %*% beta[[other_sp]] * ests[[other_sp]]
         lp <- lp + add
       }
-      ests[[i]] <- exp(lp)
+      ests[[i]] <- ilink(lp)
       post[[i]][,k] <- ests[[i]]
     }
   }
