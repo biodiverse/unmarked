@@ -135,7 +135,11 @@ setMethod("getDesign", "unmarkedFrameOccuRNMulti",
   # Obs covs
   sc_long_ind <- rep(1:M, each=J)
   sc_long <- sc[sc_long_ind,]
-  oc <- cbind(sc_long, umf@obsCovs)
+  if(is.null(umf@obsCovs)){
+    oc <- sc_long
+  } else {
+    oc <- cbind(sc_long, umf@obsCovs)
+  }
 
   vv <- lapply(detformulas, function(x){
     model.matrix(x, oc)
@@ -169,7 +173,7 @@ setMethod("getDesign", "unmarkedFrameOccuRNMulti",
   det_n <- sapply(vv, ncol)
   det_end <- cumsum(det_n) + max(state_end)
   det_start <- det_end - det_n + 1
-  det_ind <- cbind(det_end, det_start)
+  det_ind <- cbind(det_start, det_end)
 
   det_rng <- min(det_ind):max(det_ind)
 
