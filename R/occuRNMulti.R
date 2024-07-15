@@ -38,7 +38,12 @@ occuRNMulti <- function(detformulas, stateformulas, data, modelOccupancy,
     K <- rep(K, S)
   }
   stopifnot(length(K) == S)
-  Kmin <- sapply(gd$ylist, function(x) apply(x, 1, max))
+  Kmin <- sapply(gd$ylist, function(x){
+                   apply(x, 1, function(y){
+                           if(all(is.na(y))) return(0)
+                           max(y, na.rm=TRUE)
+                    })
+                })
 
   nP <- max(gd$det_ind)
   
@@ -63,7 +68,8 @@ occuRNMulti <- function(detformulas, stateformulas, data, modelOccupancy,
 
   nll_C <- function(pars){
     nll_occuRNMulti(pars, gd$state_ind-1, gd$det_ind-1, S, modocc,
-                    gd$ylist, gd$state_dm, gd$det_dm, dep, K, Kmin, threads)
+                    gd$ylist, gd$state_dm, gd$det_dm, dep, K, Kmin,
+                    gd$miss, gd$site_miss, threads)
   }
 
   fm <- optim(starts, nll_C, method=method, hessian=se, ...)
@@ -184,8 +190,13 @@ setMethod("getDesign", "unmarkedFrameOccuRNMulti",
   det_par <- paste(det_prefix, det_par)
   par_names <- c(state_par, det_par)
 
+  # Missing values
+  miss <- is.na(umf@ylist[[1]]) * 1
+  site_miss <- apply(umf@ylist[[1]], 1, function(x) all(is.na(x))) * 1
+
   list(par_names = par_names, state_ind = state_ind, det_ind = det_ind,
-              ylist = ylist, state_dm = mm, det_dm = vv)
+              ylist = ylist, state_dm = mm, det_dm = vv,
+              miss = miss, site_miss = site_miss)
 })
 
 create_dep_matrix <- function(stateformulas){

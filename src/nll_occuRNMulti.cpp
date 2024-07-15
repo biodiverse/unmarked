@@ -9,11 +9,13 @@ using namespace Rcpp;
 using namespace arma;
 
 //Calculate part of abundance likelihood to integrate over (abun f[g] * detect [g])
-double calc_fg(int k, double lam, int J, arma::vec r, arma::rowvec y){
+double calc_fg(int k, double lam, int J, arma::vec r, arma::rowvec y,
+               arma::irowvec miss){
   double f = R::dpois(k, lam, 0);
   double p;
   double g = 0;
   for (int j = 0; j<J; j++){
+    if(miss(j)) continue;
     p = 1 - pow(1 - r(j), k);
     g += R::dbinom(y(j), 1, p, 1);
   }
@@ -22,22 +24,24 @@ double calc_fg(int k, double lam, int J, arma::vec r, arma::rowvec y){
 
 //Calculate abundance likelihood for subordinate species
 double lik_subord_abun(int Kmin, int Kmax, double lam, int J, arma::vec r,
-    arma::rowvec y){
+    arma::rowvec y, arma::irowvec miss){
 
   double lik = 0.0;
   lam = exp(lam);
   for (int k = Kmin; k < (Kmax+1); k++){
-    lik += calc_fg(k, lam, J, r, y);
+    lik += calc_fg(k, lam, J, r, y, miss);
   }
 
   return lik;
 }
 
 //Calculate occupancy likelihood for subordinate species
-double lik_subord_occ(int Kmin, double psi, int J, arma::vec p, arma::rowvec y){
+double lik_subord_occ(int Kmin, double psi, int J, arma::vec p, arma::rowvec y,
+                      arma::irowvec miss){
   double g = 1;
   psi = inv_logit(psi);
   for (int j = 0; j<J; j++){
+    if(miss(j)) continue;
     g *= R::dbinom(y(j), 1, p(j), 0);
   }
   return g * psi + (1 - Kmin) * (1 - psi);
@@ -46,7 +50,8 @@ double lik_subord_occ(int Kmin, double psi, int J, arma::vec p, arma::rowvec y){
 // [[Rcpp::export]]
 double nll_occuRNMulti(arma::vec beta, arma::mat state_ind, arma::mat det_ind, int S,
     arma::ivec modOcc, Rcpp::List ylist, Rcpp::List Xlist, Rcpp::List Vlist,
-    arma::imat dep, arma::ivec K, arma::imat Kmin, int threads){
+    arma::imat dep, arma::ivec K, arma::imat Kmin,
+    arma::imat miss, arma::ivec site_miss, int threads){
 
   #ifdef _OPENMP
     omp_set_num_threads(threads);
@@ -128,6 +133,8 @@ double nll_occuRNMulti(arma::vec beta, arma::mat state_ind, arma::mat det_ind, i
   for (int m = 0; m<M; m++){
     double fg1, fg2, lik_sp2, lik_sp3;
 
+    if(site_miss(m)) continue;
+
     //Indices for detection probability
     int r_st = m * J;
     int r_end = r_st + J - 1;
@@ -148,7 +155,7 @@ double nll_occuRNMulti(arma::vec beta, arma::mat state_ind, arma::mat det_ind, i
     for (int k1 = Kmin(m, 0); k1<(K(0)+1); k1++){
 
       //Dominant species
-      fg1 = calc_fg(k1, lam1(m), J, r1_sub, y1.row(m));
+      fg1 = calc_fg(k1, lam1(m), J, r1_sub, y1.row(m), miss.row(m));
 
       //-----------------------------------------------------------------------
       if((S == 2) & dep(1,0)){  //sp1 --> sp2
@@ -156,9 +163,9 @@ double nll_occuRNMulti(arma::vec beta, arma::mat state_ind, arma::mat det_ind, i
         lik_sp2 = 0;
         par2_m = lp2(m) + k1 * lp2_sp1(m);
         if(modOcc(1)){
-          lik_sp2 = lik_subord_occ(Kmin(m, 1), par2_m, J, r2_sub, y2.row(m));
+          lik_sp2 = lik_subord_occ(Kmin(m, 1), par2_m, J, r2_sub, y2.row(m), miss.row(m));
         } else {
-          lik_sp2 = lik_subord_abun(Kmin(m, 1), K(1), par2_m, J, r2_sub, y2.row(m));
+          lik_sp2 = lik_subord_abun(Kmin(m, 1), K(1), par2_m, J, r2_sub, y2.row(m), miss.row(m));
         }
         lik_m += fg1 * lik_sp2;
 
@@ -170,14 +177,14 @@ double nll_occuRNMulti(arma::vec beta, arma::mat state_ind, arma::mat det_ind, i
         par2_m = exp(lp2(m) + k1 * lp2_sp1(m));
 
         for (int k2 = Kmin(m, 1); k2<(K(1)+1); k2++){
-          fg2 = calc_fg(k2, par2_m, J, r2_sub, y2.row(m));
+          fg2 = calc_fg(k2, par2_m, J, r2_sub, y2.row(m), miss.row(m));
 
           lik_sp3 = 0;
           par3_m = lp3(m) + k2 * lp3_sp2(m);
           if(modOcc(2)){
-            lik_sp3 = lik_subord_occ(Kmin(m, 2), par3_m, J, r3_sub, y3.row(m));
+            lik_sp3 = lik_subord_occ(Kmin(m, 2), par3_m, J, r3_sub, y3.row(m), miss.row(m));
           } else {
-            lik_sp3 = lik_subord_abun(Kmin(m, 2), K(2), par3_m, J, r3_sub, y3.row(m));
+            lik_sp3 = lik_subord_abun(Kmin(m, 2), K(2), par3_m, J, r3_sub, y3.row(m), miss.row(m));
           }
           lik_sp2 += fg2 * lik_sp3;
         }
@@ -191,14 +198,14 @@ double nll_occuRNMulti(arma::vec beta, arma::mat state_ind, arma::mat det_ind, i
 
         for (int k2 = Kmin(m, 1); k2<(K(1)+1); k2++){
 
-          fg2 = calc_fg(k2, lam2(m), J, r2_sub, y2.row(m));
+          fg2 = calc_fg(k2, lam2(m), J, r2_sub, y2.row(m), miss.row(m));
 
           par3_m = lp3(m) + k1 * lp3_sp1(m) + k2 * lp3_sp2(m);
           lik_sp3 = 0;
           if(modOcc(2)){
-            lik_sp3 = lik_subord_occ(Kmin(m, 2), par3_m, J, r3_sub, y3.row(m));
+            lik_sp3 = lik_subord_occ(Kmin(m, 2), par3_m, J, r3_sub, y3.row(m), miss.row(m));
           } else {
-            lik_sp3 = lik_subord_abun(Kmin(m, 2), K(2), par3_m, J, r3_sub, y3.row(m));
+            lik_sp3 = lik_subord_abun(Kmin(m, 2), K(2), par3_m, J, r3_sub, y3.row(m), miss.row(m));
           }
           lik_sp2 += fg2 * lik_sp3;
         }
@@ -212,17 +219,17 @@ double nll_occuRNMulti(arma::vec beta, arma::mat state_ind, arma::mat det_ind, i
         par2_m = lp2(m) + k1 * lp2_sp1(m);
         lik_sp2 = 0;
         if(modOcc(1)){
-          lik_sp2 = lik_subord_occ(Kmin(m, 1), par2_m, J, r2_sub, y2.row(m));
+          lik_sp2 = lik_subord_occ(Kmin(m, 1), par2_m, J, r2_sub, y2.row(m), miss.row(m));
         } else {
-          lik_sp2 = lik_subord_abun(Kmin(m, 1), K(1), par2_m, J, r2_sub, y2.row(m));
+          lik_sp2 = lik_subord_abun(Kmin(m, 1), K(1), par2_m, J, r2_sub, y2.row(m), miss.row(m));
         }
 
         par3_m = lp3(m) + k1 * lp3_sp1(m);
         lik_sp3 = 0;
         if(modOcc(2)){
-          lik_sp3 = lik_subord_occ(Kmin(m, 2), par3_m, J, r3_sub, y3.row(m));
+          lik_sp3 = lik_subord_occ(Kmin(m, 2), par3_m, J, r3_sub, y3.row(m), miss.row(m));
         } else {
-          lik_sp3 = lik_subord_abun(Kmin(m, 2), K(2), par3_m, J, r3_sub, y3.row(m));
+          lik_sp3 = lik_subord_abun(Kmin(m, 2), K(2), par3_m, J, r3_sub, y3.row(m), miss.row(m));
         }
 
         lik_m += fg1 * lik_sp2 * lik_sp3;
@@ -233,14 +240,14 @@ double nll_occuRNMulti(arma::vec beta, arma::mat state_ind, arma::mat det_ind, i
         par2_m = exp(lp2(m) + k1 * lp2_sp1(m));
 
         for (int k2 = Kmin(m, 1); k2<(K(1)+1); k2++){
-          fg2 = calc_fg(k2, par2_m, J, r2_sub, y2.row(m));
+          fg2 = calc_fg(k2, par2_m, J, r2_sub, y2.row(m), miss.row(m));
 
           lik_sp3 = 0;
           par3_m = lp3(m) + k1 * lp2_sp1(m) + k2 * lp3_sp2(m);
           if(modOcc(2)){
-            lik_sp3 = lik_subord_occ(Kmin(m, 2), par3_m, J, r3_sub, y3.row(m));
+            lik_sp3 = lik_subord_occ(Kmin(m, 2), par3_m, J, r3_sub, y3.row(m), miss.row(m));
           } else {
-            lik_sp3 = lik_subord_abun(Kmin(m, 2), K(2), par3_m, J, r3_sub, y3.row(m));
+            lik_sp3 = lik_subord_abun(Kmin(m, 2), K(2), par3_m, J, r3_sub, y3.row(m), miss.row(m));
           }
           lik_sp2 += fg2 * lik_sp3;
         }
