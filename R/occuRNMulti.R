@@ -134,10 +134,20 @@ setMethod("getDesign", "unmarkedFrameOccuRNMulti",
 
   mm <- lapply(stateformulas, function(s){
     if(!is.list(s)){
-      return(model.matrix(s, sc))
+      mf <- model.frame(s, sc, na.action=stats::na.pass)
+      return(model.matrix(s, mf))
     }
-    lapply(s, function(x) model.matrix(x, sc))
+    lapply(s, function(x){
+           mf <- model.frame(x, sc, na.action=stats::na.pass)
+           model.matrix(x, mf)
+    })
   })
+  all_mm <- lapply(mm, function(x){
+                     if(is.matrix(x)) return(x)
+                     do.call(cbind, x)
+             })
+  all_mm <- do.call(cbind, all_mm)
+  miss_site_covs <- apply(all_mm, 1, function(x) any(is.na(x)))
 
   # Obs covs
   sc_long_ind <- rep(1:M, each=J)
@@ -149,8 +159,12 @@ setMethod("getDesign", "unmarkedFrameOccuRNMulti",
   }
 
   vv <- lapply(detformulas, function(x){
-    model.matrix(x, oc)
+    mf <- model.frame(x, oc, na.action=stats::na.pass)
+    model.matrix(x, mf)
   })
+  all_vv <- do.call(cbind, vv)
+  miss_obs_covs <- apply(all_vv, 1, function(x) any(is.na(x)))
+  miss_obs_covs <- matrix(miss_obs_covs, M, J, byrow=TRUE)
 
   # Indices
   state_n <- unlist(lapply(mm, function(x){
@@ -191,8 +205,8 @@ setMethod("getDesign", "unmarkedFrameOccuRNMulti",
   par_names <- c(state_par, det_par)
 
   # Missing values
-  miss <- is.na(umf@ylist[[1]]) * 1
-  site_miss <- apply(umf@ylist[[1]], 1, function(x) all(is.na(x))) * 1
+  miss <- (is.na(umf@ylist[[1]]) | miss_obs_covs) * 1
+  site_miss <- (apply(umf@ylist[[1]], 1, function(x) all(is.na(x))) | miss_site_covs) * 1
 
   list(par_names = par_names, state_ind = state_ind, det_ind = det_ind,
               ylist = ylist, state_dm = mm, det_dm = vv,
