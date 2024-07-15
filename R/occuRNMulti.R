@@ -34,6 +34,10 @@ occuRNMulti <- function(detformulas, stateformulas, data, modelOccupancy,
   data <- as(data, "unmarkedFrameOccuRNMulti")
   gd <- getDesign(data, detformulas, stateformulas)
 
+  if(length(K) == 1){
+    K <- rep(K, S)
+  }
+  stopifnot(length(K) == S)
   Kmin <- sapply(gd$ylist, function(x) apply(x, 1, max))
 
   nP <- max(gd$det_ind)
