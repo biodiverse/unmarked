@@ -13,6 +13,7 @@ occuRNMulti <- function(detformulas, stateformulas, data, modelOccupancy,
                         starts, method="BFGS", se = TRUE, threads=1, ...){
  
   stopifnot(all(names(data@ylist) == names(stateformulas)))
+  stopifnot(all(names(data@ylist) == names(detformulas)))
 
   S <- length(stateformulas)
   dep <- create_dep_matrix(stateformulas)
