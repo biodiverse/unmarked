@@ -17,23 +17,20 @@ occuRNMulti <- function(detformulas, stateformulas, data, modelOccupancy,
   S <- length(stateformulas)
   dep <- create_dep_matrix(stateformulas)
 
-  if(missing(modelOccupancy)){
-    modelOccupancy <- rep(0, S)
-    names(modelOccupancy) <- names(stateformulas)
-  } else {
-    stopifnot(identical(names(modelOccupancy), names(stateformulas)))
-    if(is.logical(modelOccupancy)){
-      modelOccupancy <- modelOccupancy*1
-    }
+  modocc <- rep(0, S)
+  names(modocc) <- names(data@ylist)
+  if(!missing(modelOccupancy)){
+    stopifnot(all(modelOccupancy %in% names(modocc)))
+    modocc[modelOccupancy] <- 1
     not_allowed_occ <- colSums(dep)
-    sp_mismatch <- modelOccupancy & not_allowed_occ
+    sp_mismatch <- modocc & not_allowed_occ
     if(any(sp_mismatch)){
       stop(paste("Species", 
-                 paste(names(modelOccupancy)[sp_mismatch], collapse=", "),
+                 paste(names(modocc)[sp_mismatch], collapse=", "),
                  "cannot use occupancy model."), call.=FALSE)
     }
   }
-  
+
   data <- as(data, "unmarkedFrameOccuRNMulti")
   gd <- getDesign(data, detformulas, stateformulas)
 
@@ -41,10 +38,10 @@ occuRNMulti <- function(detformulas, stateformulas, data, modelOccupancy,
 
   nP <- max(gd$det_ind)
   
-  has_occ <- sum(modelOccupancy) > 0
+  has_occ <- sum(modocc) > 0
   if(has_occ){
-    sp_occ <- names(modelOccupancy)[modelOccupancy == 1]
-    sp_abun <- names(modelOccupancy)[modelOccupancy == 0]
+    sp_occ <- names(modocc)[modocc == 1]
+    sp_abun <- names(modocc)[modocc == 0]
     occ_ind <- gd$state_ind[grepl(paste(paste0("^",sp_occ), collapse="|"),
                                   rownames(gd$state_ind)),,drop=FALSE]
     occ_rng <- min(occ_ind):max(occ_ind)
@@ -61,7 +58,7 @@ occuRNMulti <- function(detformulas, stateformulas, data, modelOccupancy,
   names(starts) <- gd$par_names
 
   nll_C <- function(pars){
-    nll_occuRNMulti(pars, gd$state_ind-1, gd$det_ind-1, S, modelOccupancy,
+    nll_occuRNMulti(pars, gd$state_ind-1, gd$det_ind-1, S, modocc,
                     gd$ylist, gd$state_dm, gd$det_dm, dep, K, Kmin, threads)
   }
 
@@ -105,7 +102,7 @@ occuRNMulti <- function(detformulas, stateformulas, data, modelOccupancy,
 
   umfit <- new("unmarkedFitOccuRNMulti", fitType = "occuRNMulti", call = match.call(),
                 detformulas = detformulas, stateformulas = stateformulas,
-                modelOccupancy = modelOccupancy,
+                modelOccupancy = modocc,
                 formula = ~1, data = data,
                 #sitesRemoved = designMats$removed.sites,
                 estimates = estimateList, AIC = fmAIC, opt = fm,
