@@ -12,11 +12,20 @@ occuRNMulti <- function(detformulas, stateformulas, data, modelOccupancy,
                         K = rep(10, length(stateformulas)),
                         starts, method="BFGS", se = TRUE, threads=1, ...){
  
-  stopifnot(all(names(data@ylist) == names(stateformulas)))
-  stopifnot(all(names(data@ylist) == names(detformulas)))
-
   S <- length(stateformulas)
   dep <- create_dep_matrix(stateformulas)
+
+  # Reorder everything to match
+  stopifnot(all(names(data@ylist) %in% names(stateformulas)))
+  stopifnot(all(names(data@ylist) %in% names(detformulas)))
+  species_order <- colnames(dep)
+  stateformulas <- stateformulas[species_order]
+  stateformulas <- lapply(stateformulas, function(x){
+    if(is.call(x)) return(x)
+    x[order(match(names(x), c("", species_order)))]
+  })
+  detformulas <- detformulas[species_order]
+  data@ylist <- data@ylist[species_order]
 
   modocc <- rep(0, S)
   names(modocc) <- names(data@ylist)
@@ -218,33 +227,55 @@ create_dep_matrix <- function(stateformulas){
   S <- length(stateformulas)
   dep <- matrix(0, S, S)
   rownames(dep) <- colnames(dep) <- names(stateformulas)
-  allowed_species <- character(0)
 
-  # Species 1
-  stopifnot(is.call(stateformulas[[1]]))
-  allowed_species <- c(allowed_species, names(stateformulas)[1])
-
-# Species 2
-  if(is.list(stateformulas[[2]])){
-    dep_sp <- names(stateformulas[[2]])[2:length(stateformulas[[2]])]
-    stopifnot(all(dep_sp %in% allowed_species))
-    for (i in dep_sp){
-      dep[names(stateformulas)[2], dep_sp] <- 1
-    }
+  # Dominant species
+  is_dom <- sapply(stateformulas, is.call)
+  if(sum(is_dom) == 0){
+    stop("Must be at least one dominant species not depending on any others",
+         call.=FALSE)
   }
-  allowed_species <- c(allowed_species, names(stateformulas)[2])
+  allowed_species <- sort(names(stateformulas)[is_dom])
 
-  # Species 3
-  if(S > 2){
-    if(is.list(stateformulas[[3]])){
-      dep_sp <- names(stateformulas[[3]])[2:length(stateformulas[[3]])]
-      stopifnot(all(dep_sp %in% allowed_species))
-      for (i in dep_sp){
-        dep[names(stateformulas)[3], dep_sp] <- 1
-      }
-    }
-    allowed_species <- c(allowed_species, names(stateformulas)[3])
+  # 2nd level
+  is_2nd <- sapply(stateformulas, function(x){
+    if(is.call(x)) return(FALSE)
+    stopifnot(is.list(x))
+    nm <- names(x)[names(x) != ""]
+    all(nm %in% allowed_species)
+  })
+  species_2nd <- sort(names(stateformulas)[is_2nd])
+  allowed_species <- c(allowed_species, species_2nd)
+  
+  for (i in species_2nd){
+    dep_sp <- names(stateformulas[[i]])
+    dep_sp <- dep_sp[dep_sp != ""]
+    dep[i, dep_sp] <- 1
   }
+
+  # 3rd level
+  is_3rd <- sapply(1:length(stateformulas), function(i){
+    if(names(stateformulas)[i] %in% allowed_species) return(FALSE)
+    x <- stateformulas[[i]]
+    stopifnot(is.list(x))
+    nm <- names(x)[names(x) != ""]
+    all(nm %in% allowed_species)
+  })
+  names(is_3rd) <- names(stateformulas)
+  
+  species_3rd <- sort(names(stateformulas)[is_3rd])
+  allowed_species <- c(allowed_species, species_3rd)
+  
+  for (i in species_3rd){
+    dep_sp <- names(stateformulas[[i]])
+    dep_sp <- dep_sp[dep_sp != ""]
+    dep[i, dep_sp] <- 1
+  }
+
+  if(any(!names(stateformulas) %in% allowed_species)){
+    stop("Invalid stateformula list", call.=FALSE)
+  }
+  
+  dep <- dep[allowed_species, allowed_species]
 
   dep
 }
