@@ -300,7 +300,7 @@ setMethod("predict", "unmarkedFitOccuRNMulti",
     sp_3rd <- names(lev2)[!lev2]
 
     if(missing(newdata) || is.null(newdata)){
-      
+      newdata <- NULL 
       X <- lapply(object@stateformulas, function(x){
         if(is.list(x)){
           lapply(x, function(z) model.matrix(z, object@data@siteCovs))
@@ -322,10 +322,10 @@ setMethod("predict", "unmarkedFitOccuRNMulti",
     
     coef_est <- matrix(coef(object), nrow=1)
     colnames(coef_est) <- names(coef(object))
-    point_est <- calc_dependent_response(coef_est, X, object, nr, sp_top, sp_2nd, sp_3rd, ilink)
+    point_est <- calc_dependent_response(coef_est, X, object, nr, sp_top, sp_2nd, sp_3rd, ilink, newdata)
 
     message('Bootstrapping confidence intervals with ',nsims,' samples')
-    post <- calc_dependent_response(samps, X, object, nr, sp_top, sp_2nd, sp_3rd, ilink)
+    post <- calc_dependent_response(samps, X, object, nr, sp_top, sp_2nd, sp_3rd, ilink, newdata)
 
     # Summarize bootstrap
     cis <- lapply(post, function(x){
@@ -371,7 +371,8 @@ get_species_b <- function(b, object, sp){
   out
 }
 
-calc_dependent_response <- function(samps, X, object, nr, sp_top, sp_2nd, sp_3rd, ilink){
+calc_dependent_response <- function(samps, X, object, nr, sp_top, sp_2nd, sp_3rd, 
+                                    ilink, newdata){
   nsims <- nrow(samps)
 
   all_species <- names(object@data@ylist)
@@ -402,7 +403,15 @@ calc_dependent_response <- function(samps, X, object, nr, sp_top, sp_2nd, sp_3rd
       lp <- Xsub[[1]] %*% beta[[1]]
       for (j in 2:length(Xsub)){
         other_sp <- names(Xsub)[j]
-        add <- Xsub[[other_sp]] %*% beta[[other_sp]] * ests[[other_sp]]
+
+        # Use fixed species abundances if they are in newdata
+        if(other_sp %in% names(newdata)){
+          other_sp_abun <- newdata[[other_sp]]
+        } else {
+          other_sp_abun <- ests[[other_sp]]
+        }
+
+        add <- Xsub[[other_sp]] %*% beta[[other_sp]] * other_sp_abun
         lp <- lp + add
       }
       ests[[i]] <- ilink(lp)
@@ -420,7 +429,15 @@ calc_dependent_response <- function(samps, X, object, nr, sp_top, sp_2nd, sp_3rd
       lp <- Xsub[[1]] %*% beta[[1]]
       for (j in 2:length(Xsub)){
         other_sp <- names(Xsub)[j]
-        add <- Xsub[[other_sp]] %*% beta[[other_sp]] * ests[[other_sp]]
+
+        # Use fixed species abundances if they are in newdata
+        if(other_sp %in% names(newdata)){
+          other_sp_abun <- newdata[[other_sp]]
+        } else {
+          other_sp_abun <- ests[[other_sp]]
+        }
+
+        add <- Xsub[[other_sp]] %*% beta[[other_sp]] * other_sp_abun
         lp <- lp + add
       }
       ests[[i]] <- ilink(lp)
