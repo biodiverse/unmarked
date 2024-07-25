@@ -331,8 +331,8 @@ setMethod("predict", "unmarkedFitOccuRNMulti",
     cis <- lapply(post, function(x){
       data.frame(
         SE = apply(x, 1, sd, na.rm=TRUE),
-        upper = apply(x, 1, quantile, 0.025, na.rm=TRUE),
-        lower = apply(x, 1, quantile, 0.975, na.rm=TRUE)
+        lower = apply(x, 1, quantile, 0.025, na.rm=TRUE),
+        upper = apply(x, 1, quantile, 0.975, na.rm=TRUE)
       )
     })
 
