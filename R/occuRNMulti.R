@@ -280,6 +280,15 @@ create_dep_matrix <- function(stateformulas){
   dep
 }
 
+# Compute linear combinations of estimates in unmarkedFit objects.
+setMethod("linearComb",
+    signature(obj = "unmarkedFitOccuRNMulti", coefficients = "matrixOrVector"),
+    function(obj, coefficients, type, offset = NULL, re.form=NULL)
+{
+  stop("This method not supported for occuRNMulti fits, use predict instead.",
+       call.=FALSE)
+})
+
 setMethod("predict", "unmarkedFitOccuRNMulti",
           function(object, type, species, newdata,
                    level = 0.95, nsims = 100, ...){
@@ -289,7 +298,6 @@ setMethod("predict", "unmarkedFitOccuRNMulti",
     stopifnot(species %in% names(object@data@ylist))
   }
   if(type == "state"){
-    samps <- MASS::mvrnorm(nsims, mu=coef(object), Sigma = vcov(object))
 
     depmat <- unmarked:::create_dep_matrix(object@stateformulas)
 
@@ -324,17 +332,25 @@ setMethod("predict", "unmarkedFitOccuRNMulti",
     colnames(coef_est) <- names(coef(object))
     point_est <- calc_dependent_response(coef_est, X, object, nr, sp_top, sp_2nd, sp_3rd, ilink, newdata)
 
-    message('Bootstrapping confidence intervals with ',nsims,' samples')
-    post <- calc_dependent_response(samps, X, object, nr, sp_top, sp_2nd, sp_3rd, ilink, newdata)
 
-    # Summarize bootstrap
-    cis <- lapply(post, function(x){
-      data.frame(
-        SE = apply(x, 1, sd, na.rm=TRUE),
-        lower = apply(x, 1, quantile, 0.025, na.rm=TRUE),
-        upper = apply(x, 1, quantile, 0.975, na.rm=TRUE)
-      )
-    })
+    if(!is.null(level)){
+      message('Bootstrapping confidence intervals with ',nsims,' samples')
+      samps <- MASS::mvrnorm(nsims, mu=coef(object), Sigma = vcov(object))
+      post <- calc_dependent_response(samps, X, object, nr, sp_top, sp_2nd, sp_3rd, ilink, newdata)
+
+      # Summarize bootstrap
+      cis <- lapply(post, function(x){
+        data.frame(
+          SE = apply(x, 1, sd, na.rm=TRUE),
+          lower = apply(x, 1, quantile, (1-level)/2, na.rm=TRUE),
+          upper = apply(x, 1, quantile, 1 - (1-level)/2, na.rm=TRUE)
+        )
+      })
+    } else {
+      cis <- lapply(point_est, function(x){
+        data.frame(SE = rep(NA, nrow(x)), lower=NA, upper=NA)
+      })
+    }
 
     out <- mapply(function(x, y){
       cbind(Predicted = x, y)
@@ -345,7 +361,63 @@ setMethod("predict", "unmarkedFitOccuRNMulti",
     }
     return(out)
   } else if(type == "det"){
-    stop("det not supported yet")
+
+    det_species <- names(object@data@ylist)
+    if(!missing(species)){
+      det_species <- species
+    }
+
+    gd <- unmarked:::getDesign(object@data, object@detformulas, object@stateformulas)
+    od <- unmarked:::get_orig_data(object, "det")
+    chunk_size <- 70
+  
+    if(missing(newdata)) newdata <- NULL
+    out <- lapply(det_species, function(i){
+      form <- object@detformulas[[i]]
+      cf <- coef(object)
+      inds <- which(grepl(paste0("p([",i,"]"), names(cf), fixed=TRUE))
+      new_est <- object@estimates@estimates$det
+      new_est@estimates <- cf[inds]
+      new_est@fixed <- 1:length(inds)
+      new_est@covMat <- vcov(object)[inds,inds,drop=FALSE]
+      new_est@covMatBS <- object@covMatBS[inds,inds,drop=FALSE]
+     
+      if(is.null(newdata)){
+        X <- unmarked:::make_mod_matrix(form, od, newdata, re.form=NULL)$X
+      } else {
+        X <- gd$det_dm[[i]] 
+      }
+      nr <- nrow(X)
+      sep <- rep(1:ceiling(nr/chunk_size), each=chunk_size, length.out=nr)
+
+      x_chunk <- lapply(unique(sep),
+                    function(i) as.matrix(X[sep==i,,drop=FALSE]))
+
+      prmat <- lapply(x_chunk, function(x_i){
+        has_na <- apply(x_i, 1, function(x_i) any(is.na(x_i)))
+        # Work around linearComb bug where there can't be NAs in inputs
+        x_i[has_na,] <- 0
+        lc <- linearComb(new_est, x_i)
+        lc <- backTransform(lc)
+        out <- data.frame(Predicted=coef(lc), SE=NA, lower=NA, upper=NA)
+        if(!is.null(level)){
+          se <- SE(lc)
+          ci <- confint(lc, level=level)
+          out$SE <- se
+          out$lower <- ci[,1]
+          out$upper <- ci[,2]
+        }
+        out[has_na,] <- NA
+        out
+      })
+      prmat <- do.call(rbind, prmat)
+      rownames(prmat) <- NULL
+      prmat
+    })
+    if(length(out) == 1) out <- out[[1]]
+    return(out)
+  } else {
+    stop("type must be state or det", call.=FALSE)
   }
 })
 
@@ -446,3 +518,29 @@ calc_dependent_response <- function(samps, X, object, nr, sp_top, sp_2nd, sp_3rd
   }
   post
 }
+
+
+setMethod("getP", "unmarkedFitOccuRNMulti", function(object)
+{
+
+  ylist <- object@data@ylist
+  S <- length(ylist)
+  N <- nrow(ylist[[1]])
+
+  dm <- getDesign(object@data,object@detformulas,object@stateformulas, maxOrder=maxOrder)
+  pred <- predict(object,'det',se.fit=F)
+  dets <- do.call(cbind,lapply(pred,`[`,,1))
+  #ugly mess
+  out <- list()
+  for (i in 1:S){
+    pmat <- array(NA,dim(ylist[[1]]))
+    for (j in 1:N){
+      ps <- dets[dm$yStart[j]:dm$yStop[j],i]
+      not_na <- !is.na(ylist[[i]][j,])
+      pmat[j,not_na] <- ps
+    }
+    out[[i]] <- pmat
+  }
+  names(out) <- names(ylist)
+  out
+})
