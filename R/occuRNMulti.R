@@ -316,9 +316,13 @@ setMethod("predict", "unmarkedFitOccuRNMulti",
       newdata <- NULL 
       X <- lapply(object@stateformulas, function(x){
         if(is.list(x)){
-          lapply(x, function(z) model.matrix(z, object@data@siteCovs))
+          lapply(x, function(z){
+                   mf <- model.frame(z, object@data@siteCovs, na.action=stats::na.pass)
+                   model.matrix(z, mf)
+          })
         } else {
-          model.matrix(x, object@data@siteCovs)
+          mf <- model.frame(x, object@data@siteCovs, na.action=stats::na.pass)
+          model.matrix(x, mf)
         }
       })
       nr <- nrow(object@data@siteCovs)
