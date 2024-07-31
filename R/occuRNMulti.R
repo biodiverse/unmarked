@@ -293,7 +293,6 @@ setMethod("predict", "unmarkedFitOccuRNMulti",
           function(object, type, species, newdata,
                    level = 0.95, nsims = 100, ...){
 
-  stopifnot(type %in% c("state", "det"))
   if(!missing(species)){
     stopifnot(species %in% names(object@data@ylist))
   }
@@ -382,7 +381,7 @@ setMethod("predict", "unmarkedFitOccuRNMulti",
       new_est@covMat <- vcov(object)[inds,inds,drop=FALSE]
       new_est@covMatBS <- object@covMatBS[inds,inds,drop=FALSE]
      
-      if(is.null(newdata)){
+      if(!is.null(newdata)){
         X <- unmarked:::make_mod_matrix(form, od, newdata, re.form=NULL)$X
       } else {
         X <- gd$det_dm[[i]] 
@@ -414,6 +413,7 @@ setMethod("predict", "unmarkedFitOccuRNMulti",
       rownames(prmat) <- NULL
       prmat
     })
+    names(out) <- det_species
     if(length(out) == 1) out <- out[[1]]
     return(out)
   } else {
@@ -525,22 +525,62 @@ setMethod("getP", "unmarkedFitOccuRNMulti", function(object)
 
   ylist <- object@data@ylist
   S <- length(ylist)
-  N <- nrow(ylist[[1]])
+  M <- nrow(ylist[[1]])
+  J <- ncol(ylist[[1]])
 
-  dm <- getDesign(object@data,object@detformulas,object@stateformulas, maxOrder=maxOrder)
-  pred <- predict(object,'det',se.fit=F)
-  dets <- do.call(cbind,lapply(pred,`[`,,1))
-  #ugly mess
-  out <- list()
-  for (i in 1:S){
-    pmat <- array(NA,dim(ylist[[1]]))
-    for (j in 1:N){
-      ps <- dets[dm$yStart[j]:dm$yStop[j],i]
-      not_na <- !is.na(ylist[[i]][j,])
-      pmat[j,not_na] <- ps
+  pr <- predict(object, type = "det", level=NULL)
+  pr <- lapply(pr, function(x){
+    matrix(x$Predicted, nrow=M, ncol=J, byrow=TRUE)
+  })
+  pr
+})
+
+setMethod("fitted", "unmarkedFitOccuRNMulti", function(object, na.rm=FALSE){
+  S <- length(object@data@ylist)
+  M <- nrow(object@data@ylist[[1]])
+  J <- ncol(object@data@ylist[[1]])
+
+  # This will be lambda for RN models and psi for occupancy models
+  state <- predict(object, type="state", level=NULL)
+  # Reorganize into M x J matrices
+  state <- lapply(state, function(x){
+    matrix(rep(x$Predicted, J), nrow=M, ncol=J)
+  })
+  # This will be r for RN models and p for occupancy models
+  p <- getP(object)
+  
+  # Need to calculate this differently depending on if state is abundance or occupancy
+  fitted <- lapply(1:S, function(i){
+    if(fit@modelOccupancy[i]){
+      # If occupancy, fitted is psi * p
+      state[[i]] * p[[i]]
+    } else {
+      # If abundance
+      1 - exp(-state[[i]]*p[[i]]) ## analytical integration.
     }
-    out[[i]] <- pmat
-  }
-  names(out) <- names(ylist)
-  out
+  })
+  names(fitted) <- names(object@data@ylist)
+  fitted
+})
+
+setMethod("residuals", "unmarkedFitOccuRNMulti", function(object, ...){
+  ylist <- object@data@ylist
+  S <- length(ylist)
+  ft <- fitted(object)
+  res <- lapply(1:S, function(i){
+    ylist[[i]] - ft[[i]] 
+  })
+  names(res) <- names(ylist)
+  res
+})
+
+setMethod("SSE", "unmarkedFitOccuRNMulti", function(fit, ...){
+    r <- do.call(rbind, residuals(fit))
+    return(c(SSE = sum(r^2, na.rm=T)))
+})
+
+setMethod("nonparboot", "unmarkedFitOccuRNMulti",
+    function(object, B = 0, keepOldSamples = TRUE, ...)
+{
+  stop("Method not supported for this fit type", call.=FALSE)
 })
