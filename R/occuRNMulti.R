@@ -296,6 +296,12 @@ setMethod("predict", "unmarkedFitOccuRNMulti",
   if(!missing(species)){
     stopifnot(species %in% names(object@data@ylist))
   }
+
+  se <- TRUE
+  if(is.null(hessian(object))){
+    se = FALSE
+  }
+
   if(type == "state"){
 
     depmat <- unmarked:::create_dep_matrix(object@stateformulas)
@@ -332,7 +338,7 @@ setMethod("predict", "unmarkedFitOccuRNMulti",
     point_est <- calc_dependent_response(coef_est, X, object, nr, sp_top, sp_2nd, sp_3rd, ilink, newdata)
 
 
-    if(!is.null(level)){
+    if(se & !is.null(level)){
       message('Bootstrapping confidence intervals with ',nsims,' samples')
       samps <- MASS::mvrnorm(nsims, mu=coef(object), Sigma = vcov(object))
       post <- calc_dependent_response(samps, X, object, nr, sp_top, sp_2nd, sp_3rd, ilink, newdata)
@@ -378,8 +384,13 @@ setMethod("predict", "unmarkedFitOccuRNMulti",
       new_est <- object@estimates@estimates$det
       new_est@estimates <- cf[inds]
       new_est@fixed <- 1:length(inds)
-      new_est@covMat <- vcov(object)[inds,inds,drop=FALSE]
-      new_est@covMatBS <- object@covMatBS[inds,inds,drop=FALSE]
+      if(se){
+        new_est@covMat <- vcov(object)[inds,inds,drop=FALSE]
+        new_est@covMatBS <- object@covMatBS[inds,inds,drop=FALSE]
+      } else {
+        new_est@covMat <- matrix(NA, nrow=length(inds), ncol=length(inds))
+        new_est@covMatBS <- matrix(NA, nrow=length(inds), ncol=length(inds))
+      }
      
       if(!is.null(newdata)){
         X <- unmarked:::make_mod_matrix(form, od, newdata, re.form=NULL)$X
@@ -551,7 +562,7 @@ setMethod("fitted", "unmarkedFitOccuRNMulti", function(object, na.rm=FALSE){
   
   # Need to calculate this differently depending on if state is abundance or occupancy
   fitted <- lapply(1:S, function(i){
-    if(fit@modelOccupancy[i]){
+    if(object@modelOccupancy[i]){
       # If occupancy, fitted is psi * p
       state[[i]] * p[[i]]
     } else {
@@ -583,4 +594,92 @@ setMethod("nonparboot", "unmarkedFitOccuRNMulti",
     function(object, B = 0, keepOldSamples = TRUE, ...)
 {
   stop("Method not supported for this fit type", call.=FALSE)
+})
+
+setMethod("simulate", "unmarkedFitOccuRNMulti", 
+  function(object, nsim = 1, seed = NULL, na.rm=TRUE){
+
+  ylist <- object@data@ylist
+  M <- nrow(ylist[[1]])
+  J <- ncol(ylist[[1]])
+  S <- length(ylist)
+  occ <- object@modelOccupancy
+
+  state <- predict(object, type="state", level=NULL)
+  state <- lapply(state, function(x) x$Predicted)
+  p <- getP(object)
+
+  sims <- lapply(1:nsim, function(i){
+    out <- lapply(1:S, function(s){
+      y <- matrix(NA, M, J)
+      if(occ[s]){
+        z <- rbinom(M, 1, state[[s]])
+        for (j in 1:J){
+          y[,j] <- rbinom(M, 1, p[[s]][,j])
+        }
+        y
+      } else {
+        N <- rpois(M, state[[s]])
+        for (j in 1:J){
+          y[,j] <- rbinom(M, N, p[[s]][,j])
+        }
+        y[y>0] <- 1
+        y
+      }
+    })
+    names(out) <- names(ylist)
+    out
+  })
+  
+  sims
+})
+
+setMethod("replaceY", "unmarkedFrameOccuRNMulti",
+          function(object, newY, replNA=TRUE, ...){
+      if(replNA){
+        newY <- mapply(function(x, y){ is.na(x) <- is.na(y); x},
+                       newY , object@ylist, SIMPLIFY=FALSE)
+      }
+      object@ylist <- newY
+      object
+})
+
+
+setMethod("update", "unmarkedFitOccuRNMulti",
+    function(object, detformulas, stateformulas, ..., evaluate = TRUE)
+{
+
+    call <- object@call
+    if (is.null(call))
+        stop("need an object with call slot")
+    if(!missing(detformulas)){
+      call[["detformulas"]] <- detformulas
+    } else {
+      call[["detformulas"]] <- object@detformulas
+    }
+    if(!missing(stateformulas)){
+      call[["stateformulas"]] <- stateformulas
+    } else {
+      call[["stateformulas"]] <- object@stateformulas
+    }
+    extras <- match.call(call=sys.call(-1),
+                         expand.dots = FALSE)$...
+    if (length(extras) > 0) {
+        existing <- !is.na(match(names(extras), names(call)))
+        for (a in names(extras)[existing])
+            call[[a]] <- extras[[a]]
+        if (any(!existing)) {
+            call <- c(as.list(call), extras[!existing])
+            call <- as.call(call)
+            }
+        }
+    if (evaluate)
+        eval(call, parent.frame(2))
+    else call
+})
+
+setMethod("ranef", "unmarkedFitOccuRNMulti",
+    function(object, B = 0, keepOldSamples = TRUE, ...)
+{
+   stop("Not currently supported for occuRNMulti", call.=FALSE)
 })
