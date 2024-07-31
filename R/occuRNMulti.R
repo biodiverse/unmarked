@@ -335,13 +335,13 @@ setMethod("predict", "unmarkedFitOccuRNMulti",
     
     coef_est <- matrix(coef(object), nrow=1)
     colnames(coef_est) <- names(coef(object))
-    point_est <- calc_dependent_response(coef_est, X, object, nr, sp_top, sp_2nd, sp_3rd, ilink, newdata)
+    point_est <- calc_dependent_response(coef_est, X, object, nr, sp_top, sp_2nd, sp_3rd, newdata)
 
 
     if(se & !is.null(level)){
       message('Bootstrapping confidence intervals with ',nsims,' samples')
       samps <- MASS::mvrnorm(nsims, mu=coef(object), Sigma = vcov(object))
-      post <- calc_dependent_response(samps, X, object, nr, sp_top, sp_2nd, sp_3rd, ilink, newdata)
+      post <- calc_dependent_response(samps, X, object, nr, sp_top, sp_2nd, sp_3rd, newdata)
 
       # Summarize bootstrap
       cis <- lapply(post, function(x){
@@ -455,7 +455,7 @@ get_species_b <- function(b, object, sp){
 }
 
 calc_dependent_response <- function(samps, X, object, nr, sp_top, sp_2nd, sp_3rd, 
-                                    ilink, newdata){
+                                    newdata){
   nsims <- nrow(samps)
 
   all_species <- names(object@data@ylist)
