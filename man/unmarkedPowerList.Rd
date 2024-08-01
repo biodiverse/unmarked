@@ -1,7 +1,6 @@
 \name{unmarkedPowerList}
 \alias{unmarkedPowerList}
 \alias{unmarkedPowerList,unmarkedPower-method}
-\alias{unmarkedPowerList-class}
 \alias{unmarkedPowerList-methods}
 \alias{show,unmarkedPowerList-method}
 \alias{summary,unmarkedPowerList-method}

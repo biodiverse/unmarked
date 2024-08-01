@@ -43,22 +43,6 @@
 \alias{update,unmarkedFitGOccu-method}
 \alias{sampleSize}
 \alias{sampleSize,unmarkedFit-method}
-\alias{unmarkedFitOccu-class}
-\alias{unmarkedFitOccuPEN-class}
-\alias{unmarkedFitOccuPEN_CV-class}
-\alias{unmarkedFitOccuFP-class}
-\alias{unmarkedFitPCount-class}
-\alias{unmarkedFitDS-class}
-\alias{unmarkedFitMPois-class}
-\alias{unmarkedFitPCO-class}
-\alias{unmarkedFitGMM-class}
-\alias{unmarkedFitOccuMulti-class}
-\alias{unmarkedFitOccuMS-class}
-\alias{unmarkedFitOccuTTD-class}
-\alias{unmarkedFitNmixTTD-class}
-\alias{unmarkedFitDSO-class}
-\alias{unmarkedFitMMO-class}
-\alias{unmarkedFitIDS-class}
 \alias{plot,profile,missing-method}
 \alias{show,unmarkedFit-method}
 \alias{summary,unmarkedFit-method}
@@ -81,27 +65,6 @@
 \title{Class "unmarkedFit" }
 \description{Contains fitted model information which can be manipulated or
 extracted using the methods described below.
-}
-\section{Slots}{
-	\describe{
-    \item{\code{fitType}:}{Object of class \code{"character"} }
-    \item{\code{call}:}{Object of class \code{"call"} }
-    \item{\code{formula}:}{Object of class \code{"formula"} }
-    \item{\code{data}:}{Object of class \code{"unmarkedFrame"} }
-    \item{\code{sitesRemoved}:}{Object of class \code{"numeric"} }
-    \item{\code{estimates}:}{Object of class \code{"unmarkedEstimateList"} }
-    \item{\code{AIC}:}{Object of class \code{"numeric"} }
-    \item{\code{opt}:}{Object of class \code{"list"} containing results from
-		\code{\link{optim}} }
-    \item{\code{negLogLike}:}{Object of class \code{"numeric"} }
-    \item{\code{nllFun}:}{Object of class \code{"function"} }
-    \item{\code{knownOcc}:}{unmarkedFitOccu only: sites known to be occupied}
-    \item{\code{K}:}{unmarkedFitPCount only: upper bound used in integration}
-    \item{\code{mixture}:}{unmarkedFitPCount only: Mixing distribution}
-    \item{\code{keyfun}:}{unmarkedFitDS only: detection function used by
-		\link{distsamp}}
-	\item{\code{unitsOut}:}{unmarkedFitDS only: density units}
-  }
 }
 \section{Methods}{
   \describe{
