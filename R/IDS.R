@@ -414,7 +414,7 @@ setMethod("getAvail", "unmarkedFitIDS", function(object, ...){
 })
 
 # Fitted method returns a list of matrices, one per data type
-setMethod("fitted", "unmarkedFitIDS", function(object, na.rm=FALSE){
+setMethod("fitted_internal", "unmarkedFitIDS", function(object){
 
   dists <- names(object)[names(object) %in% c("ds", "pc")]
 
