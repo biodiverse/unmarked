@@ -1,0 +1,14 @@
+pandoc: 2.9.2.1
+pkgdown: 2.1.0
+pkgdown_sha: ~
+articles:
+  cap-recap: cap-recap.html
+  colext: colext.html
+  contributing_to_unmarked: contributing_to_unmarked.html
+  distsamp: distsamp.html
+  occuMulti: occuMulti.html
+  powerAnalysis: powerAnalysis.html
+  simulate: simulate.html
+  spp-dist: spp-dist.html
+  unmarked: unmarked.html
+last_built: 2024-08-01T14:33Z
