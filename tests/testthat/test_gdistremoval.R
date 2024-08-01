@@ -335,6 +335,13 @@ test_that("gdistremoval can fit models",{
   expect_equivalent(length(s), 2)
   expect_equivalent(dim(s[[1]]$yDistance), dim(fit@data@yDistance))
   expect_equivalent(dim(s[[1]]$yRemoval), dim(fit@data@yRemoval))
+  
+  ft <- fitted(fit)
+  expect_equal(length(ft), 2)
+  expect_equal(round(ft[[1]],4)[1:2,1:2],
+      structure(c(0.1269, 0.1413, 0.3148, 0.3505), dim = c(2L, 2L)))
+  expect_equal(round(ft[[2]],4)[1:2,1:2],
+      structure(c(0.3009, 0.4001, 0.2411, 0.2084), dim = c(2L, 2L)))
 
   r <- ranef(fit)
   expect_equivalent(length(bup(r)), 50)
@@ -430,6 +437,13 @@ test_that("gdistremoval handles NAs",{
   umf2@obsCovs$oc1[6] <- NA
   fit <- gdistremoval(~1,removalformula=~oc1,distanceformula=~1, data=umf2)
   expect_true(is.na(predict(fit, 'rem')$Predicted[6]))
+
+  ft <- fitted(fit)
+  # All of row 2 is NA because oc1[6] corresponds to first removal bin of site 2
+  expect_true(all(is.na(ft$rem[2,])))
+  # Dist is also NA for site 2 because these probs are multiplied
+  # by the removal probs which are NA 
+  expect_true(all(is.na(ft$dist[2,])))
 })
 
 test_that("multi-period data works with gdistremoval",{

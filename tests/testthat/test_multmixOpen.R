@@ -84,6 +84,11 @@ test_that("multmixOpen can fit removal models",{
   expect_equivalent(pv[1,1:3], pv[1,4:6])
   expect_equivalent(pv[1,1:3], c(0.5086598,0.2499250,0.1227982), tol=1e-5)
 
+  # Check fitted
+  ft <- fitted(fit)
+  expect_equal(round(ft,4)[1:2,1:2],
+    structure(c(1.9329, 2.068, 0.9497, 1.018), dim = c(2L, 2L)))
+
   #Check residuals
   r <- residuals(fit)
   expect_equivalent(r[1,1:3], c(0.067122,-0.9497006,0.533337), tol=1e-4)
@@ -128,6 +133,10 @@ test_that("multmixOpen handles NAs",{
   expect_equivalent(coef(fit), c(1.3800182,0.0390053,
                                   -0.679937,1.398098,
                                   0.02802259,0.010705), tol=1e-4)
+
+  ft <- fitted(fit)
+  expect_equal(dim(ft), dim(umf@y))
+  expect_true(all(is.na(ft[3,]))) # missing site cov
 
   # Check ranef
   set.seed(123)

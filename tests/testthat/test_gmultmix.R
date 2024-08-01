@@ -136,6 +136,13 @@ test_that("gmultmix removal model works",{
   pr <- predict(fm_C, 'lambda', newdata=nd)
   expect_equal(dim(pr), c(2,4))
 
+  ft <- fitted(fm_C)
+  expect_equal(dim(ft), c(5,4))
+  expect_true(all(is.na(ft[3,]))) # missing site cov for site 3
+  expect_true(all(is.na(ft[1,3:4]))) # missing ysc for period 2 site 1
+  expect_equal(round(ft, 4)[1:2, 1:2],
+    structure(c(0.8346, 1.4128, 0.5681, 1.0784), dim = c(2L, 2L)))
+
   res <- residuals(fm_C)
   expect_equal(dim(res), dim(y))
 

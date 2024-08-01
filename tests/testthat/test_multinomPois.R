@@ -98,6 +98,13 @@ test_that("multinomPois can fit a removal model",{
     expect_equal(dim(pr), c(2,4))
     expect_equal(pr[1,1], 0.55598, tol=1e-4)
 
+    ft <- fitted(m3_C)
+    expect_equal(dim(ft), dim(m3_C@data@y))
+    expect_equal(round(ft,4)[1:2,1:2],
+      structure(c(NA, 2.9967, NA, NA), dim = c(2L, 2L)))
+    expect_true(all(is.na(ft[2,2:3]))) # missing obs covs
+    expect_true(all(is.na(ft[1,]))) # missing site covs
+
     res <- residuals(m2_C)
     expect_equal(dim(res), dim(umf1@y))
 

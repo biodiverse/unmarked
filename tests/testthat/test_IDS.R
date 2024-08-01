@@ -48,7 +48,13 @@ test_that("IDS can fit models with covariates", {
   expect_equal(pr$Predicted[1], exp(-2.5), tol=0.05)
   pr <- predict(mod_sim, type = 'phi')
   expect_equal(pr$ds$Predicted[1], exp(-1.37), tol=0.05)
-  
+ 
+  # fitted
+  ft <- fitted(mod_sim)
+  expect_equal(lapply(ft, dim), list(ds=c(1000,6), pc = c(300,1)))
+  expect_equal(round(ft[[1]],4)[1:2,1:2],
+    structure(c(0.0724, 0.0731, 0.1511, 0.1525), dim = c(2L, 2L)))
+
   # residuals
   r <- residuals(mod_sim)
   expect_equal(lapply(r, dim), list(ds=c(1000,6), pc = c(300,1)))
@@ -175,7 +181,22 @@ test_that("IDS handles missing values", {
   expect_equivalent(coef(mod_sim), c(2.9354934,-0.4759405,-2.5314594,-2.3259133),
                     tol=1e-5)
 
-  
+  ft <- fitted(mod_sim)
+  expect_equal(dim(ft$ds), dim(sim_umf$ds@y))
+  expect_equal(dim(ft$pc), dim(sim_umf$pc@y))
+  expect_equal(dim(ft$oc), dim(sim_umf$oc@y))
+
+  sim_umf$ds@siteCovs$elev[3] <- NA
+  expect_warning(
+  mod_sim <- IDS(lambdaformula = ~elev, detformulaDS = ~1, detformulaOC = ~1,
+                dataDS=sim_umf$ds, dataPC=sim_umf$pc, dataOC=sim_umf$oc,
+                maxDistPC=0.5, maxDistOC=0.5,
+                unitsOut="kmsq"))
+
+  ft <- fitted(mod_sim)
+  expect_equal(dim(ft$ds), dim(sim_umf$ds@y))
+  expect_true(all(is.na(ft$ds[3,]))) # missing site covariate
+
   sim_umf$ds@y[1,1] <- NA
   sim_umf$ds@y[2,] <- NA
 

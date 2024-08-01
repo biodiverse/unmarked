@@ -45,6 +45,11 @@ test_that("pcount can fit simple models",{
   gp <- getP(fm)
   expect_equal(dim(gp), dim(umf@y))
 
+  ft <- fitted(fm)
+  expect_equal(dim(ft), dim(umf@y))
+  expect_equal(round(ft,4)[1:2,1:2],
+    structure(c(6.4001, 5.991, 6.3904, 5.981), dim = c(2L, 2L)), tol=1e-4)
+
   res <- residuals(fm)
   expect_equal(dim(res), dim(umf@y))
 
@@ -65,6 +70,26 @@ test_that("pcount can fit simple models",{
   pb <- parboot(fm, nsim=1)
   expect_is(pb, "parboot")
 
+})
+
+test_that("pcount handles missing values", {
+  y <- matrix(c(
+      8,7,7,8,
+      6,7,7,5,
+      8,8,7,8,
+      4,5,5,5,
+      4,4,3,3), nrow=5, ncol=4, byrow=TRUE)
+  siteCovs <- data.frame(x = c(0,2,3,4,1))
+  siteCovs$x[2] <- NA
+  obsCovs <- data.frame(o1 = seq(-1, 1, length=length(y)))
+  obsCovs$o1[1] <- NA
+  umf <- unmarkedFramePCount(y = y, siteCovs = siteCovs, obsCovs = obsCovs)
+  fm <- expect_warning(pcount(~ o1 ~ x, data = umf, K=30))
+
+  ft <- fitted(fm)
+  expect_equal(dim(ft), dim(umf@y))
+  expect_true(is.na(ft[1,1])) # missing obs cov
+  expect_true(all(is.na(ft[2,]))) # missing site cov
 })
 
 test_that("pcount predict works",{

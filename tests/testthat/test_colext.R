@@ -48,6 +48,11 @@ test_that("colext model fitting works", {
   expect_equivalent(coef(fm2), c(1.3423, -6.2788,-1.5831,0.1413,1.1638),
                     tol=1e-4)
 
+  ft <- fitted(fm2)
+  expect_equal(ft[1:3,1:3],
+    structure(c(0.75617, 0.71782, 0.00016, 0.75617, 0.71782, 0.00016,
+    0.35241, 0.34112, 0.12987), dim = c(3L, 3L)), tol = 1e-5)
+
   # With obs covs
   fm3 <- colext(~1, ~1, ~1, ~oc, umf1)
   expect_equivalent(coef(fm3),
@@ -88,18 +93,17 @@ test_that("colext handles missing values",{
   fm3 <- colext(~1, ~1, ~1, ~1, umf4)
   expect_is(fm3, "unmarkedFitColExt")
 
-  umf5 <- umf1
-  umf5@siteCovs$sc1[1] <- NA
-  expect_warning(fm4 <- colext(~sc1, ~1, ~1, ~1, umf5))
-  expect_warning(pr <- predict(fm4, 'psi'))
-  expect_equal(nrow(pr), 5)
-
 umf5 <- umf1
+  umf5@siteCovs$sc1[2] <- NA
   umf5@obsCovs$oc[1] <- NA
-  expect_warning(fm4 <- colext(~1, ~1, ~1, ~oc, umf5))
+  expect_warning(fm4 <- colext(~sc1, ~1, ~1, ~oc, umf5))
   expect_warning(pr <- predict(fm4, 'det'))
-  expect_equal(nrow(pr), nsites*nyr*nrep)
+  expect_equal(nrow(pr), (nsites-1)*nyr*nrep)
   expect_true(all(is.na(pr[1,])))
+  ft <- fitted(fm4)
+  expect_equal(dim(ft), dim(umf5@y))
+  expect_true(is.na(ft[1,1]))
+  expect_true(all(is.na(ft[2,])))
 
   umf5 <- umf1
   umf5@yearlySiteCovs$ysc[1] <- NA

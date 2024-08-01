@@ -481,5 +481,28 @@ test_that("occuCOP can fit and predict models with covariates", {
   expect_no_error(umpredlambda <- predict(umfit, type = "lambda", appendData = TRUE))
   expect_no_error(predict(umfit, type = "lambda", level = 0.5))
   expect_equal(umpredlambda$Predicted[1], 1.092008, tol = 1e-5)
+
+  ft <- fitted(umfit)
+  expect_equal(dim(ft), dim(umfit@data@y))
+  expect_equal(round(ft,4)[1:2,1:2],
+    structure(c(0.4056, 0.189, 2.0418, 2.7056), dim = c(2L, 2L)))
+
+  # With missing values in covs
+  umf_na <- umf
+  umf_na@obsCovs$rain[1] <- NA
+  #umf_na@siteCovs$elev[2] <- NA # Optim error - should be handled somehow?
+  expect_warning(
+  umfit <- occuCOP(
+    umf_na,
+    psiformula =  ~ habitat + elev,
+    lambdaformula =  ~ rain,
+    L1 = T,
+    na.rm=TRUE
+  ))
+
+  # Errors but it shouldn't
+  expect_error(ft <- fitted(umfit))
+
+
 })
 

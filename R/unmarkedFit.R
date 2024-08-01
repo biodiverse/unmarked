@@ -1323,7 +1323,7 @@ setMethod("getP", "unmarkedFitDSO",
     M <- numSites(umf)
 
     keep <- 1:M
-    if(length(object@sitesRemoved)>0){
+    if(na.rm & length(object@sitesRemoved)>0){
       keep <- keep[-object@sitesRemoved]
     }
 
@@ -1333,7 +1333,7 @@ setMethod("getP", "unmarkedFitDSO",
 
     sig <- matrix(NA, M, T)
     if(object@keyfun != "uniform"){
-      sig <- predict(object, type="det")$Predicted
+      sig <- predict(object, type="det", level = NULL, na.rm=na.rm)$Predicted
       sig <- matrix(sig, M, T, byrow=TRUE)
     }
 
