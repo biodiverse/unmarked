@@ -35,6 +35,10 @@ test_that("occuRN can fit models",{
   expect_equal(dim(pr), c(550,4))
   expect_equal(pr[1,1], 0.13806, tol=1e-4)
 
+  ft <- fitted(fm_C)
+  expect_equal(dim(ft), dim(fm_C@data@y))
+  expect_equal(ft[1,1], 0.262429)
+
   res <- residuals(fm_C)
   expect_equal(dim(res), dim(woodthrushUMF@y))
   expect_equal(res[1,1], 0.73757, tol=1e-4)
@@ -89,5 +93,20 @@ test_that("occuRN can handle NAs",{
   expect_equivalent(coef(fm_C),
     c(0.783066, -1.920232, 0.448369, -0.009701, 0.490085, 0.814767,
     0.837669, 1.097903, 0.842467, 0.916831, 0.976707, 0.740672), tol=1e-3)
+
+  # Missing covariates
+  sc <- data.frame(x = rnorm(numSites(woodthrushUMF)))
+  sc$x[2] <- NA
+  oc <- data.frame(x2 = rnorm(numSites(woodthrushUMF) * obsNum(woodthrushUMF)))
+  oc$x2[1] <- NA
+  siteCovs(woodthrushUMF) <- sc
+  obsCovs(woodthrushUMF) <- oc
+  
+  fm_na <- expect_warning( occuRN(~x2~x, woodthrushUMF, K=10))
+
+  ft <- fitted(fm_na)
+  expect_equal(dim(ft), dim(fm_na@data@y))
+  expect_true(is.na(ft[1,1])) # missing obs cov
+  expect_true(all(is.na(ft[2,]))) # missing site cov
 })
 

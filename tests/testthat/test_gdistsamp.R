@@ -135,6 +135,10 @@ test_that("gdistsamp with halfnorm keyfunction works",{
     #expect_equivalent(coef(fm_R),coef(fm_C),tol=1e-4)
 
     # methods
+    ft <- fitted(fm_C)
+    expect_equal(dim(ft), c(30,15))
+    expect_equal(round(ft,4)[1:2,1:2],
+      structure(c(0.0713, 0.1863, 0.0648, 0.167), dim = c(2L, 2L)))
     res <- residuals(fm_C)
     expect_equal(dim(res), c(30,15))
     expect_equal(res[1,1], -0.07133, tol=1e-4)
@@ -190,6 +194,27 @@ test_that("gdistsamp with halfnorm keyfunction works",{
     expect_equivalent(coef(fm_C),c(1.30815,0.53527,-1.35387,-0.11038,
                                     3.46293,-0.13458),tol=1e-4)
     #expect_equivalent(coef(fm_R),coef(fm_C),tol=1e-4)
+
+    # With missing covariate values
+    covs_na <- covs
+    covs_na$par1[1] <- NA
+    ysc_na <- ysc
+    ysc_na$par2[4] <- NA
+    umf <- unmarkedFrameGDS(y = y, siteCovs=covs_na, yearlySiteCovs=ysc_na,
+                            survey="line", unitsIn="m",
+                            dist.breaks=breaks,
+                            tlength=rep(transect.length, R), numPrimary=T)
+
+    #fm_R <- gdistsamp(~par1, ~par2, ~par3, umf, output="density",
+    #                  se=FALSE, engine="R")
+    fm_C <- suppressWarnings(gdistsamp(~par1, ~par2, ~par3, umf, output="density",
+                      se=FALSE, engine="C"))
+
+    ft <- fitted(fm_C)
+    expect_equal(dim(ft), c(30,15))
+    expect_true(all(is.na(ft[1,])))
+    expect_true(all(is.na(ft[2,1:5])))
+    expect_false(is.na(ft[2,6]))
 
     #Point
     set.seed(123)

@@ -70,6 +70,8 @@ test_that("goccu can fit models", {
   ft <- fitted(mod2)
   expect_equal(dim(ft), dim(umf2@y))
   expect_true(all(ft >=0 & ft <= 1))
+  expect_equal(round(ft,4)[1:2,1:2],
+    structure(c(0.0583, 0.0529, 0.0586, 0.0531), dim = c(2L, 2L)))
 
   res <- residuals(mod2)
   expect_equal(dim(res), dim(umf2@y))
@@ -132,6 +134,13 @@ test_that("goccu handles missing values", {
   expect_equal(dim(s[[1]]), dim(mod_na@data@y))
   ft <- fitted(mod_na)
   expect_equal(dim(ft), dim(mod_na@data@y))
+
+  expect_true(all(is.na(ft[3,]))) # site covariate for site 3 missing
+  expect_true(all(is.na(ft[4,1:4]))) # ysc covariate for site 4 per 1 missing
+  expect_false(is.na(ft[4,5]))
+  expect_true(is.na(ft[5,1])) # missing obs cov
+  expect_true(all(is.na(ft[6,1:J]))) # missing obs cov
+  
   r <- ranef(mod_na)
   expect_equal(dim(r@post), c(100, 2, 1))
   expect_true(is.na(bup(r)[3]))

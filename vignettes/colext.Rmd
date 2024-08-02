@@ -284,7 +284,7 @@ randomly from a uniform distribution with
 the specified bounds.
 
 
-```r
+``` r
 M <- 250                                # Number of sites
 J <- 3                                  # num secondary sample periods
 T <- 10                                 # num primary sample periods
@@ -337,7 +337,7 @@ valid index of the parameter of interest $\psi_i$.
 
 
 
-```r
+``` r
 plot(1:T, colMeans(z), type = "b", xlab = "Year",
      ylab = "Proportion of sites occupied",
      col = "black", xlim=c(0.5, 10.5), xaxp=c(1,10,9),
@@ -356,7 +356,7 @@ To analyze this data set with a dynamic occupancy model in
 `unmarked`, we first load the package.
 
 
-```r
+``` r
 library(unmarked)
 ```
 
@@ -366,14 +366,14 @@ That is, we put the annual tables of data (the slices of the former
 3-D array) sideways to produce a "wide" layout of the data.
 
 
-```r
+``` r
 yy <- matrix(y, M, J*T)
 ```
 
 Next, we create a matrix indicating the year each site was surveyed.
 
 
-```r
+``` r
 year <- matrix(c('01','02','03','04','05','06','07','08','09','10'),
                nrow(yy), T, byrow=TRUE)
 ```
@@ -388,7 +388,7 @@ we only make use of the second type, which must have M rows and T
 columns.
 
 
-```r
+``` r
 simUMF <- unmarkedMultFrame(
     y = yy,
     yearlySiteCovs = list(year = year),
@@ -429,7 +429,7 @@ another with full time-dependence for colonization, extinction and
 detection probability. We also time the calculations.
 
 
-```r
+``` r
 # Model with all constant parameters
 m0 <- colext(psiformula= ~1, gammaformula = ~ 1, epsilonformula = ~ 1,
              pformula = ~ 1, data = simUMF, method="BFGS")
@@ -471,7 +471,7 @@ back-transform to the original scale, we can simply use the
 inverse-logit function, named `plogis` in R.
 
 
-```r
+``` r
 plogis(-0.813)
 ```
 
@@ -486,7 +486,7 @@ We first remind ourselves of the names of parameters, which can all be
 used as arguments for these functions.
 
 
-```r
+``` r
 names(m0)
 ```
 
@@ -494,7 +494,7 @@ names(m0)
 ## [1] "psi" "col" "ext" "det"
 ```
 
-```r
+``` r
 backTransform(m0, type="psi")
 ```
 
@@ -507,7 +507,7 @@ backTransform(m0, type="psi")
 ## Transformation: logistic
 ```
 
-```r
+``` r
 confint(backTransform(m0, type="psi"))
 ```
 
@@ -533,7 +533,7 @@ practical. It can be specified by adding a -1 to the formula for the
 time-dependent parameters.
 
 
-```r
+``` r
 m1 <- colext(psiformula = ~1,   # First-year occupancy
     gammaformula = ~ year-1,    # Colonization
     epsilonformula = ~ year-1,  # Extinction
@@ -612,7 +612,7 @@ colonization parameters in this case, so we do not need to include
 year 10 in `nd`.
 
 
-```r
+``` r
 nd <- data.frame(year=c('01','02','03','04','05','06','07','08','09'))
 E.ext <- predict(m1, type='ext', newdata=nd)
 E.col <- predict(m1, type='col', newdata=nd)
@@ -626,7 +626,7 @@ confidence intervals. These can be used to create plots. The
 columns of `data.frame` returned by `predict`.
 
 
-```r
+``` r
 op <- par(mfrow=c(3,1), mai=c(0.6, 0.6, 0.1, 0.1))
 
 with(E.ext, {   # Plot for extinction probability
@@ -665,7 +665,7 @@ with(E.det, {   # Plot for detection probability: note 10 years
 
 ![Figure 2. Yearly estimates of parameters](colext-est-1.png)
 
-```r
+``` r
 par(op)
 ```
 
@@ -697,7 +697,7 @@ standard errors of the smoothed estimates of occupancy probability
 during each year.
 
 
-```r
+``` r
 m1 <- nonparboot(m1, B = 10)
 cbind(psi=psi, smoothed=smoothed(m1)[2,], SE=m1@smoothed.mean.bsse[2,])
 ```
@@ -729,7 +729,7 @@ $$
 The following function returns these estimates.
 
 
-```r
+``` r
 turnover <- function(fm) {
     psi.hat <- plogis(coef(fm, type="psi"))
     if(length(psi.hat) > 1)
@@ -754,7 +754,7 @@ show how to generate 95\% confidence intervals for the turnover
 estimates using the parametric bootstrap.
 
 
-```r
+``` r
 pb <- parboot(m1, statistic=turnover, nsim=2)
 turnCI <- cbind(pb@t0,
   t(apply(pb@t.star, 2, quantile, probs=c(0.025, 0.975))))
@@ -763,16 +763,16 @@ turnCI
 ```
 
 ```
-##           tau      lower     upper
-## t*1 0.1532645 0.00536045 0.1974714
-## t*2 0.1911530 0.07881180 0.2119585
-## t*3 0.2537292 0.19777204 0.2785973
-## t*4 0.2604356 0.04063769 0.4197328
-## t*5 0.3989303 0.34078483 0.4720357
-## t*6 0.3758690 0.32703698 0.5370796
-## t*7 0.3537473 0.32696166 0.3564059
-## t*8 0.3174983 0.32925238 0.4139696
-## t*9 0.1704449 0.18946470 0.3186236
+##             tau      lower     upper
+##  [1,] 0.1532645 0.00536045 0.1974714
+##  [2,] 0.1911530 0.07881180 0.2119585
+##  [3,] 0.2537292 0.19777204 0.2785973
+##  [4,] 0.2604356 0.04063769 0.4197328
+##  [5,] 0.3989303 0.34078483 0.4720357
+##  [6,] 0.3758690 0.32703698 0.5370796
+##  [7,] 0.3537473 0.32696166 0.3564059
+##  [8,] 0.3174983 0.32925238 0.4139696
+##  [9,] 0.1704449 0.18946470 0.3186236
 ```
 
 Which bootstrap method is most appropriate for variance estimation?
@@ -808,17 +808,13 @@ encounter histories offer an alternative approach [@MacKenzie_2004], but are dif
 missing values or continuous covariates are present.
 
 
-```r
+``` r
 chisq <- function(fm) {
     umf <- getData(fm)
     y <- getY(umf)
-    sr <- fm@sitesRemoved
-    if(length(sr)>0)
-        y <- y[-sr,,drop=FALSE]
-    fv <- fitted(fm, na.rm=TRUE)
-    y[is.na(fv)] <- NA
-    sum((y-fv)^2/(fv*(1-fv)))
-    }
+    fv <- fitted(fm)
+    sum((y-fv)^2/(fv*(1-fv)), na.rm = TRUE)
+}
 
 set.seed(344)
 pb.gof <- parboot(m0, statistic=chisq, nsim=100)
@@ -853,7 +849,7 @@ High-elevation sites are only surveyed twice per breeding season.
 The data can be loaded into an open R workspace using the `data` command.
 
 
-```r
+``` r
 data(crossbill)
 colnames(crossbill)
 ```
@@ -903,7 +899,7 @@ detection/non-detection data.
 
 
 
-```r
+``` r
 DATE <- as.matrix(crossbill[,32:58])
 y.cross <- as.matrix(crossbill[,5:31])
 y.cross[is.na(DATE) != is.na(y.cross)] <- NA
@@ -917,7 +913,7 @@ function `scale`. We subtract the mean and divide by the standard
 deviation.
 
 
-```r
+``` r
 sd.DATE <- sd(c(DATE), na.rm=TRUE)
 mean.DATE <- mean(DATE, na.rm=TRUE)
 DATE <- (DATE - mean.DATE) / sd.DATE
@@ -927,7 +923,7 @@ Before we can fit occupancy models, we need to format this data set
 appropriately.
 
 
-```r
+``` r
 years <- as.character(1999:2007)
 years <- matrix(years, nrow(crossbill), 9, byrow=TRUE)
 umf <- unmarkedMultFrame(y=y.cross,
@@ -954,7 +950,7 @@ Wise choice of starting values can be decisive for success or failure
 of maximum likelihood estimation.
 
 
-```r
+``` r
 # A model with constant parameters
 fm0 <- colext(~1, ~1, ~1, ~1, umf)
 
@@ -994,7 +990,7 @@ This function organizes models and conducts a series of tests to
 ensure that the models were fit to the same data.
 
 
-```r
+``` r
 models <- fitList('psi(.)gam(.)eps(.)p(.)'    = fm0,
                   'psi(.)gam(.)eps(.)p(Y)'    = fm1,
                   'psi(.)gam(Y)eps(Y)p(.)'    = fm2,
@@ -1023,7 +1019,7 @@ from a `fitList` object, and convert the results to a
 `data.frame`, which could be exported from R.
 
 
-```r
+``` r
 coef(ms)                            # Estimates only
 SE(ms)                              # Standard errors only
 toExport <- as(ms, "data.frame")    # Everything
@@ -1042,7 +1038,7 @@ to its original scale after obtaining predictions on the
 standardized scale.
 
 
-```r
+``` r
 op <- par(mfrow=c(1,2), mai=c(0.8,0.8,0.1,0.1))
 
 nd <- data.frame(forest=seq(0, 100, length=50))
@@ -1073,7 +1069,7 @@ with(E.p, {
 
 ![Figure 4. Covariates](colext-pred-1.png)
 
-```r
+``` r
 par(op)
 ```
 

@@ -79,6 +79,22 @@ test_that("gpcount function works", {
   expect_equal(dim(pr), c(2,4))
   expect_equal(pr[1,1], c(3.15045), tol=1e-4)
 
+  ft <- fitted(fm)
+  expect_equal(dim(ft), dim(umf@y))
+  expect_equal(round(ft,4)[1:2,1:2],
+    structure(c(0.5341, 1.2995, 0.5318, 1.2939), dim = c(2L, 2L)))
+  expect_true(all(is.na(ft[5,4:6]))) # missing obs covs
+  expect_true(all(is.na(ft[4,4:6]))) # missing ysc cov for site 4 yr 2
+
+  sc2 <- siteCovs
+  sc2$x[1] <- NA
+  umf2 <- umf
+  umf2@siteCovs <- sc2
+  expect_warning(fm2 <- gpcount(~x, ~yr, ~o1, data = umf2, K=10))
+  ft2 <- fitted(fm2)
+  expect_equal(dim(ft2), dim(umf2@y))
+  expect_true(all(is.na(ft2[1,]))) # missing site cov
+
   res <- residuals(fm)
   expect_equal(dim(res), dim(y))
 

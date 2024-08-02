@@ -410,6 +410,19 @@ test_that("pcountOpen simulate and fitted methods work",{
      expect_equivalent(m3_sim[[1]][1,],c(2,1,3,5,4))
      m3_fit <- fitted(m3)
      expect_equivalent(m3_fit[1,1], 2.481839, tol=1e-4)
+
+     sc <- data.frame(x=rnorm(M))
+     sc$x[2] <- NA
+     oc <- data.frame(x2 = rnorm(M*T))
+     oc$x2[1] <- NA
+     siteCovs(umf) <- sc
+     obsCovs(umf) <- oc
+
+     m3 <- expect_warning(pcountOpen(~x, ~1, ~1, ~x2, umf, K=20))
+     ft <- fitted(m3)
+     expect_equal(dim(ft), dim(m3@data@y))
+     expect_true(is.na(ft[1,1])) # missing obs cov
+     expect_true(all(is.na(ft[2,]))) # missing site cov
 })
 
 

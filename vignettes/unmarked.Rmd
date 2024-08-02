@@ -206,14 +206,11 @@ chisq <- function(fm) {
     umf <- fm@data
     y <- umf@y
     y[y>1] <- 1
-    sr <- fm@sitesRemoved
-    if(length(sr)>0)
-        y <- y[-sr,,drop=FALSE]
-    fv <- fitted(fm, na.rm=TRUE)
-    y[is.na(fv)] <- NA
+    fv <- fitted(fm)
     sum((y-fv)^2/(fv*(1-fv)), na.rm=TRUE)
     }
 
+set.seed(1)
 (pb <- parboot(fm2, statistic=chisq, nsim=100, parallel=FALSE))
 ```
 

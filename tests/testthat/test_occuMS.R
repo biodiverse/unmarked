@@ -409,12 +409,20 @@ test_that("occuMS handles NAs properly",{
   expect_warning(exfit <- occuMS(c('~V1',rep('~1',2)),rep('~1',2), data=umf,se=F))
   expect_equivalent(exfit@AIC,55.03718,tol=1e-4)
 
+  ft <- fitted(exfit)
+  expect_equal(dim(ft), dim(exfit@data@y))
+  expect_true(is.na(ft[1,1]))
+
   #Check that fitting works when missing site cov and no obs covs
   sc_na <- site_covs
   sc_na[1,1] <- NA
   umf <- unmarkedFrameOccuMS(y=y,siteCovs=sc_na)
   expect_warning(fit <- occuMS(rep('~1',3),rep('~V1',2),data=umf,se=F))
   expect_equivalent(fit@sitesRemoved, 1)
+  
+  ft <- fitted(fit)
+  expect_equal(dim(ft), dim(fit@data@y))
+  expect_true(all(is.na(ft[1,]))) # missing site cov
 })
 
 test_that("occuMS can fit a dynamic multinomial model",{

@@ -149,7 +149,11 @@ test_that("occu handles NAs",{
   expect_warning(fm <- occu(~ o1 + o2 ~ x, data = umf))
   expect_equal(fm@sitesRemoved, 3)
   expect_equivalent(coef(fm), c(8.91289, 1.89291, -1.42471, 0.67011, -8.44608), tol = 1e-5)
-
+  
+  ft <- fitted(fm)
+  expect_equal(dim(ft), dim(fm@data@y))
+  expect_true(all(is.na(ft[3,]))) # missing site cov
+  expect_true(is.na(ft[5,2]))     # missing obs cov
 })
 
 ## Add some checks here.

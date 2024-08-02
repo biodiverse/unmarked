@@ -636,13 +636,9 @@ missing values or continuous covariates are present.
 chisq <- function(fm) {
     umf <- getData(fm)
     y <- getY(umf)
-    sr <- fm@sitesRemoved
-    if(length(sr)>0)
-        y <- y[-sr,,drop=FALSE]
-    fv <- fitted(fm, na.rm=TRUE)
-    y[is.na(fv)] <- NA
-    sum((y-fv)^2/(fv*(1-fv)))
-    }
+    fv <- fitted(fm)
+    sum((y-fv)^2/(fv*(1-fv)), na.rm = TRUE)
+}
 
 set.seed(344)
 pb.gof <- parboot(m0, statistic=chisq, nsim=100)

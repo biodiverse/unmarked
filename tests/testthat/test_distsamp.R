@@ -56,6 +56,10 @@ test_that("distsamp works with covariates", {
   expect_equivalent(coef(backTransform(lam.lc)), 3.365655, tol = 1e-4)
   expect_equivalent(coef(backTransform(det.lc)), 0.007957658, tol = 1e-4)
 
+  ft <- fitted(fm)
+  expect_equal(round(ft,4)[1:2,1:2],
+              structure(c(4.0133, 3.1567, 3.077, 2.1544), dim = c(2L, 2L)))
+  expect_equal(dim(ft), c(5,2))               
 })
 
 test_that("distsamp methods work",{
@@ -77,6 +81,11 @@ test_that("distsamp methods work",{
   pr <- predict(fm, 'state', newdata=nd)
   expect_equal(dim(pr), c(2,4))
 
+  ft <- fitted(fm)
+  expect_equal(round(ft,4)[1:2,1:2],
+              structure(c(4.0133, 3.1567, 3.077, 2.1544), dim = c(2L, 2L)))
+  expect_equal(dim(ft), c(5,2)) 
+
   res <- residuals(fm)
   expect_equal(dim(res), dim(y))
   expect_equal(res[1,1], -0.01333, tol=1e-4)
@@ -90,6 +99,23 @@ test_that("distsamp methods work",{
   pdf(NULL)
   plot(fm)
   dev.off()
+})
+
+test_that("distsamp works with missing values",{
+
+  yna <- y
+  yna[1,1] <- NA
+  siteCovs$x[2] <- NA
+  yna[3,] <- NA
+  umf <- unmarkedFrameDS(y = y, siteCovs = siteCovs,
+        dist.breaks=c(0, 5, 10)/1000, survey="line", tlength=rep(1, 5),
+        unitsIn="km")
+
+  fm <- suppressWarnings(distsamp(~ x ~ x, data = umf))
+
+  ft <- fitted(fm)
+  expect_equal(dim(ft), c(5,2))
+  expect_true(all(is.na(ft[2,])))
 })
 
 test_that("distsamp ranef method works",{

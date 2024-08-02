@@ -190,12 +190,11 @@ setMethod("getP", "unmarkedFitGOccu",
   p
 })
 
-setMethod("fitted", "unmarkedFitGOccu",
-  function(object, na.rm= FALSE){
+setMethod("fitted_internal", "unmarkedFitGOccu", function(object){
 
   M <- numSites(object@data)
   JT <- obsNum(object@data)  
-  gd <- getDesign(object@data, object@formula, na.rm=na.rm)
+  gd <- getDesign(object@data, object@formula, na.rm=FALSE)
 
   psi <- drop(plogis(gd$Xpsi %*% coef(object, "psi")))
   psi <- matrix(psi, nrow=M, ncol=JT)

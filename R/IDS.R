@@ -404,7 +404,7 @@ setGeneric("getAvail", function(object, ...) standardGeneric("getAvail"))
 # Get availability for each data type and site as a probability
 setMethod("getAvail", "unmarkedFitIDS", function(object, ...){
   stopifnot("phi" %in% names(object))
-  phi <- predict(object, "phi")
+  phi <- predict(object, "phi", level = NULL, na.rm=FALSE)
   dur <- object@surveyDurations
   out <- lapply(names(phi), function(x){
     1 - exp(-1 * dur[[x]] * phi[[x]]$Predicted)
@@ -414,7 +414,7 @@ setMethod("getAvail", "unmarkedFitIDS", function(object, ...){
 })
 
 # Fitted method returns a list of matrices, one per data type
-setMethod("fitted", "unmarkedFitIDS", function(object, na.rm=FALSE){
+setMethod("fitted_internal", "unmarkedFitIDS", function(object){
 
   dists <- names(object)[names(object) %in% c("ds", "pc")]
 
@@ -435,7 +435,7 @@ setMethod("fitted", "unmarkedFitIDS", function(object, na.rm=FALSE){
   # fitted for occupancy data
   if("oc" %in% names(object)){
     conv <- IDS_convert_class(object, type="oc")
-    lam <- predict(conv, 'state')$Predicted
+    lam <- predict(conv, 'state', level = NULL, na.rm=FALSE)$Predicted
     A <- pi*max(conv@data@dist.breaks)^2
     switch(conv@data@unitsIn,
             m = A <- A / 1e6,
@@ -446,7 +446,7 @@ setMethod("fitted", "unmarkedFitIDS", function(object, na.rm=FALSE){
             kmsq = A <- A)
     lam <- lam * A
 
-    p <- getP(conv) * avail$oc
+    p <- getP(conv, na.rm=FALSE) * avail$oc
     out$oc <- 1 - exp(-lam*p) ## analytical integration.
   }
 

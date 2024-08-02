@@ -380,11 +380,11 @@ setMethod("getP", "unmarkedFitOccuCOP", function(object, na.rm = TRUE) {
 
 
 ## fitted ----
-setMethod("fitted", "unmarkedFitOccuCOP", function(object, na.rm = FALSE) {
+setMethod("fitted_internal", "unmarkedFitOccuCOP", function(object) {
   data <- object@data
   M = nrow(getY(data))
   J = ncol(getY(data))
-  des <- getDesign(data, object@formlist, na.rm = na.rm)
+  des <- getDesign(data, object@formlist, na.rm = FALSE)
   estim_psi = as.numeric(do.call(object["psi"]@invlink,
                                  list(as.matrix(des$Xpsi %*% coef(object, 'psi')))))
   estim_lambda = do.call(object["lambda"]@invlink, 

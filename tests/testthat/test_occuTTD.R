@@ -178,6 +178,15 @@ test_that("occuTTD can fit a single-season 1 obs model",{
   expect_equivalent(fit_naC@AIC, 1185.15, tol=1e-4)
   expect_equivalent(fit_naC@sitesRemoved, 1)
 
+  umf_na@siteCovs$elev[2] <- NA
+  fit_naC <- expect_warning(occuTTD(psiformula=~elev+forest, detformula=~elev+wind,
+                  data=umf_na, linkPsi='cloglog', ttdDist='weibull',
+                  engine="C"))
+  expect_equivalent(fit_naC@sitesRemoved, c(1,2))
+  ft <- fitted(fit_naC)
+  expect_equal(dim(ft), dim(fit_naC@data@y))
+  expect_true(is.na(ft[2,1]))
+
   set.seed(123)
   p <- parboot(fitC, nsim=3)
   expect_equivalent(p@t.star[1,], 87.90704)
@@ -452,7 +461,7 @@ test_that("occuTTD can fit a dynamic model",{
 
 })
 
-test_that("occuMulti predict works",{
+test_that("occuTTD predict works",{
 
   #One observer------------------------------------
   set.seed(123)
