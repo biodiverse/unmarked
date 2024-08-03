@@ -467,7 +467,7 @@ setMethod("getP", "unmarkedFitIDS", function(object, ...){
 })
 
 
-setMethod("residuals", "unmarkedFitIDS", function(object, ...){
+setMethod("residuals_internal", "unmarkedFitIDS", function(object){
 
   dists <- names(object)[names(object) %in% c("ds", "pc")]
 
