@@ -537,6 +537,14 @@ setMethod("ranef", "unmarkedFitOccuCOP", function(object, ...) {
 })
 
 
+# Used by update() method
+setMethod("rebuild_call", "unmarkedFitOccuCOP", function(object){ 
+  cl <- methods::callNextMethod(object)
+  cl[["psiformula"]] <- object@formlist$psiformula
+  cl[["lambdaformula"]] <- object@formlist$lambdaformula
+  cl
+})
+
 # Useful functions -------------------------------------------------------------
 
 check.integer <- function(x, na.ignore = F) {

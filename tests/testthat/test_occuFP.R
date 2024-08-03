@@ -29,6 +29,11 @@ test_that("occuFP model can be fit",{
   pr <- predict(m1, "fp")
   expect_equal(dim(pr), c(1000, 4))
 
+  # Check update
+  new_fit <- update(m1, stateformula=~1, data=umf1[1:10,])
+  expect_equal(length(coef(new_fit, "state")), 1)
+  expect_equal(nrow(new_fit@data@y), 10)
+
   # Check error when random effect in formula
   expect_error(occuFP(~(1|dummy), ~1, ~1, data=umf1))
 })

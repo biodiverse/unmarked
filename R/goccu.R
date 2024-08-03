@@ -34,7 +34,7 @@ goccu <- function(psiformula, phiformula, pformula, data,
 
   # Pass phiformula as gamma/eps formula so it will be applied to
   # yearlySiteCovs in getDesign
-  formlist <- list(psiformula=psiformula, phi=phiformula,
+  formlist <- list(psiformula=psiformula, phiformula=phiformula,
                   pformula=pformula)
 
   formula <- as.formula(paste(unlist(formlist), collapse=" "))
@@ -302,32 +302,11 @@ setMethod("simulate", "unmarkedFitGOccu",
   return(sim_list)
 })
 
-
-setMethod("update", "unmarkedFitGOccu",
-    function(object, psiformula, phiformula, pformula, ...,
-        evaluate = TRUE)
-{
-    call <- object@call
-    if (is.null(call))
-        stop("need an object with call slot")
-    formlist <- object@formlist
-    if (!missing(psiformula))
-        call$psiformula <- update.formula(formlist$psiformula, psiformula)
-    if (!missing(phiformula))
-        call$phiformula <- update.formula(formlist$phiformula, phiformula)
-    if (!missing(pformula))
-        call$pformula <- update.formula(formlist$pformula, pformula)
-    extras <- match.call(call=sys.call(-1),
-                         expand.dots = FALSE)$...
-    if(length(extras) > 0) {
-        existing <- !is.na(match(names(extras), names(call)))
-        for (a in names(extras)[existing]) call[[a]] <- extras[[a]]
-        if (any(!existing)) {
-            call <- c(as.list(call), extras[!existing])
-            call <- as.call(call)
-            }
-        }
-    if (evaluate)
-        eval(call, parent.frame(2))
-    else call
+setMethod("rebuild_call", "unmarkedFitGOccu", function(object){           
+  cl <- object@call
+  cl[["data"]] <- quote(object@data)
+  cl[["psiformula"]] <- object@formlist$psiformula
+  cl[["phiformula"]] <- object@formlist$phiformula
+  cl[["pformula"]] <- object@formlist$pformula
+  cl
 })

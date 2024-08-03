@@ -761,45 +761,19 @@ setMethod("simulate", "unmarkedFitGDR", function(object, nsim, seed=NULL, na.rm=
   out
 })
 
-
-setMethod("update", "unmarkedFitGDR",
-    function(object, lambdaformula, phiformula, removalformula, distanceformula,
-             ..., evaluate = TRUE)
-{
-
-    call <- object@call
-    if (is.null(call))
-        stop("need an object with call slot")
-
-    if(!missing(lambdaformula)){
-      call$lambdaformula <- lambdaformula
-    }
-    if(!missing(phiformula)){
-      if(!is.null(call$phiformula)){
-        call$phiformula <- phiformula
-      }
-    }
-    if(!missing(removalformula)){
-      call$removalformula <- removalformula
-    }
-    if(!missing(distanceformula)){
-      call$distanceformula <- distanceformula
-    }
-
-    extras <- match.call(call=sys.call(-1),
-                         expand.dots = FALSE)$...
-    if (length(extras) > 0) {
-        existing <- !is.na(match(names(extras), names(call)))
-        for (a in names(extras)[existing])
-            call[[a]] <- extras[[a]]
-        if (any(!existing)) {
-            call <- c(as.list(call), extras[!existing])
-            call <- as.call(call)
-            }
-        }
-    if (evaluate)
-        eval(call, parent.frame(2))
-    else call
+setMethod("rebuild_call", "unmarkedFitGDR", function(object){           
+  cl <- object@call
+  cl[["data"]] <- quote(object@data)
+  cl[["lambdaformula"]] <- object@formlist$lambdaformula
+  cl[["phiformula"]] <- object@formlist$phiformula
+  cl[["removalformula"]] <- object@formlist$removalformula
+  cl[["distanceformula"]] <- object@formlist$distanceformula
+  cl[["mixture"]] <- object@mixture
+  cl[["K"]] <- object@K
+  cl[["keyfun"]] <- object@keyfun
+  cl[["unitsOut"]] <- object@unitsOut
+  cl[["output"]] <- object@output
+  cl
 })
 
 

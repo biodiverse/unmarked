@@ -125,6 +125,10 @@ test_that("occuPEN can fit models with covariates",{
   nbp_cv <- nonparboot(fmCV, B=2)
   expect_is(nbp_cv@covMatBS, "matrix")
 
+  # update
+  new_fit <- update(fm, formula=~1~1, data=umf[1:3,]) 
+  expect_equal(length(coef(new_fit)), 2)
+  expect_equal(nrow(new_fit@data@y), 3)
 })
 
 test_that("occuPEN can handle NAs",{
