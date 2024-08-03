@@ -22,16 +22,6 @@
 \alias{plot,unmarkedFitOccuCOP,missing-method}
 \alias{profile,unmarkedFit-method}
 \alias{update,unmarkedFit-method}
-\alias{update,unmarkedFitColExt-method}
-\alias{update,unmarkedFitGMM-method}
-\alias{update,unmarkedFitOccuMulti-method}
-\alias{update,unmarkedFitOccuMS-method}
-\alias{update,unmarkedFitOccuTTD-method}
-\alias{update,unmarkedFitNmixTTD-method}
-\alias{update,unmarkedFitGDR-method}
-\alias{update,unmarkedFitIDS-method}
-\alias{update,unmarkedFitDailMadsen-method}
-\alias{update,unmarkedFitGOccu-method}
 \alias{sampleSize}
 \alias{sampleSize,unmarkedFit-method}
 \alias{plot,profile,missing-method}

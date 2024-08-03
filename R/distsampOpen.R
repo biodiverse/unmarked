@@ -324,7 +324,7 @@ distsampOpen <- function(lambdaformula, gammaformula, omegaformula, pformula,
       sitesRemoved=D$removed.sites, estimates = estimateList, AIC = fmAIC,
       opt = fm, negLogLike = fm$value, nllFun = nll, K = K, mixture = mixture,
       dynamics = dynamics, fix = fix, immigration=immigration, keyfun=keyfun,
-      unitsOut=unitsOut)
+      unitsOut=unitsOut, output=output)
 
   return(umfit)
 }

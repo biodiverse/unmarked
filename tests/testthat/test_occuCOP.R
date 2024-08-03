@@ -269,6 +269,12 @@ test_that("occuCOP can fit simple models", {
     newdata = data.frame("a"=1:5,"b"=10:14),
     type = "psi"
   ))
+
+  # update / parboot
+  new_fit <- update(fit_default, data = umf[1:10,])
+  expect_equal(nrow(new_fit@data@y), 10)
+  pb <- parboot(fit_default, nsim=2)
+  expect_is(pb, "parboot")
   
   # Fitting accurately ----
   ## psi = 0.50, lambda = 1 ----

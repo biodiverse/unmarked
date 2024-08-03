@@ -287,7 +287,7 @@ IDS <- function(lambdaformula = ~1,
 
   new("unmarkedFitIDS", fitType = "IDS", call = match.call(),
     opt = opt, formula = lambdaformula, formlist=formlist,
-    data = dataDS, dataPC=dataPC, dataOC=dataOC,
+    data = dataDS, dataPC=dataPC, dataOC=dataOC, K=K,
     surveyDurations=surveyDurations,
     maxDist = list(pc=maxDistPC, oc=maxDistOC),
     keyfun=keyfun,
@@ -553,67 +553,32 @@ setMethod("simulate", "unmarkedFitIDS",
 
 })
 
-setMethod("update", "unmarkedFitIDS",
-  function(object, lambdaformula, detformulaDS, detformulaPC, detformulaOC,
-           dataDS, dataPC, dataOC, ...){
-    call <- object@call
 
-    if(!missing(lambdaformula)){
-      call[["lambdaformula"]] <- lambdaformula
-    } else {
-      call[["lambdaformula"]] <- object@formlist$lam
-    }
-
-    if(!missing(detformulaDS)){
-      call[["detformulaDS"]] <- detformulaDS
-    } else {
-      call[["detformulaDS"]] <- split_formula(object@formlist$ds)[[1]]
-    }
-
-    if(!missing(detformulaPC)){
-      call[["detformulaPC"]] <- detformulaPC
-    } else if(!is.null(object@dataPC) & !is.null(call$detformulaPC)){
-      call[["detformulaPC"]] <- split_formula(object@formlist$pc)[[1]]
-    }
-
-    if(!missing(detformulaOC)){
-      call[["detformulaOC"]] <- detformulaOC
-    } else if(!is.null(object@dataOC) & !is.null(call$detformulaOC)){
-      call[["detformulaOC"]] <- split_formula(object@formlist$oc)[[1]]
-    }
-
-    if(!missing(dataDS)){
-      call$dataDS <- dataDS
-    } else {
-      call$dataDS <- object@data
-    }
-
-    if(!missing(dataPC)){
-      call$dataPC <- dataPC
-    } else {
-      call$dataPC <- object@dataPC
-    }
-    
-    if(!missing(dataOC)){
-      call$dataOC <- dataOC
-    } else {
-      call$dataOC <- object@dataOC
-    }
-
-    extras <- match.call(call=sys.call(-1),
-                         expand.dots = FALSE)$...
-    if (length(extras) > 0) {
-        existing <- !is.na(match(names(extras), names(call)))
-        for (a in names(extras)[existing])
-            call[[a]] <- extras[[a]]
-        if (any(!existing)) {
-            call <- c(as.list(call), extras[!existing])
-            call <- as.call(call)
-            }
-        }
-
-    eval(call, parent.frame(2))
-
+setMethod("rebuild_call", "unmarkedFitIDS", function(object){           
+  cl <- object@call
+  cl[["dataDS"]] <- quote(object@data)
+  cl[["dataPC"]] <- quote(object@dataPC)
+  cl[["dataOC"]] <- quote(object@dataOC)
+  cl[["lambdaformula"]] <- object@formlist$lam
+  cl[["detformulaDS"]] <- split_formula(object@formlist$ds)[[1]]
+  if(!is.null(cl[["detformulaPC"]])){
+    cl[["detformulaPC"]] <- split_formula(object@formlist$pc)[[1]]
+  }
+  if(!is.null(cl[["detformulaOC"]])){
+    cl[["detformulaOC"]] <- split_formula(object@formlist$oc)[[1]]
+  }
+  if(!is.null(cl[["availformula"]])){
+    cl[["availformula"]] <- object@formlist$phi
+  }
+  cl[["K"]] <- object@K
+  cl[["keyfun"]] <- object@keyfun
+  cl[["unitsOut"]] <- object@unitsOut
+  cl[["durationDS"]] <- quote(object@surveyDurations$ds)
+  cl[["durationPC"]] <- quote(object@surveyDurations$pc)
+  cl[["durationOC"]] <- quote(object@surveyDurations$oc)
+  cl[["maxDistPC"]] <- object@maxDist$pc
+  cl[["maxDistOC"]] <- object@maxDist$oc
+  cl
 })
 
 
