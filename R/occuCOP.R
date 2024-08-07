@@ -453,20 +453,14 @@ setMethod("simulate_fit", "unmarkedFitOccuCOP",
 
 
 ## simulate ----
-setMethod("simulate", "unmarkedFitOccuCOP",
-  function(object, nsim = 1, seed = NULL, na.rm = TRUE){
-  # set.seed(seed) 
-  # Purposefully not implemented
-  formula <- object@formula
-  umf <- object@data
-  designMats <- getDesign(umf = umf, formlist = object@formlist, na.rm = na.rm)
-  y <- designMats$y
+setMethod("simulate_internal", "unmarkedFitOccuCOP",
+  function(object, nsim){
+  y <- object@data@y
   M <- nrow(y)
   J <- ncol(y)
   
   # Occupancy probability psi depending on the site covariates
-  psiParms = coef(object, type = "psi", fixedOnly = FALSE)
-  psi <- as.numeric(plogis(as.matrix(designMats$Xpsi %*% psiParms)))
+  psi <- predict(object, type = "psi", level = NULL, na.rm=FALSE)$Predicted
   
   # Detection rate lambda depending on the observation covariates
   lambda = getP(object = object)
@@ -476,6 +470,7 @@ setMethod("simulate", "unmarkedFitOccuCOP",
   for(i in 1:nsim) {
     Z <- rbinom(M, 1, psi)
     # Z[object@knownOcc] <- 1
+    # TODO: should Z be replicated J times here?
     y = matrix(rpois(n = M * J, lambda = as.numeric(t(lambda))),
                nrow = M, ncol = J, byrow = T) * Z
     simList[[i]] <- y
@@ -483,6 +478,10 @@ setMethod("simulate", "unmarkedFitOccuCOP",
   return(simList)
 })
 
+setMethod("get_fitting_function", "unmarkedFrameOccuCOP",
+          function(object, model, ...){
+  occuCOP
+})
 
 ## nonparboot ----
 setMethod("nonparboot", "unmarkedFitOccuCOP",

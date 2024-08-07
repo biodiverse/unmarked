@@ -674,7 +674,7 @@ setMethod("ranef", "unmarkedFitGDR", function(object){
   new("unmarkedRanef", post=post)
 })
 
-setMethod("simulate", "unmarkedFitGDR", function(object, nsim, seed=NULL, na.rm=FALSE){
+setMethod("simulate_internal", "unmarkedFitGDR", function(object, nsim){
 
   # Adjust log lambda when there is a random intercept
   #loglam <- log(predict(object, "lambda", level=NULL)$Predicted)
@@ -759,6 +759,17 @@ setMethod("simulate", "unmarkedFitGDR", function(object, nsim, seed=NULL, na.rm=
     out[[i]] <- list(yRemoval=yrem, yDistance=ydist)
   }
   out
+})
+
+setMethod("get_fitting_function", "unmarkedFrameGDR", 
+          function(object, model, ...){
+  gdistremoval
+})
+
+setMethod("y_to_zeros", "unmarkedFrameGDR", function(object, ...){
+  object@yDistance[] <- 0
+  object@yRemoval[] <- 0
+  object
 })
 
 setMethod("rebuild_call", "unmarkedFitGDR", function(object){           

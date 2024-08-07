@@ -516,8 +516,8 @@ setMethod("plot", c(x="unmarkedFitIDS", y="missing"), function(x, y, ...){
 })
 
 
-setMethod("simulate", "unmarkedFitIDS",
-          function(object,  nsim = 1, seed = NULL, na.rm = FALSE){
+setMethod("simulate_internal", "unmarkedFitIDS",
+          function(object,  nsim){
 
   dets <- c("ds","pc","oc")
 
@@ -526,7 +526,7 @@ setMethod("simulate", "unmarkedFitIDS",
   temp <- lapply(dets, function(x){
     if(! x %in% names(object)) return(NULL)
     conv <- IDS_convert_class(object, type=x)
-    sims <- simulate(conv, nsim=nsim, na.rm=na.rm)
+    sims <- simulate(conv, nsim=nsim, na.rm=FALSE)
     # availability process
     if("phi" %in% names(object)){
       sims <- lapply(sims, function(z){

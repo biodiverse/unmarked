@@ -266,18 +266,18 @@ setMethod("ranef", "unmarkedFitGOccu", function(object, ...){
 })
 
 
-setMethod("simulate", "unmarkedFitGOccu", 
-          function(object, nsim = 1, seed = NULL, na.rm = FALSE){
-  
-  gd <- getDesign(object@data, object@formula, na.rm=FALSE)
-  M <- nrow(gd$y)
+setMethod("simulate_internal", "unmarkedFitGOccu", 
+          function(object, nsim){
+ 
+  y <- object@data@y
+  M <- nrow(y)
   T <- object@data@numPrimary
-  JT <- ncol(gd$y)
+  JT <- ncol(y)
   J <- JT / T
-  y_array <- array(t(gd$y), c(J, T, M)) 
+  y_array <- array(t(y), c(J, T, M)) 
 
-  psi <- drop(plogis(gd$Xpsi %*% coef(object, "psi")))
-  phi <- drop(plogis(gd$Xphi %*% coef(object, "phi")))
+  psi <- predict(object, type = "psi", level = NULL, na.rm=FALSE)$Predicted
+  phi <- predict(object, type = "phi", level = NULL, na.rm=FALSE)$Predicted
   phi <- matrix(phi, nrow=M, ncol=T, byrow=TRUE)
   p <- getP(object)
 
@@ -295,11 +295,15 @@ setMethod("simulate", "unmarkedFitGOccu",
 
     y <- suppressWarnings(rbinom(M*T*J, 1, zz*p))
     y <- matrix(y, M, JT)
-    if(na.rm) y[which(is.na(gd$y))] <- NA 
     sim_list[[i]] <- y
   }
 
   return(sim_list)
+})
+
+setMethod("get_fitting_function", "unmarkedFrameGOccu",
+          function(object, model, ...){
+  goccu
 })
 
 setMethod("rebuild_call", "unmarkedFitGOccu", function(object){           

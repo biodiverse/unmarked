@@ -1,36 +1,16 @@
-\name{simulate-methods}
-\docType{methods}
-\alias{simulate-methods}
+\name{simulate}
+\alias{simulate}
 \alias{simulate,unmarkedFit-method}
 \alias{simulate,unmarkedFrame-method}
-\alias{simulate,unmarkedFitColExt-method}
-\alias{simulate,unmarkedFitDS-method}
-\alias{simulate,unmarkedFitMPois-method}
-\alias{simulate,unmarkedFitOccu-method}
-\alias{simulate,unmarkedFitOccuRN-method}
-\alias{simulate,unmarkedFitOccuFP-method}
-\alias{simulate,unmarkedFitOccuMulti-method}
-\alias{simulate,unmarkedFitOccuMS-method}
-\alias{simulate,unmarkedFitOccuTTD-method}
-\alias{simulate,unmarkedFitNmixTTD-method}
-\alias{simulate,unmarkedFitPCount-method}
-\alias{simulate,unmarkedFitPCO-method}
-\alias{simulate,unmarkedFitGMM-method}
-\alias{simulate,unmarkedFitGDS-method}
-\alias{simulate,unmarkedFitGPC-method}
-\alias{simulate,unmarkedFitGDR-method}
-\alias{simulate,unmarkedFitIDS-method}
-\alias{simulate,unmarkedFitDailMadsen-method}
-\alias{simulate,unmarkedFitGOccu-method}
-\alias{simulate,unmarkedFitOccuCOP-method}
 \alias{simulate,character-method}
 
-\title{Methods for Function simulate in Package `unmarked'}
+\title{Data simulation in unmarked}
 \description{
-Simulate data from a fitted model or an \code{unmarkedFrame}.
+Simulate data from a fitted model, or simulate an entirely new dataset
+from a study design defined by an \code{unmarkedFrame}.
 }
 \usage{
-\S4method{simulate}{unmarkedFit}(object, nsim, seed, na.rm)
+\S4method{simulate}{unmarkedFit}(object, nsim=1, seed=NULL, ...)
 \S4method{simulate}{unmarkedFrame}(object, nsim=1, seed=NULL, model = NULL,
                                    coefs = NULL, quiet = FALSE, ...)
 }
@@ -38,8 +18,7 @@ Simulate data from a fitted model or an \code{unmarkedFrame}.
 \arguments{
 \item{object}{Fitted model or \code{unmarkedFrame}.}
 \item{nsim}{Number of simulations}
-\item{seed}{Seed for random number generator. Not currently implemented}
-\item{na.rm}{Logical, should missing values be removed?}
+\item{seed}{Ignored}
 \item{model}{The model to use when \code{object} is an \code{unmarkedFrame}
   used for multiple model types. For example, if the \code{object} is an
   \code{unmarkedFrameOccu}, model should be set to \code{occu} or \code{occuRN}.}

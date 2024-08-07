@@ -766,6 +766,32 @@ getUA <- function(umf){
 
 }
 
+# Get area for converting density to abundance in distance sampling models
+get_ds_area <- function(umf, unitsOut){
+  db <- umf@dist.breaks
+ 
+  # Calculate area based on survey type
+  A <- switch(umf@survey,
+    line = umf@tlength * max(db) * 2,
+    point = pi * max(db)^2
+  )
+
+  # Convert input unit to kmsq
+  A <- switch(umf@unitsIn,
+    m = A / 1e6,
+    km = A
+  )
+
+  # Convert kmsq to output unit
+  A <- switch(unitsOut,
+    m = A * 1e6,
+    ha = A * 100,
+    kmsq = A
+  )
+
+  A
+}
+
 pHalfnorm <- function(sigma, survey, db, w, a){
   J <- length(w)
   cp <- rep(NA, J)
