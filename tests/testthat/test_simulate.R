@@ -196,5 +196,6 @@ test_that("simulate can generate new datasets from scratch",{
   fm <- gdistremoval(lambdaformula=~sc1, removalformula=~oc1, distanceformula=~1,
                      output='abund', K=50, data=s)
   expect_is(fm, "unmarkedFitGDS")
+  expect_equivalent(coef(fm, 'lambda'), c(1.4914,0.6454), tol=1e-4)
 
 })
