@@ -320,13 +320,10 @@ setMethod("simulate_internal", "unmarkedFitDS",
   p <- getP(object, na.rm = FALSE)
   M <- nrow(p)
   J <- ncol(p)
-  p <- as.vector(t(p))
-  lambda <- rep(lambda, each = J)
-  lam_p <- lambda * p
 
   lapply(1:nsim, function(i){
-    yvec <- stats::rpois(M*J, lam_p)
-    matrix(yvec, M, J, byrow = TRUE)
+    yvec <- stats::rpois(M*J, lambda * p)
+    matrix(yvec, M, J)
   })
 })
 
@@ -393,55 +390,62 @@ setMethod("simulate_internal", "unmarkedFitGDS",
 
 setMethod("simulate_internal", "unmarkedFitGMM",
   function(object, nsim){
-  umf <- object@data
-  mixture <- object@mixture
-  y <- umf@y
-  M <- nrow(y)
-  T <- umf@numPrimary
-  J <- ncol(y) / T
+    formula <- object@formula
+    umf <- object@data
+    mixture <- object@mixture
+    y <- umf@y
+    n <- nrow(y)
+    T <- umf@numPrimary
+    J <- ncol(y) / T
 
-  lam <- predict(object, type = "lambda", level = NULL, na.rm=FALSE)$Predicted
-
-  if(T == 1){
-    phi <- rep(1, M * T)
-  } else {
-    phi <- predict(object, type = "phi", level = NULL, na.rm = FALSE)$Predicted
-  }
-
-  p <- getP(object, na.rm = FALSE)
-  p <- array(p, c(M,J,T))
-  cp <- array(NA, c(M,J+1,T))
-  for (i in 1:M){
-    for (t in 1:T){
-      cp[i, 1:J, t] <- p[i,,t]
-      cp[i, J+1, t] <- 1 - sum(p[i,,t], na.rm=TRUE)
+    lam <- predict(object, type = "lambda", level = NULL, na.rm=FALSE)$Predicted
+    
+    if(T == 1){
+      phi <- rep(1, n*T)
+    } else {
+      phi <- predict(object, type = "phi", level = NULL, na.rm=FALSE)$Predicted
     }
-  }
+    phi.mat <- matrix(phi, nrow=n, ncol=T, byrow=TRUE)
 
-  simList <- list()
-  for(s in 1:nsim) {
-    switch(mixture,
-      P = N <- stats::rpois(M, lambda=lam),
-      NB = N <- stats::rnbinom(M, mu=lam, size=exp(coef(object, type="alpha"))),
-      ZIP = {
-        psi <- stats::plogis(coef(object['psi']))
-        N <- rzip(M, lambda=lam, psi=psi)
-      }
-    )
-    N <- rep(N, each = T)
-    Navail <- stats::rbinom(M*T, size=N, prob=phi)
-    Navail <- matrix(Navail, M, T, byrow=TRUE)
+    cp.arr <- array(NA, c(n, T, J+1))
+    cp.mat <- getP(object, na.rm = FALSE)
+    cp.mat[is.na(y)] <- NA
+    cp.temp <- array(cp.mat, c(n, J, T))
+    cp.arr[,,1:J] <- aperm(cp.temp, c(1,3,2))
+    cp.arr[,, 1:J][is.na(y)]<- NA   # Andy added 5/30
+    cp.arr[,,J+1] <- 1 - apply(cp.arr[,,1:J,drop=FALSE], 1:2, sum, na.rm=TRUE)
 
-    y.sim <- array(NA, c(M, J, T))
-    for(i in 1:M) {
-      for(t in 1:T) {
-        if(is.na(Navail[i,t])) next
-        y.sim[i,,t] <- drop(rmultinom2(1, Navail[i,t], cp[i,,t]))[1:J]
-      }
-    }
-    simList[[s]] <- matrix(y.sim, nrow=M, ncol=J*T) # note, byrow=F
-  }
-  return(simList)
+    simList <- list()
+    for(s in 1:nsim) {
+        switch(mixture,
+            P = M <- rpois(n=n, lambda=lam),
+            NB = M <- rnbinom(n=n, mu=lam,
+                size=exp(coef(object, type="alpha"))),
+            ZIP = {
+              psi <- plogis(coef(object['psi']))
+              M <- rzip(n, lambda=lam, psi=psi)
+            }
+        )
+
+        N <- rbinom(n*T, size=M, prob=phi.mat)
+        # bug fix 3/16/2010
+        N <- matrix(N, nrow=n, ncol=T, byrow=FALSE) # , byrow=TRUE)
+
+        y.sim <- array(NA, c(n, J, T))
+        for(i in 1:n) {
+            for(t in 1:T) {
+                if(is.na(N[i,t]))
+                    next
+                pi.it <- cp.arr[i,t,]
+                na.it <- is.na(pi.it)
+                pi.it[na.it] <- 0
+                y.sim[i,,t] <- drop(rmultinom2(1, N[i,t], pi.it))[1:J]
+                y.sim[i,na.it[1:J],t] <- NA
+            }
+        }
+        simList[[s]] <- matrix(y.sim, nrow=n, ncol=J*T) # note, byrow=F
+        }
+    return(simList)
 })
 
 
@@ -576,9 +580,9 @@ setMethod("simulate_internal", "unmarkedFitOccu",
   
   lapply(1:nsim, function(i){
     z <- stats::rbinom(M, 1, psi)
+    z[object@knownOcc] <- 1
     z <- rep(z, each = J)
-    p_z <- p * z
-    yvec <- stats::rbinom(M*J, 1, p_z)
+    yvec <- z * stats::rbinom(M*J, 1, p)
     matrix(yvec, M, J, byrow = TRUE)
   })
 })
