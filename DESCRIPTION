@@ -1,6 +1,6 @@
 Package: unmarked
-Version: 1.4.1.9009
-Date: 2024-08-08
+Version: 1.4.1.9010
+Date: 2024-08-11
 Type: Package
 Title: Models for Data from Unmarked Animals
 Authors@R: c(
@@ -72,8 +72,6 @@ LinkingTo:
     RcppEigen
 SystemRequirements: GNU make
 URL: https://groups.google.com/d/forum/unmarked,
-     https://rbchan.github.io/unmarked/,
-     https://github.com/ianfiske/unmarked,
-     https://github.com/rbchan/unmarked
-BugReports: https://github.com/rbchan/unmarked/issues
+     https://hmecology.github.io/unmarked/
+BugReports: https://github.com/hmecology/unmarked/issues
 VignetteBuilder: knitr
