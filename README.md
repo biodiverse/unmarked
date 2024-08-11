@@ -11,13 +11,13 @@
 
 The latest stable version of unmarked can be downloaded from [CRAN](https://cran.r-project.org/package=unmarked):
 
-```{r, eval=FALSE}
+```r
 install.packages("unmarked")
 ```
 
 The latest development version can be installed from Github:
 
-```{r, eval=FALSE}
+```r
 install.packages("remotes")
 remotes::install_github("hmecology/unmarked")
 ```

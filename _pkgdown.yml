@@ -13,6 +13,7 @@ reference:
   - title: Occupancy models
     contents:
       - occu
+      - goccu
       - colext
       - occuFP
       - occuMS
@@ -25,6 +26,7 @@ reference:
       - occuRN
       - pcount
       - distsamp
+      - IDS
       - multinomPois
       - pcount.spHDS
       - gpcount
@@ -40,16 +42,17 @@ reference:
       - fitted,unmarkedFit-method
       - parboot
       - nonparboot,unmarkedFit-method
-      - residuals
+      - residuals,unmarkedFit-method
       - powerAnalysis
-      - simulate
+      - simulate,unmarkedFit-method
       - vif
   - title: Model selection
     contents:
       - fitList
       - modSel
       - crossVal,unmarkedFit-method
-  - title: Model data
+  - title: Organize data
+    contents:
       - unmarkedFrame
       - unmarkedFrame-class
       - unmarkedMultFrame
@@ -62,7 +65,7 @@ reference:
       - unmarkedFrameOccuCOP
       - unmarkedFrameOccuMS
       - unmarkedFrameOccuTTD
-      - unmarkedFrameG3
+      - unmarkedFrameOccuCOP
       - unmarkedFramePCO
       - unmarkedFrameGDR
       - unmarkedFrameGMM
@@ -81,4 +84,50 @@ reference:
       - bup
       - posteriorSamples,unmarkedRanef-method
       - projected
-      - turnover
+      - plotEffects
+      - randomTerms
+      - sigma
+  - title: internal
+    contents:
+      - MesoCarnivores
+      - SE-methods
+      - SSE
+      - Switzerland
+      - birds
+      - computeMPLElambda
+      - confint-methods
+      - crossbill
+      - cruz
+      - csvToUMF
+      - detFuns
+      - "[-methods"
+      - formatDistData
+      - formatMult
+      - formatWideLong
+      - frogs
+      - getB-methods
+      - unmarkedPowerList
+      - vcov-methods
+      - occuPEN_CV
+      - optimizePenalty-methods
+      - getFP-methods
+      - getP-methods
+      - gf
+      - imputeMissing
+      - issj
+      - jay
+      - lambda2psi
+      - linetran
+      - makePiFuns
+      - mallard
+      - masspcru
+      - ovendata
+      - piFuns
+      - pointtran
+      - unmarkedPower-methods
+      - shinyPower
+      - unmarkedFitList-class
+      - unmarked-package
+      - unmarkedEstimate-class
+      - unmarkedEstimateList-class
+      - sight2perpdist
