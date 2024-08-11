@@ -33,7 +33,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">unmarked</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.4.1.9005</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.4.1.9010</span>
       </span>
     </div>
 
@@ -84,7 +84,7 @@
       </ul>
 <ul class="nav navbar-nav navbar-right">
 <li>
-  <a href="https://github.com/rbchan/unmarked/" class="external-link">
+  <a href="https://github.com/hmecology/unmarked/" class="external-link">
     <span class="fab fa-github fa-lg"></span>
 
   </a>
@@ -115,116 +115,22 @@
 <p>The latest development version can be installed from Github:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
-<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"rbchan/unmarked"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"hmecology/unmarked"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="support">Support<a class="anchor" aria-label="anchor" href="#support"></a>
 </h2>
-<p>Support is provided through the <a href="http://groups.google.com/group/unmarked" class="external-link">unmarked Google group</a>. The package <a href="https://rbchan.github.io/unmarked" class="external-link">website</a> has more information. You can report bugs <a href="https://github.com/rbchan/unmarked/issues" class="external-link">here</a>, by posting to the Google group, or by emailing <a href="https://kenkellner.com" class="external-link">the current maintainer</a>.</p>
+<p>Support is provided through the <a href="http://groups.google.com/group/unmarked" class="external-link">unmarked Google group</a>. The package <a href="https://hmecology.github.io/unmarked" class="external-link">website</a> has more information. You can report bugs <a href="https://github.com/hmecology/unmarked/issues" class="external-link">here</a>, by posting to the Google group, or by emailing <a href="https://kenkellner.com" class="external-link">the current maintainer</a>.</p>
 </div>
 <div class="section level2">
-<h2 id="example-analysis">Example analysis<a class="anchor" aria-label="anchor" href="#example-analysis"></a>
+<h2 id="get-started">Get Started<a class="anchor" aria-label="anchor" href="#get-started"></a>
 </h2>
-<p>Below we demonstrate a simple single-season occupancy analysis using <code>unmarked</code>. First, load in a dataset from a CSV file and format:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://groups.google.com/d/forum/unmarked" class="external-link">unmarked</a></span><span class="op">)</span></span>
-<span><span class="va">wt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"csv"</span>,<span class="st">"widewt.csv"</span>, package<span class="op">=</span><span class="st">"unmarked"</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Presence/absence matrix</span></span>
-<span><span class="va">y</span> <span class="op">&lt;-</span> <span class="va">wt</span><span class="op">[</span>,<span class="fl">2</span><span class="op">:</span><span class="fl">4</span><span class="op">]</span></span>
-<span></span>
-<span><span class="co"># Site and observation covariates</span></span>
-<span><span class="va">siteCovs</span> <span class="op">&lt;-</span>  <span class="va">wt</span><span class="op">[</span>,<span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"elev"</span>, <span class="st">"forest"</span>, <span class="st">"length"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="va">obsCovs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>date<span class="op">=</span><span class="va">wt</span><span class="op">[</span>,<span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"date.1"</span>, <span class="st">"date.2"</span>, <span class="st">"date.3"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span> </span></code></pre></div>
-<p>Create an <code>unmarkedFrame</code>, a special type of <code>data.frame</code> for <code>unmarked</code> analyses:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">umf</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/unmarkedFrameOccu.html">unmarkedFrameOccu</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">y</span>, siteCovs <span class="op">=</span> <span class="va">siteCovs</span>, obsCovs <span class="op">=</span> <span class="va">obsCovs</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">umf</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb5"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="co">## unmarkedFrame Object</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a><span class="co">## </span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a><span class="co">## 237 sites</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a><span class="co">## Maximum number of observations per site: 3 </span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a><span class="co">## Mean number of observations per site: 2.81 </span></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a><span class="co">## Sites with at least one detection: 79 </span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a><span class="co">## </span></span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a><span class="co">## Tabulation of y observations:</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true"></a><span class="co">##    0    1 &lt;NA&gt; </span></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true"></a><span class="co">##  483  182   46 </span></span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true"></a><span class="co">## </span></span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true"></a><span class="co">## Site-level covariates:</span></span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true"></a><span class="co">##       elev               forest              length      </span></span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true"></a><span class="co">##  Min.   :-1.436125   Min.   :-1.265352   Min.   :0.1823  </span></span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true"></a><span class="co">##  1st Qu.:-0.940726   1st Qu.:-0.974355   1st Qu.:1.4351  </span></span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true"></a><span class="co">##  Median :-0.166666   Median :-0.064987   Median :1.6094  </span></span>
-<span id="cb5-17"><a href="#cb5-17" aria-hidden="true"></a><span class="co">##  Mean   : 0.007612   Mean   : 0.000088   Mean   :1.5924  </span></span>
-<span id="cb5-18"><a href="#cb5-18" aria-hidden="true"></a><span class="co">##  3rd Qu.: 0.994425   3rd Qu.: 0.808005   3rd Qu.:1.7750  </span></span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true"></a><span class="co">##  Max.   : 2.434177   Max.   : 2.299367   Max.   :2.2407  </span></span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true"></a><span class="co">## </span></span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true"></a><span class="co">## Observation-level covariates:</span></span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true"></a><span class="co">##       date         </span></span>
-<span id="cb5-23"><a href="#cb5-23" aria-hidden="true"></a><span class="co">##  Min.   :-2.90434  </span></span>
-<span id="cb5-24"><a href="#cb5-24" aria-hidden="true"></a><span class="co">##  1st Qu.:-1.11862  </span></span>
-<span id="cb5-25"><a href="#cb5-25" aria-hidden="true"></a><span class="co">##  Median :-0.11862  </span></span>
-<span id="cb5-26"><a href="#cb5-26" aria-hidden="true"></a><span class="co">##  Mean   :-0.00022  </span></span>
-<span id="cb5-27"><a href="#cb5-27" aria-hidden="true"></a><span class="co">##  3rd Qu.: 1.30995  </span></span>
-<span id="cb5-28"><a href="#cb5-28" aria-hidden="true"></a><span class="co">##  Max.   : 3.80995  </span></span>
-<span id="cb5-29"><a href="#cb5-29" aria-hidden="true"></a><span class="co">##  NA's   :42</span></span></code></pre></div>
-<p>Fit a null occupancy model and a model with covariates, using the <code>occu</code> function:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="op">(</span><span class="va">mod_null</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/occu.html">occu</a></span><span class="op">(</span><span class="op">~</span><span class="fl">1</span><span class="op">~</span><span class="fl">1</span>, data<span class="op">=</span><span class="va">umf</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb7"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="co">## </span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a><span class="co">## Call:</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a><span class="co">## occu(formula = ~1 ~ 1, data = umf)</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a><span class="co">## </span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a><span class="co">## Occupancy:</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true"></a><span class="co">##  Estimate    SE     z  P(&gt;|z|)</span></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true"></a><span class="co">##    -0.665 0.139 -4.77 1.82e-06</span></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true"></a><span class="co">## </span></span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true"></a><span class="co">## Detection:</span></span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true"></a><span class="co">##  Estimate    SE    z  P(&gt;|z|)</span></span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true"></a><span class="co">##      1.32 0.174 7.61 2.82e-14</span></span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true"></a><span class="co">## </span></span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true"></a><span class="co">## AIC: 528.987</span></span></code></pre></div>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="op">(</span><span class="va">mod_covs</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/occu.html">occu</a></span><span class="op">(</span><span class="op">~</span><span class="va">date</span><span class="op">~</span><span class="va">elev</span>, data<span class="op">=</span><span class="va">umf</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb9"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="co">## </span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a><span class="co">## Call:</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true"></a><span class="co">## occu(formula = ~date ~ elev, data = umf)</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true"></a><span class="co">## </span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true"></a><span class="co">## Occupancy:</span></span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true"></a><span class="co">##             Estimate    SE     z  P(&gt;|z|)</span></span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true"></a><span class="co">## (Intercept)   -0.738 0.157 -4.71 2.45e-06</span></span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true"></a><span class="co">## elev           0.885 0.174  5.10 3.49e-07</span></span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true"></a><span class="co">## </span></span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true"></a><span class="co">## Detection:</span></span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true"></a><span class="co">##             Estimate    SE     z  P(&gt;|z|)</span></span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true"></a><span class="co">## (Intercept)   1.2380 0.180 6.869 6.47e-12</span></span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true"></a><span class="co">## date          0.0603 0.121 0.497 6.19e-01</span></span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true"></a><span class="co">## </span></span>
-<span id="cb9-15"><a href="#cb9-15" aria-hidden="true"></a><span class="co">## AIC: 498.158</span></span></code></pre></div>
-<p>Rank them using AIC:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fl</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/fitList.html">fitList</a></span><span class="op">(</span>null<span class="op">=</span><span class="va">mod_null</span>, covs<span class="op">=</span><span class="va">mod_covs</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/modSel.html">modSel</a></span><span class="op">(</span><span class="va">fl</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb11"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a><span class="co">##      nPars    AIC delta AICwt cumltvWt</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a><span class="co">## covs     4 498.16  0.00 1e+00     1.00</span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true"></a><span class="co">## null     2 528.99 30.83 2e-07     1.00</span></span></code></pre></div>
-<p>Estimate occupancy probability using the top-ranked model at the first six sites:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="reference/predict-methods.html">predict</a></span><span class="op">(</span><span class="va">mod_covs</span>, type<span class="op">=</span><span class="st">'state'</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb13"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a><span class="co">##   Predicted         SE      lower     upper</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true"></a><span class="co">## 1 0.1448314 0.03337079 0.09080802 0.2231076</span></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true"></a><span class="co">## 2 0.1499962 0.03351815 0.09535878 0.2280473</span></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true"></a><span class="co">## 3 0.2864494 0.03346270 0.22555773 0.3562182</span></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true"></a><span class="co">## 4 0.3035399 0.03371489 0.24175619 0.3733387</span></span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true"></a><span class="co">## 5 0.1607798 0.03374307 0.10502635 0.2382512</span></span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true"></a><span class="co">## 6 0.1842147 0.03392277 0.12669813 0.2600662</span></span></code></pre></div>
-<p>Predict occupancy probability at a new site with given covariate values:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">nd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>elev <span class="op">=</span> <span class="fl">1.2</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/predict-methods.html">predict</a></span><span class="op">(</span><span class="va">mod_covs</span>, type<span class="op">=</span><span class="st">"state"</span>, newdata<span class="op">=</span><span class="va">nd</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb15"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true"></a><span class="co">##   Predicted         SE     lower     upper</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true"></a><span class="co">## 1 0.5803085 0.06026002 0.4598615 0.6918922</span></span></code></pre></div>
+<p>See the following vignettes for an introduction to <code>unmarked</code> and some example analyses:</p>
+<p><a href="https://hmecology.github.io/unmarked/articles/unmarked.html" class="external-link">Overview of <code>unmarked</code></a></p>
+<p><a href="https://hmecology.github.io/unmarked/articles/colext.html" class="external-link">Dynamic occupancy models</a></p>
+<p><a href="https://hmecology.github.io/unmarked/articles/occuMulti.html" class="external-link">Multispecies occupancy models</a></p>
+<p><a href="https://hmecology.github.io/unmarked/articles/distsamp.html" class="external-link">Distance sampling</a></p>
+<p><a href="https://hmecology.github.io/unmarked/articles/contributing_to_unmarked.html" class="external-link">Contributing to <code>unmarked</code></a></p>
 </div>
 </div>
   </div>
@@ -234,8 +140,8 @@
 <h2 data-toc-skip>Links</h2>
 <ul class="list-unstyled">
 <li><a href="https://cloud.r-project.org/package=unmarked" class="external-link">View on CRAN</a></li>
-<li><a href="https://github.com/rbchan/unmarked/" class="external-link">Browse source code</a></li>
-<li><a href="https://github.com/rbchan/unmarked/issues" class="external-link">Report a bug</a></li>
+<li><a href="https://github.com/hmecology/unmarked/" class="external-link">Browse source code</a></li>
+<li><a href="https://github.com/hmecology/unmarked/issues" class="external-link">Report a bug</a></li>
 <li><a href="https://groups.google.com/g/unmarked" class="external-link">Get help from the community</a></li>
 </ul>
 </div>
@@ -276,7 +182,7 @@
 <div class="dev-status">
 <h2 data-toc-skip>Dev status</h2>
 <ul class="list-unstyled">
-<li><a href="https://github.com/rbchan/unmarked/actions" class="external-link"><img src="https://github.com/rbchan/unmarked/workflows/R-CMD-check/badge.svg" alt="R build status"></a></li>
+<li><a href="https://github.com/hmecology/unmarked/actions" class="external-link"><img src="https://github.com/hmecology/unmarked/workflows/R-CMD-check/badge.svg" alt="R build status"></a></li>
 <li><a href="https://cran.r-project.org/package=unmarked" class="external-link"><img src="https://www.r-pkg.org/badges/version/unmarked" alt="CRAN status"></a></li>
 </ul>
 </div>

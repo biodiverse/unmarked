@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">unmarked</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.4.1.9005</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.4.1.9010</span>
       </span>
     </div>
 
@@ -63,7 +63,7 @@
   <a href="../news/index.html">Changelog</a>
 </li>
       </ul><ul class="nav navbar-nav navbar-right"><li>
-  <a href="https://github.com/rbchan/unmarked/" class="external-link">
+  <a href="https://github.com/hmecology/unmarked/" class="external-link">
     <span class="fab fa-github fa-lg"></span>
 
   </a>
@@ -498,10 +498,10 @@
 <span class="r-in"><span><span class="co">## The C++ (the default) is faster.</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/system.time.html" class="external-link">system.time</a></span><span class="op">(</span><span class="fu">occuCOP</span><span class="op">(</span>data <span class="op">=</span> <span class="va">umf</span>, engine <span class="op">=</span> <span class="st">"C"</span>, psistarts <span class="op">=</span> <span class="fl">0</span>, lambdastarts <span class="op">=</span> <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    user  system elapsed </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   0.005   0.004   0.008 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.010   0.000   0.007 </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/system.time.html" class="external-link">system.time</a></span><span class="op">(</span><span class="fu">occuCOP</span><span class="op">(</span>data <span class="op">=</span> <span class="va">umf</span>, engine <span class="op">=</span> <span class="st">"R"</span>, psistarts <span class="op">=</span> <span class="fl">0</span>, lambdastarts <span class="op">=</span> <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    user  system elapsed </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   0.033   0.000   0.031 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.032   0.000   0.031 </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">## However, if you want to understand how the likelihood is calculated,</span></span></span>
 <span class="r-in"><span><span class="co">## you can easily access the R likelihood function.</span></span></span>
@@ -532,8 +532,8 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span>     ll = sum(log(iProb[siteAnalysed]))</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     return(-ll)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55bf8714c1c8&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x55bf7f4f07a0&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x5566bd587a78&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: 0x5566c91b2198&gt;</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Finally, if you do not want to fit your model but only get the likelihood,</span></span></span>
 <span class="r-in"><span><span class="co"># you can get the negative log-likelihood for a given set of parameters.</span></span></span>
