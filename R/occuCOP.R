@@ -455,8 +455,8 @@ setMethod("get_fitting_function", "unmarkedFrameOccuCOP",
 })
 
 ## nonparboot ----
-setMethod("nonparboot", "unmarkedFitOccuCOP",
-  function(object, B = 0, keepOldSamples = TRUE, ...) {
+setMethod("nonparboot_internal", "unmarkedFitOccuCOP",
+  function(object, B, keepOldSamples) {
   stop("Not currently supported for unmarkedFitOccuCOP", call.=FALSE)
 })
 
