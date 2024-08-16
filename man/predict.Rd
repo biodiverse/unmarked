@@ -3,7 +3,6 @@
 \alias{predict,unmarkedFit-method}
 \alias{predict,unmarkedFitOccuMulti-method}
 \alias{predict,unmarkedFitOccuMS-method}
-\alias{predict,unmarkedFitIDS-method}
 \alias{predict,unmarkedFitList-method}
 \alias{predict,unmarkedRanef-method}
 
@@ -22,8 +21,6 @@ unique options; see usage below.
   level = 0.95, species = NULL, cond = NULL, nsims = 100, ...)
 \S4method{predict}{unmarkedFitOccuMS}(object, type, newdata,
   level = 0.95, nsims = 100, ...)
-\S4method{predict}{unmarkedFitIDS}(object, type, newdata, backTransform = TRUE,
-  appendData = FALSE, level = 0.95, ...)
 \S4method{predict}{unmarkedFitList}(object, type, newdata = NULL,
   backTransform = TRUE, appendData = FALSE, level = 0.95)
 \S4method{predict}{unmarkedRanef}(object, func, nsims = 100, ...)

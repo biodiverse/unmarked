@@ -423,35 +423,6 @@ setMethod("plot", c(x = "unmarkedFitOccuCOP", y = "missing"), function(x, y, ...
 })
 
 
-## get_umf_components ----
-setMethod("get_umf_components", "unmarkedFitOccuCOP",
-  function(object, formulas, guide, design, ...){
-    sc <- generate_data(formulas$psi, guide, design$M)
-    oc <- generate_data(formulas$lambda, guide, design$J*design$M)
-    yblank <- matrix(0, design$M, design$J)
-    list(y=yblank, siteCovs=sc, obsCovs=oc)
-})
-
-
-## simulate_fit ----
-setMethod("simulate_fit", "unmarkedFitOccuCOP",
-  function(object, formulas, guide, design, ...){
-    # Generate covariates and create a y matrix of zeros
-    parts <- get_umf_components(object, formulas, guide, design, ...)
-    umf <- unmarkedFrameOccuCOP(y = parts$y, siteCovs = parts$siteCovs, obsCovs=parts$obsCovs)
-    fit <- suppressMessages(
-      occuCOP(
-        data = umf,
-        psiformula = formula(formulas$psi),
-        lambdaformula = formula(formulas$lambda),
-        se = FALSE,
-        control = list(maxit = 1)
-      )
-    )
-    return(fit)
-})
-
-
 ## simulate ----
 setMethod("simulate_internal", "unmarkedFitOccuCOP",
   function(object, nsim){

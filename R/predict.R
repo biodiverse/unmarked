@@ -6,6 +6,17 @@ setMethod("predict", "unmarkedFit",
   function(object, type, newdata, backTransform = TRUE, na.rm = TRUE,
            appendData = FALSE, level=0.95, re.form=NULL, ...){
 
+  predict_internal(object=object, type=type, newdata=newdata,
+                   backTransform=backTransform, na.rm=na.rm, appendData=appendData,
+                   level=level, re.form=re.form, ...)
+})
+
+setGeneric("predict_internal", function(object, ...) standardGeneric("predict_internal"))
+
+setMethod("predict_internal", "unmarkedFit",
+  function(object, type, newdata, backTransform = TRUE, na.rm = TRUE,
+           appendData = FALSE, level=0.95, re.form=NULL, ...){
+
   # If no newdata, get actual data
   if(missing(newdata) || is.null(newdata)) newdata <- object@data
 
