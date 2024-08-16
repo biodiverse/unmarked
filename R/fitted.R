@@ -156,7 +156,7 @@ setMethod("fitted_internal", "unmarkedFitOccuMulti", function(object){
 
   fitted_list <- list()
   for (i in 1:S){
-    marg_occ <- predict(object,'state',se.fit=F,species=i)$Predicted
+    marg_occ <- predict(object,'state',level=NULL,species=i)$Predicted
     occmat <- t(tcrossprod(rep(1,J),marg_occ))
     fitted_list[[i]] <- pmat[[i]] * occmat
   }
@@ -182,11 +182,11 @@ setMethod("fitted_internal", "unmarkedFitOccuMS", function(object){
   guide <- which(guide,arr.ind=TRUE)
 
   #Get predictions
-  pr <- predict(object, 'psi', se.fit=F)
+  pr <- predict(object, 'psi', level=NULL)
   pr <- sapply(pr,function(x) x$Predicted)
   pr <- pr[rep(1:nrow(pr),each=J),]
 
-  pr_det <- predict(object, 'det', se.fit=F)
+  pr_det <- predict(object, 'det', level=NULL)
   pr_det <- sapply(pr_det,function(x) x$Predicted)
 
   fitvals <- rep(NA, nrow(pr_det))

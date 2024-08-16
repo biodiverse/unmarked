@@ -673,7 +673,7 @@ setMethod("getP", "unmarkedFitOccuMulti", function(object)
   maxOrder <- object@call$maxOrder
   if(is.null(maxOrder)) maxOrder <- length(object@data@ylist)
   dm <- getDesign(object@data,object@detformulas,object@stateformulas, maxOrder=maxOrder)
-  pred <- predict(object,'det',se.fit=F)
+  pred <- predict(object,'det', level=NULL)
   dets <- do.call(cbind,lapply(pred,`[`,,1))
   #ugly mess
   out <- list()
@@ -694,7 +694,7 @@ setMethod("getP", "unmarkedFitOccuMS", function(object)
 {
   J <- ncol(object@data@y)
   N <- nrow(object@data@y)
-  pred <- predict(object, 'det', se.fit=F)
+  pred <- predict(object, 'det', level=NULL)
   lapply(pred, function(x) matrix(x$Predicted, nrow=N, ncol=J, byrow=T))
 })
 

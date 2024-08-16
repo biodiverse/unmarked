@@ -98,7 +98,7 @@ setMethod("ranef", "unmarkedFitOccuMS", function(object, ...)
   N <- numSites(object@data)
   S <- object@data@numStates
 
-  psi <- predict(object, "psi", se.fit=F)
+  psi <- predict(object, "psi", level=NULL)
   psi <- sapply(psi, function(x) x$Predicted)
   z <- 0:(S-1)
 
@@ -174,7 +174,7 @@ setMethod("ranef", "unmarkedFitOccuMulti", function(object, species, na.rm = FAL
     }
     species <- name_to_ind(species, names(object@data@ylist))
 
-    psi <- predict(object, type="state", se.fit=F, species=species)$Predicted
+    psi <- predict(object, type="state", level=NULL, species=species)$Predicted
     R <- length(psi)
     p <- getP(object)[[species]]
     z <- 0:1

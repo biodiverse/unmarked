@@ -267,7 +267,7 @@ test_that("occuMulti predict method works",{
   nul <- capture_output({
 
   nd <- siteCovs(umf)[1:2,]
-  pr_all <- predict(fm, type='state', se=F)$Predicted[1:2,1]
+  pr_all <- predict(fm, type='state', level=NULL)$Predicted[1:2,1]
   pr_nd <- predict(fm, type='state', newdata=nd, species=c(1,2))$Predicted
   expect_equivalent(pr_nd,pr_all, tol=1e-4)
 
@@ -430,11 +430,11 @@ test_that("occuMulti can handle complex formulas",{
   #effect resulting predictions (scale should be based on
   #original data)
   nd <- siteCovs(umf)[1:5,]
-  pr_nd <- predict(fm, type='state', newdata=nd, se=F)$Predicted
+  pr_nd <- predict(fm, type='state', newdata=nd, level=NULL)$Predicted
   nd <- siteCovs(umf)[1:2,]
-  pr_nd2 <- predict(fm, type='state', newdata=nd, se=F)$Predicted
+  pr_nd2 <- predict(fm, type='state', newdata=nd, level=NULL)$Predicted
   nd <- siteCovs(umf)[c(1,1),]
-  pr_nd3 <- predict(fm, type='state', newdata=nd, se=F)$Predicted
+  pr_nd3 <- predict(fm, type='state', newdata=nd, level=NULL)$Predicted
 
   expect_equivalent(pr_nd[1:2,], pr_nd2)
   expect_equivalent(pr_nd[c(1,1),], pr_nd3)
@@ -447,20 +447,20 @@ test_that("occuMulti can handle complex formulas",{
   fm <- occuMulti(detformulas, stateformulas, data = umf)
 
   nd <- siteCovs(umf)[1:2,]
-  pr_nd <- predict(fm, type='state', newdata=nd, se=F)$Predicted
+  pr_nd <- predict(fm, type='state', newdata=nd, level=NULL)$Predicted
 
   nd2 <- data.frame(occ_fac=factor(c('a','b'),levels=c('a','b','c')))
-  pr_nd2 <- predict(fm, type='state', newdata=nd2, se=F)$Predicted
+  pr_nd2 <- predict(fm, type='state', newdata=nd2, level=NULL)$Predicted
 
   expect_equivalent(pr_nd, pr_nd2[c(2,1),])
 
   nd3 <- data.frame(occ_fac=c('a','b'))
-  pr_nd3 <- predict(fm, type='state', newdata=nd3, se=F)$Predicted
+  pr_nd3 <- predict(fm, type='state', newdata=nd3, level=NULL)$Predicted
 
   expect_equivalent(pr_nd, pr_nd3[c(2,1),])
 
   nd4 <- data.frame(occ_fac=factor(c('a','d'),levels=c('a','d')))
-  expect_error(predict(fm, type='state', newdata=nd4, se=F))
+  expect_error(predict(fm, type='state', newdata=nd4, level=NULL))
 
   #Check that predicting detection also works
   nd5 <- data.frame(det_cov1 = rnorm(5))

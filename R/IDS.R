@@ -371,10 +371,10 @@ IDS_convert_class <- function(inp, type, ds_type=NULL){
       AIC=inp@AIC, output="density", TMB=inp@TMB)
 }
 
-# This predict method uses IDS_convert_class to allow pass-through to
+# This predict_internal method uses IDS_convert_class to allow pass-through to
 # distsamp predict method
-setMethod("predict", "unmarkedFitIDS", function(object, type, newdata,
-          backTransform=TRUE, appendData=FALSE, level=0.95, ...){
+setMethod("predict_internal", "unmarkedFitIDS", function(object, type, newdata,
+          backTransform=TRUE, na.rm=FALSE, appendData=FALSE, level=0.95, re.form=NULL, ...){
   stopifnot(type %in% names(object))
 
   # Special case of phi and  no newdata
@@ -392,7 +392,7 @@ setMethod("predict", "unmarkedFitIDS", function(object, type, newdata,
   } else { # Regular situation
     conv <- IDS_convert_class(object, type)
     type <- switch(type, lam="state", ds="det", pc="det", oc="det", phi="det")
-    out <- predict(conv, type, newdata, backTransform=backTransform, appendData=appendData,
+    out <- predict(conv, type=type, newdata=newdata, backTransform=backTransform, appendData=appendData,
                    level=level, ...)
   }
   out
