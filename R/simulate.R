@@ -624,7 +624,7 @@ setMethod("simulate_internal", "unmarkedFitOccuMS",
 
   prm <- object@parameterization
   # TODO: update syntax here
-  psi_raw <- predict(object, "psi", se.fit=FALSE)
+  psi_raw <- predict(object, "psi", level=NULL)
   psi_raw <- sapply(psi_raw, function(x) x$Predicted)
   p <- getP(object)
 
@@ -669,7 +669,7 @@ setMethod("simulate_internal", "unmarkedFitOccuMS",
   }
 
   if(T>1){
-    phi_raw <- predict(object, "phi", se.fit=F)
+    phi_raw <- predict(object, "phi", level=NULL)
     phi_raw <- sapply(phi_raw, function(x) x$Predicted)
     phi_index <- 1
     for (n in 1:N){
@@ -745,7 +745,7 @@ setMethod("simulate_internal", "unmarkedFitOccuMulti",
     if(is.null(maxOrder)) maxOrder <- length(object@data@ylist)
     dm <- getDesign(object@data, object@detformulas, object@stateformulas, maxOrder)
     # TODO: standardize this
-    psi <- predict(object, "state",se.fit=FALSE)$Predicted
+    psi <- predict(object, "state", level=NULL)$Predicted
     p <- getP(object)
     stopifnot(nrow(psi) == nrow(object@data@y))
 

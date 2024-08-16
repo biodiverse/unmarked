@@ -724,11 +724,11 @@ test_that("occuMS can handle complex formulas",{
   #effect resulting predictions (scale should be based on
   #original data)
   nd <- siteCovs(umf)[1:5,]
-  pr_nd <- predict(fit_C, type='psi', newdata=nd, se=F)$Predicted
+  pr_nd <- predict(fit_C, type='psi', newdata=nd, level=NULL)$Predicted
   nd <- siteCovs(umf)[1:2,]
-  pr_nd2 <- predict(fit_C, type='psi', newdata=nd, se=F)$Predicted
+  pr_nd2 <- predict(fit_C, type='psi', newdata=nd, level=NULL)$Predicted
   nd <- siteCovs(umf)[c(1,1),]
-  pr_nd3 <- predict(fit_C, type='psi', newdata=nd, se=F)$Predicted
+  pr_nd3 <- predict(fit_C, type='psi', newdata=nd, level=NULL)$Predicted
 
   expect_equivalent(pr_nd[1:2,], pr_nd2)
   expect_equivalent(pr_nd[c(1,1),], pr_nd3)
@@ -744,19 +744,19 @@ test_that("occuMS can handle complex formulas",{
   fm <- occuMS(detformulas, stateformulas, data = umf)
 
   nd <- siteCovs(umf)[1:2,]
-  pr_nd <- predict(fm, type='psi', newdata=nd, se=F)$Predicted
+  pr_nd <- predict(fm, type='psi', newdata=nd, level=NULL)$Predicted
 
   nd2 <- data.frame(occ_fac=factor(c('a','b'),levels=c('b','a','c')))
-  pr_nd2 <- predict(fm, type='psi', newdata=nd2, se=F)$Predicted
+  pr_nd2 <- predict(fm, type='psi', newdata=nd2, level=NULL)$Predicted
 
   expect_equivalent(pr_nd, pr_nd2[c(2,1),])
 
   nd3 <- data.frame(occ_fac=c('a','b'))
-  pr_nd3 <- predict(fm, type='psi', newdata=nd3, se=F)$Predicted
+  pr_nd3 <- predict(fm, type='psi', newdata=nd3, level=NULL)$Predicted
 
   expect_equivalent(pr_nd, pr_nd3[c(2,1),])
 
   nd4 <- data.frame(occ_fac=c('a','d'))
-  expect_error(predict(fm, type='psi', newdata=nd4, se=F))
+  expect_error(predict(fm, type='psi', newdata=nd4, level=NULL))
 
 })

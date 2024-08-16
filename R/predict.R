@@ -598,17 +598,19 @@ setMethod("get_formula", "unmarkedFitOccuMulti", function(object, type, ...){
 
 setMethod("predict", "unmarkedFitOccuMulti",
      function(object, type, newdata,
-              #backTransform = TRUE, na.rm = TRUE,
-              #appendData = FALSE,
-              se.fit=TRUE, level=0.95, species=NULL, cond=NULL, nsims=100,
+              level=0.95, species=NULL, cond=NULL, nsims=100,
               ...)
   {
 
   type <- match.arg(type, c("state", "det"))
 
   if(is.null(hessian(object))){
-    se.fit = FALSE
+    level <- NULL
   }
+  
+  #For backwards compatability
+  se.fit <- list(...)$se.fit
+  if(is.null(se.fit)) se.fit <- TRUE
 
   species <- name_to_ind(species, names(object@data@ylist))
   cond <- name_to_ind(cond, names(object@data@ylist))
@@ -654,7 +656,7 @@ setMethod("predict", "unmarkedFitOccuMulti",
 
     psi_est <- calc_psi(params)
 
-    if(se.fit){
+    if(!is.null(level)){
       message('Bootstrapping confidence intervals with ',nsims,' samples')
       Sigma <- vcov(object)
       samp <- array(NA,c(dim(psi_est),nsims))
@@ -678,7 +680,7 @@ setMethod("predict", "unmarkedFitOccuMulti",
         denom_inds <- apply(ftemp[,abs(cond),drop=F] == 1,1,all)
         est <- rowSums(psi_est[,num_inds,drop=F]) /
           rowSums(psi_est[,denom_inds, drop=F])
-        if(se.fit){
+        if(!is.null(level)){
           samp_num <- apply(samp[,num_inds,,drop=F],3,rowSums)
           samp_denom <- apply(samp[,denom_inds,,drop=F],3,rowSums)
           samp <- samp_num / samp_denom
@@ -687,13 +689,13 @@ setMethod("predict", "unmarkedFitOccuMulti",
       } else {
         num_inds <- apply(object@data@fDesign[,sel_col,drop=FALSE] == 1,1,all)
         est <- rowSums(psi_est[,num_inds,drop=F])
-        if(se.fit){
+        if(!is.null(level)){
           samp <- samp[,num_inds,,drop=F]
           samp <- apply(samp, 3, rowSums)
         }
       }
 
-      if(se.fit){
+      if(!is.null(level)){
         if(!is.matrix(samp)) samp <- matrix(samp, nrow=1)
         boot_se <- apply(samp,1,sd, na.rm=T)
         boot_low <- apply(samp,1,quantile,low_bound, na.rm=T)
@@ -709,7 +711,7 @@ setMethod("predict", "unmarkedFitOccuMulti",
     } else {
       codes <- apply(dm$z,1,function(x) paste(x,collapse=""))
       colnames(psi_est)  <- paste('psi[',codes,']',sep='')
-      if(se.fit){
+      if(!is.null(level)){
         boot_se <- apply(samp,c(1,2),sd, na.rm=T)
         boot_low <- apply(samp,c(1,2),quantile,low_bound, na.rm=T)
         boot_up <- apply(samp,c(1,2),quantile,up_bound, na.rm=T)
@@ -736,7 +738,7 @@ setMethod("predict", "unmarkedFitOccuMulti",
       new_est <- object@estimates@estimates$det
       new_est@estimates <- coef(object)[inds]
       new_est@fixed <- 1:length(inds)
-      if(se.fit){
+      if(!is.null(level)){
         new_est@covMat <- vcov(object)[inds,inds,drop=FALSE]
         new_est@covMatBS <- object@covMatBS[inds,inds,drop=FALSE]
       } else{
@@ -760,7 +762,7 @@ setMethod("predict", "unmarkedFitOccuMulti",
         lc <- linearComb(new_est, x_i)
         lc <- backTransform(lc)
         out <- data.frame(Predicted=coef(lc), SE=NA, lower=NA, upper=NA)
-        if(se.fit){
+        if(!is.null(level)){
           se <- SE(lc)
           ci <- confint(lc, level=level)
           out$SE <- se
@@ -795,10 +797,7 @@ setMethod("get_formula", "unmarkedFitOccuMS", function(object, type, ...){
 })
 
 setMethod("predict", "unmarkedFitOccuMS",
-     function(object, type, newdata,
-              #backTransform = TRUE, na.rm = TRUE,
-              #appendData = FALSE,
-              se.fit=TRUE, level=0.95, nsims=100, ...)
+     function(object, type, newdata, level=0.95, nsims=100, ...)
 {
 
   #Process input---------------------------------------------------------------
@@ -807,8 +806,12 @@ setMethod("predict", "unmarkedFitOccuMS",
   }
 
   if(is.null(hessian(object))){
-    se.fit = FALSE
+    level = NULL
   }
+
+  #For backwards compatability
+  se.fit <- list(...)$se.fit
+  if(is.null(se.fit)) se.fit <- TRUE
 
   if(missing(newdata)){
     newdata <- NULL
@@ -842,10 +845,10 @@ setMethod("predict", "unmarkedFitOccuMS",
   }
 
   #Get SE/CIs for conditional binomial using delta method
-  split_estimate <- function(object, estimate, inds, se.fit){
+  split_estimate <- function(object, estimate, inds, level){
     out <- estimate
     out@estimates <- coef(object)[inds]
-    if(se.fit){
+    if(!is.null(level)){
       out@covMat <- vcov(object)[inds,inds,drop=FALSE]
     } else{
       out@covMat <- matrix(NA, nrow=length(inds), ncol=length(inds))
@@ -853,13 +856,13 @@ setMethod("predict", "unmarkedFitOccuMS",
     out
   }
 
-  lc_to_predict <- function(object, estimate, inds, dm, level, se.fit){
+  lc_to_predict <- function(object, estimate, inds, dm, level){
 
-    new_est <- split_estimate(object, estimate, inds[1]:inds[2], se.fit)
+    new_est <- split_estimate(object, estimate, inds[1]:inds[2], level)
 
     out <- t(apply(dm, 1, function(x){
       bt <- backTransform(linearComb(new_est, x))
-      if(!se.fit) return(c(Predicted=bt@estimate, SE=NA, lower=NA, upper=NA))
+      if(is.null(level)) return(c(Predicted=bt@estimate, SE=NA, lower=NA, upper=NA))
       ci <- confint(bt, level=level)
       names(ci) <- c("lower", "upper")
       c(Predicted=bt@estimate, SE=SE(bt), ci)
@@ -931,7 +934,7 @@ setMethod("predict", "unmarkedFitOccuMS",
 
   if(object@parameterization == 'condbinom'){
     out <- lapply(1:length(dm_list), function(i){
-      lc_to_predict(object, est, ind[i,], dm_list[[i]], level, se.fit)
+      lc_to_predict(object, est, ind[i,], dm_list[[i]], level)
     })
     names(out) <- names(dm_list)
     return(out)
@@ -943,7 +946,7 @@ setMethod("predict", "unmarkedFitOccuMS",
     M <- nrow(pred)
     upr <- lwr <- se <- matrix(NA,M,P)
 
-    if(se.fit){
+    if(!is.null(level)){
       message('Bootstrapping confidence intervals with',nsims,'samples')
 
       sig <- vcov(object)
