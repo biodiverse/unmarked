@@ -223,6 +223,12 @@ test_that("unmarkedFrameGDR is constructed correctly",{
   expect_equivalent(numSites(umf_sub), 3)
   expect_error(umf[,1:2])
 
+  umf_sub <- umf[c(2,2,3),]
+  expect_equal(numSites(umf_sub), 3)
+  expect_equivalent(umf_sub[1,], umf[2,])
+  expect_equivalent(umf_sub[2,], umf[2,])
+  expect_equivalent(umf_sub[3,], umf[3,])
+
   # Input mistake handling
 
   # Wrong number of dist.breaks
@@ -348,6 +354,13 @@ test_that("gdistremoval can fit models",{
 
   pb <- parboot(fit, nsim=2)
   expect_is(pb, "parboot")
+
+  np <- nonparboot(fit, B=2)
+  expect_equal(length(np@bootstrapSamples), 2)
+  expect_true(np@bootstrapSamples[[1]]@AIC != np@bootstrapSamples[[2]]@AIC)
+  expect_true(all(sapply(np@bootstrapSamples, function(x) numSites(x@data)) ==
+                  numSites(fit@data)))
+  v <- vcov(np, method='nonparboot')
 
   # Fit list construction
   fl <- fitList(fits=list(fit1=fit, fit2=fit))

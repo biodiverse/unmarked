@@ -98,14 +98,16 @@ setMethod("[", c("unmarkedFrameGDR", "numeric", "missing", "missing"),
 
   if(!is.null(oc)){
     site_idx <- rep(1:M, each=Rrem)
-    keep <- site_idx %in% i
-    oc <- oc[keep,,drop=FALSE]
+    oc <- do.call("rbind", lapply(i, function(ind){
+      obsCovs(x)[site_idx == ind,,drop=FALSE]
+    }))
   }
 
   if(!is.null(ysc)){
     site_idx <- rep(1:M, each=T)
-    keep <- site_idx %in% i
-    ysc <- ysc[keep,,drop=FALSE]
+    ysc <- do.call("rbind", lapply(i, function(ind){
+      yearlySiteCovs(x)[site_idx == ind,,drop=FALSE]
+    }))
   }
 
   umf <- x
@@ -810,12 +812,6 @@ setMethod("replaceY", "unmarkedFrameGDR",
 setMethod("SSE", "unmarkedFitGDR", function(fit, ...){
     r <- sapply(residuals(fit), function(x) sum(x^2, na.rm=T))
     return(c(SSE = sum(r)))
-})
-
-setMethod("nonparboot_internal", "unmarkedFitGDR",
-    function(object, B, keepOldSamples)
-{
-   stop("Not currently supported for unmarkedFitGDR", call.=FALSE)
 })
 
 
