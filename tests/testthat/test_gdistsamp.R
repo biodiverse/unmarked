@@ -50,6 +50,14 @@ test_that("unmarkedFrameGDS subset works",{
     expect_equal(umf2.site1@survey, "line")
 
     umf2.sites1and3 <- umf2[c(1,3),]
+    expect_equal(numSites(umf2.sites1and3), 2)
+    expect_equivalent(umf2[1,], umf2.sites1and3[1,])
+    expect_equivalent(umf2[3,], umf2.sites1and3[2,])
+
+    umf3 <- umf2[c(2,2,3),]
+    expect_equivalent(umf3[1,], umf2[2,])
+    expect_equivalent(umf3[2,], umf2[2,])
+    expect_equivalent(umf3[3,], umf2[3,])
 })
 
 test_that("gdistsamp with halfnorm keyfunction works",{
@@ -149,7 +157,11 @@ test_that("gdistsamp with halfnorm keyfunction works",{
     expect_is(s, "list")
     expect_equal(length(s), 2)
     pb <- parboot(fm_C, nsim=1)
-    expect_is(pb, "parboot")
+    expect_equal(pb@t.star[1,1], 105.6289, tol=1e-4)
+    npb <- nonparboot(fm_C, B=2)
+    expect_equal(length(npb@bootstrapSamples), 2)
+    v <- vcov(npb, method='nonparboot')
+    expect_equal(nrow(v), length(coef(npb)))
 
     #Negative binomial
     #fm_R <- gdistsamp(~par1, ~par2, ~par3, umf, output="density", se=FALSE,

@@ -51,6 +51,8 @@ test_that("unmarkedFrameGMM subset works",{
   expect_equal(class(umf1.site1)[1], "unmarkedFrameGMM")
 
   umf1.sites1and1 <- umf1[c(1,1),]
+  expect_equivalent(umf1.sites1and1[1,], umf1[1,])
+  expect_equivalent(umf1.sites1and1[2,], umf1[1,])
   umf1.obs1and2 <- umf1[,c(1,2)]
 
   expect_equivalent(dim(getY(umf1.obs1and2)), c(3,6))
@@ -67,6 +69,7 @@ test_that("unmarkedFrameGMM subset works",{
 })
 
 test_that("gmultmix removal model works",{
+  set.seed(123)
   y <- matrix(0:3, 5, 4)
   siteCovs <- data.frame(x = c(0,2,3,4,1))
   siteCovs[3,1] <- NA
@@ -153,7 +156,14 @@ test_that("gmultmix removal model works",{
   expect_equal(length(s), 2)
 
   expect_warning(pb <- parboot(fm_C, nsim=1))
+  expect_equal(pb@t.star[1,1], 8.8994, tol=1e-4)
   expect_is(pb, "parboot")
+
+  npb <- expect_warning(nonparboot(fm_C, B=2))
+  expect_equal(length(npb@bootstrapSamples), 2)
+  expect_equal(npb@bootstrapSamples[[1]]@AIC, 30.0654, tol=1e-4)
+  v <- vcov(npb, method='nonparboot')
+  expect_equal(nrow(v), length(coef(npb)))
 
   expect_error(gmultmix(~(1|dummy),~1,~1,umf))
 

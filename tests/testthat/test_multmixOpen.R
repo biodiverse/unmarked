@@ -48,6 +48,32 @@ simData <- function(lambda=1, gamma=0.5, omega=0.8, p=0.5, M=100, T=5,
     return(list(y=matrix(y, M),N=N))
 }
 
+test_that("subsetting unmarkedFrameMMO works", {
+  set.seed(123)
+  simy <- simData(lambda=4, gamma=0.5, omega=0.8, p=0.5,
+                M=100, T=5)
+
+  sc <- data.frame(x1=rnorm(100))
+  ysc <- data.frame(x2=rnorm(100*5))
+  oc <- data.frame(x3 = rnorm(100*5*3))
+
+  umf <- unmarkedFrameMMO(y=simy$y, numPrimary=5, siteCovs=sc, yearlySiteCovs=ysc,
+                          obsCovs=oc, type='removal')
+  
+  # subset sites
+  umf_sub <- umf[2:3,]
+  expect_equal(numSites(umf_sub), 2)
+  expect_equivalent(umf_sub[1,], umf[2,])
+  expect_equivalent(umf_sub[2,], umf[3,])
+  umf_sub <- umf[c(2,2,4),]
+  expect_equivalent(umf_sub[1,], umf[2,])
+  expect_equivalent(umf_sub[2,], umf[2,])
+  expect_equivalent(umf_sub[3,], umf[4,])
+  set.seed(123)
+  keep <- runif(numSites(umf), 0, 1) > 0.5
+  expect_error(umf_sub <- umf[keep,]) # this should work
+})
+
 test_that("multmixOpen can fit removal models",{
 
   set.seed(123)
@@ -103,6 +129,18 @@ test_that("multmixOpen can fit removal models",{
   set.seed(123)
   ran <- ranef(fit)
   expect_equivalent(bup(ran)[1,1], 3.450738, tol=1e-5)
+
+  #parboot
+  pb <- parboot(fit, nsim=2)
+  expect_equal(pb@t.star[1,1], 1552.707, tol=1e-4)
+
+  #nonparboot
+  npb <- nonparboot(fit, B=2)
+  expect_equal(length(npb@bootstrapSamples), 2)
+  expect_equal(npb@bootstrapSamples[[1]]@AIC, 2208.432, tol=1e-4)
+  expect_equal(numSites(npb@bootstrapSamples[[1]]@data), numSites(npb@data))
+  v <- vcov(npb, method='nonparboot')
+  expect_equal(nrow(v), length(coef(npb)))
 
   #Check error when random effect in formula
   expect_error(multmixOpen(~(1|dummy), ~1, ~1, ~1, umf))

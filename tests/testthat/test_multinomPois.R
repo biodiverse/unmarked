@@ -42,12 +42,19 @@ test_that("unmarkedFrameMPois can be constructed",{
     expect_error(unmarkedFrameMPois(y=y, siteCovs=sc,
                                obsCovs=lapply(oc, function(x) x[,1:2]),
                                type="depDouble"))
-
-
+    # subset sites
+    umf_sub <- umf3[2:3,]
+    expect_equal(numSites(umf_sub), 2)
+    expect_equivalent(umf_sub[1,], umf3[2,])
+    expect_equivalent(umf_sub[2,], umf3[3,])
+    umf_sub <- umf3[c(2,2,4),]
+    expect_equivalent(umf_sub[1,], umf3[2,])
+    expect_equivalent(umf_sub[2,], umf3[2,])
+    expect_equivalent(umf_sub[3,], umf3[4,])
 })
 
 test_that("multinomPois can fit a removal model",{
-
+    set.seed(123)
     y <- matrix(c(
         5, 3, 2,
         3, 3, 1,
@@ -124,6 +131,14 @@ test_that("multinomPois can fit a removal model",{
 
     expect_warning(pb <- parboot(m2_C, nsim=1))
     expect_is(pb, "parboot")
+    expect_equal(pb@t.star[1,1], 5.2789, tol=1e-4)
+
+    npb <- expect_warning(nonparboot(m2_C, B=2))
+    expect_equal(length(npb@bootstrapSamples), 2)
+    expect_equal(npb@bootstrapSamples[[1]]@AIC, 30.45706, tol=1e-4)
+    expect_equal(numSites(npb@bootstrapSamples[[1]]@data), numSites(npb@data))
+    v <- vcov(npb, method='nonparboot')
+    expect_equal(nrow(v), length(coef(npb)))
 })
 
 test_that("multinomPois can fit a double observer model",{

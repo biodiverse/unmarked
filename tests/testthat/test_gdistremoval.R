@@ -353,14 +353,14 @@ test_that("gdistremoval can fit models",{
   expect_equivalent(length(bup(r)), 50)
 
   pb <- parboot(fit, nsim=2)
-  expect_is(pb, "parboot")
+  expect_equal(pb@t.star[1,1], 126, tol=1e-4)
 
   np <- nonparboot(fit, B=2)
   expect_equal(length(np@bootstrapSamples), 2)
   expect_true(np@bootstrapSamples[[1]]@AIC != np@bootstrapSamples[[2]]@AIC)
   expect_true(all(sapply(np@bootstrapSamples, function(x) numSites(x@data)) ==
                   numSites(fit@data)))
-  v <- vcov(np, method='nonparboot')
+  expect_equal(nrow(vcov(np, method='nonparboot')), length(coef(np)))
 
   # Fit list construction
   fl <- fitList(fits=list(fit1=fit, fit2=fit))

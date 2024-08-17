@@ -36,6 +36,14 @@ test_that("unmarkedFrameOccuMS is constructed properly",{
   expect_equivalent(numSites(umf_sub1),20)
   expect_is(umf_sub1, "unmarkedFrameOccuMS")
 
+  umf_sub <- umf[c(4,4,8),]
+  expect_equivalent(umf_sub[1,], umf[4,])
+  expect_equivalent(umf_sub[2,], umf[4,])
+  expect_equivalent(umf_sub[3,], umf[8,])
+
+  keep <- rep(TRUE, numSites(umf_sub))
+  expect_error(umf_sub <- umf[keep,]) # should work
+
   y[y>1] <- 1
   expect_error(unmarkedFrameOccuMS(y=y,siteCovs=site_covs,obsCovs=obs_covs))
 })
@@ -232,6 +240,18 @@ test_that("occuMS can fit the multinomial model",{
   expect_message(expect_warning(fl <- fitList(fits=list(fit_C, fit_C), autoNames='formula')))
   expect_is(fl,"unmarkedFitList")
   expect_equivalent(length(fl@fits), 2)
+
+  # Check parboot
+  set.seed(123)
+  pb <- parboot(fit_C, nsim=2)
+  expect_equal(pb@t.star[1,1], 63.80337, tol=1e-4)
+
+  npb <- nonparboot(fit_C, B=2)
+  expect_equal(length(npb@bootstrapSamples), 2)
+  expect_equal(npb@bootstrapSamples[[1]]@AIC, 355.3301, tol=1e-4)
+  expect_equal(numSites(npb@bootstrapSamples[[1]]@data), numSites(npb@data))
+  v <- vcov(npb, method='nonparboot')
+  expect_equal(nrow(v), length(coef(npb)))
 
   # Check error when random effect in formula
   stateformulas[1] <- "~(1|dummy)"
