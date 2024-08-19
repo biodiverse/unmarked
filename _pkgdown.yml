@@ -87,24 +87,34 @@ reference:
       - plotEffects
       - randomTerms
       - sigma
-  - title: internal
+  - title: Datasets
     contents:
-      - MesoCarnivores
-      - SE-methods
-      - SSE
-      - Switzerland
       - birds
-      - computeMPLElambda
-      - confint-methods
       - crossbill
       - cruz
+      - frogs
+      - gf
+      - issj
+      - jay
+      - linetran
+      - mallard
+      - masspcru
+      - MesoCarnivores
+      - ovendata
+      - pointtran
+      - Switzerland
+  - title: internal
+    contents:
+      - SE-methods
+      - SSE
+      - computeMPLElambda
+      - confint-methods
       - csvToUMF
       - detFuns
       - "[-methods"
       - formatDistData
       - formatMult
       - formatWideLong
-      - frogs
       - getB-methods
       - unmarkedPowerList
       - vcov-methods
@@ -112,18 +122,10 @@ reference:
       - optimizePenalty-methods
       - getFP-methods
       - getP-methods
-      - gf
       - imputeMissing
-      - issj
-      - jay
       - lambda2psi
-      - linetran
       - makePiFuns
-      - mallard
-      - masspcru
-      - ovendata
       - piFuns
-      - pointtran
       - unmarkedPower-methods
       - shinyPower
       - unmarkedFitList-class
@@ -133,3 +135,5 @@ reference:
       - plot,parboot,missing-method
       - show,parboot-method
       - sight2perpdist
+      - predict,unmarkedFitOccuMulti-method
+      - predict,unmarkedFitOccuMS-method
