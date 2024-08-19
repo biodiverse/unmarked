@@ -210,11 +210,12 @@ setMethod("summary", "unmarkedFit", function(object)
 
 setMethod("summary", "unmarkedFitDS", function(object)
 {
-    callNextMethod()
+    out <- callNextMethod()
     cat("Survey design: ", object@data@survey, "-transect", sep="")
     cat("\nDetection function:", object@keyfun)
     cat("\nUnitsIn:", object@data@unitsIn)
     cat("\nUnitsOut:", object@unitsOut, "\n\n")
+    invisible(out)
 })
 
 

@@ -40,6 +40,10 @@ test_that("distsamp works with covariates", {
         dist.breaks=c(0, 5, 10)/1000, survey="line", tlength=rep(1, 5),
         unitsIn="km")
   fm <- distsamp(~ x ~ x, data = umf)
+  
+  # Check summary returns an object
+  nul <- capture.output(s <- summary(fm))
+  expect_is(s, "list")
 
   lam <- fm['state']
   det <- fm['det']
