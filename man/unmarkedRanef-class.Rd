@@ -35,7 +35,7 @@ Objects can be created by calls of the form \code{\link{ranef}}.
     \item{confint}{\code{signature(object = "unmarkedRanef")}: Compute
       confidence intervals.}
     \item{plot}{\code{signature(x = "unmarkedRanef", y = "missing")}:
-      Plot the posteriors using \code{\link{xyplot}}}
+      Plot the posteriors using \code{xyplot}}
     \item{show}{\code{signature(object = "unmarkedRanef")}: Display the
     modes and confidence intervals}
 }
