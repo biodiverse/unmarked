@@ -32,7 +32,7 @@ setMethod("replaceY", "unmarkedFrameOccuMulti",
 
 
 setMethod("parboot", "unmarkedFit",  function(object, statistic=SSE, nsim=10,
-          report, seed = NULL, parallel = FALSE, ncores, ...){
+          report, parallel = FALSE, ncores, ...){
 
   if(!missing(report)){
     warning("report argument is non-functional and will be deprecated in the next version", call.=FALSE)

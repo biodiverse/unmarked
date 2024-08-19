@@ -59,14 +59,13 @@ test_that("IDS can fit models with covariates", {
   r <- residuals(mod_sim)
   expect_equal(lapply(r, dim), list(ds=c(1000,6), pc = c(300,1)))
 
-  # parboot
-  pb <- parboot(mod_sim, nsim=2)
-  
   pdf(NULL)
   plot(mod_sim)
   hist(mod_sim)
   dev.off()
 
+  # unsupported methods
+  expect_error(parboot(mod_sim, nsim=2))
   expect_error(nonparboot(mod_sim))
   expect_error(ranef(mod_sim))
 
@@ -117,8 +116,6 @@ test_that("IDS can fit models with occupancy data", {
   
   res <- residuals(mod_oc)
   expect_equal(lapply(res, dim), list(ds=c(100,6), pc = c(100,1), oc=c(100,1)))
-
-  pb <- parboot(mod_oc, nsim=1)
 
   # Don't estimate availability if OC data
   expect_error(

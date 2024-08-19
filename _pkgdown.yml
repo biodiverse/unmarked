@@ -130,4 +130,6 @@ reference:
       - unmarked-package
       - unmarkedEstimate-class
       - unmarkedEstimateList-class
+      - plot,parboot,missing-method
+      - show,parboot-method
       - sight2perpdist

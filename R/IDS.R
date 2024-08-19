@@ -582,58 +582,12 @@ setMethod("rebuild_call", "unmarkedFitIDS", function(object){
 })
 
 
-setMethod("parboot", "unmarkedFitIDS",
-    function(object, statistic=SSE, nsim=10, ...)
-{
-    dots <- list(...)
-    statistic <- match.fun(statistic)
-    call <- match.call(call = sys.call(-1))
-    starts <- as.numeric(coef(object))
-
-    t0 <- statistic(object, ...)
-    lt0 <- length(t0)
-    t.star <- matrix(NA, nsim, lt0)
-    #if(!missing(report))
-    #    cat("t0 =", t0, "\n")
-
-    simList <- simulate(object, nsim = nsim, na.rm = FALSE)
-
-    dataDS <- object@data
-    dataPC <- object@dataPC
-    has_pc <- "pc" %in% names(object)
-    dataOC <- object@dataOC
-    has_oc <- "oc" %in% names(object)
-
-    t.star <- lapply(1:nsim, function(i){
-      dataDS@y <- simList[[i]]$ds
-      if(has_pc) dataPC@y <- simList[[i]]$pc
-      if(has_oc) dataOC@y <- simList[[i]]$oc
-      fit <- update(object, dataDS=dataDS, dataPC=dataPC, dataOC=dataOC, 
-                    durationDS = object@surveyDurations$ds,
-                    durationPC = object@surveyDurations$pc,
-                    durationOC = object@surveyDurations$oc,
-                    starts=starts)
-      statistic(fit)
-    })
-    if(lt0 > 1){
-      t.star <- t(t.star)
-    } else {
-      t.star <- matrix(t.star, ncol=lt0)
-    }
-
-    if (!is.null(names(t0))){
-      colnames(t.star) <- names(t0)
-    } else{
-      colnames(t.star) <- paste("t*", 1:lt0, sep="")
-    }
-
-    out <- new("parboot", call = call, t0 = t0, t.star = t.star)
-    return(out)
+setMethod("SSE", "unmarkedFitIDS", function(fit, ...){
+  stop("Not currently supported for unmarkedFitIDS", call.=FALSE)
 })
 
-setMethod("SSE", "unmarkedFitIDS", function(fit, ...){
-    r <- unlist(residuals(fit))
-    return(c(SSE = sum(r^2, na.rm=T)))
+setMethod("replaceY", "unmarkedFitIDS", function(object, newY, replNA, ...){
+  stop("Not currently supported for unmarkedFitIDS", call.=FALSE)
 })
 
 setMethod("nonparboot_internal", "unmarkedFitIDS",

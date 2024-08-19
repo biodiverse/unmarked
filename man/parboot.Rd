@@ -1,19 +1,25 @@
 \name{parboot}
 \alias{parboot}
-\alias{parboot,unmarkedFitIDS-method}
+\alias{parboot,unmarkedFit-method}
 \alias{plot,parboot,missing-method}
 \alias{show,parboot-method}
-\title{Parametric bootstrap method for fitted models inheriting class.}
+
+\title{Parametric bootstrap method for \code{unmarked} models}
+
 \description{Simulate datasets from a fitted model, refit the model, and
   generate a sampling distribution for a user-specified fit-statistic.}
+
+\usage{
+\S4method{parboot}{unmarkedFit}(object, statistic = SSE, nsim = 10, 
+                                report, parallel = FALSE, ncores, ...)
+}
+
 \arguments{
   \item{object}{a fitted model inheriting class "unmarkedFit"}
   \item{statistic}{a function returning a vector of fit-statistics.
-    First argument must be the fitted model.
-    Default is sum of squared residuals.}
+    First argument must be the fitted model. Default is sum of squared residuals.}
   \item{nsim}{number of bootstrap replicates}
-  \item{report}{print fit statistic every 'report' iterations during resampling}
-  \item{seed}{set seed for reproducible bootstrap}
+  \item{report}{Non-functional; will be removed soon.}
   \item{parallel}{logical (default = \code{TRUE}) indicating whether to compute 
     bootstrap on multiple cores, if present.  If \code{TRUE}, suppresses reporting
     of bootstrapped statistics.  Defaults to serial calculation when \code{nsim} < 100.
@@ -21,17 +27,21 @@
     but should speed up the bootstrap of more complicated models.}
   \item{ncores}{integer (default = one less than number of available cores) number of cores to
     use when bootstrapping in parallel.} 
-  \item{...}{Additional arguments to be passed to statistic}}
+  \item{...}{Additional arguments to be passed to \code{statistic}}
+}
+
 \details{This function simulates datasets based upon a fitted model,
   refits the model, and evaluates a user-specified fit-statistic for each
   simulation. Comparing this sampling distribution to the observed statistic
   provides a means of evaluating goodness-of-fit or assessing uncertainty in
   a quantity of interest.}
+
 \value{
-  An object of class parboot with three slots:
+  An object of class \code{parboot} with three slots:
   \item{call}{parboot call}
   \item{t0}{Numeric vector of statistics for original fitted model.}
-  \item{t.star}{nsim by length(t0) matrix of statistics for each simulation fit.}}
+  \item{t.star}{nsim by length(t0) matrix of statistics for each simulation fit.}
+}
 
 \author{Richard Chandler \email{rbchan@uga.edu} and Adam Smith}
 
@@ -66,6 +76,7 @@ fitstats <- function(fm, na.rm=TRUE) {
     return(out)
 }
 
+\donttest{
 (pb <- parboot(fm, fitstats, nsim=25, report=1))
 plot(pb, main="")
 
@@ -82,7 +93,7 @@ set.seed(345)
 
 # Compare to empirical Bayes confidence intervals
 colSums(confint(ranef(fm, K=50)))
-
+}
 
 
 }
