@@ -27,12 +27,20 @@ test_that("unmarkedFramePCO subset works",{
 
     umf1.sites1and3 <- umf1[c(1,3),]
 
+    umf_sub <- umf1[c(2,2,3),]
+    expect_equal(numSites(umf_sub), 3)
+    expect_equivalent(umf_sub[1,], umf1[2,])
+    expect_equivalent(umf_sub[2,], umf1[2,])
+    expect_equivalent(umf_sub[3,], umf1[3,])
+
     # subset by primary period
     umf_sub <- umf1[,1:2]
     expect_equal(umf_sub@numPrimary, 2)
 })
 
 test_that("pcountOpen can fit a null model",{
+
+  set.seed(123)
   y <- matrix(c(
       3, 2, 1, 4,
       3, 4, 2, 1,
@@ -79,6 +87,14 @@ test_that("pcountOpen can fit a null model",{
 
   pb <- parboot(fm1, nsim=1)
   expect_is(pb, "parboot")
+  expect_equal(pb@t.star[1,1], 50.7096, tol=1e-4)
+
+  npb <- nonparboot(fm1, B=2)
+  expect_equal(length(npb@bootstrapSamples), 2)
+  expect_equal(npb@bootstrapSamples[[1]]@AIC, 70.26772, tol=1e-4)
+  expect_equal(numSites(npb@bootstrapSamples[[1]]@data), numSites(npb@data))
+  v <- vcov(npb, method='nonparboot')
+  expect_equal(nrow(v), length(coef(npb)))
 
   # Check error when random effect in formula
   expect_error(pcountOpen(~(1|dummy),~1,~1,~1, data=umf))

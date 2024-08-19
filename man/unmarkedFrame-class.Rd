@@ -51,6 +51,7 @@
 \alias{[,unmarkedFrameOccuTTD,numeric,missing,missing-method}
 \alias{[,unmarkedFrameOccuMulti,numeric,missing,missing-method}
 \alias{[,unmarkedFrameDSO,numeric,missing,missing-method}
+\alias{[,unmarkedFrameMMO,numeric,missing,missing-method}
 \alias{[,unmarkedFrameGDR,numeric,missing,missing-method}
 \alias{[,unmarkedFrameGDR,logical,missing,missing-method}
 \alias{[,unmarkedFrameOccuCOP,missing,numeric,missing-method}

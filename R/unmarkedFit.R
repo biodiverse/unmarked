@@ -300,10 +300,34 @@ setMethod("vcov", "unmarkedFit",
     if (missing(type)) {
         return (v)
     } else {
+      object[type]
         inds <- .estimateInds(object)[[type]]
         return (v[inds, inds, drop = FALSE])
         }
 })
+
+## A helper function to return a list of indices for each estimate type
+##
+.estimateInds <- function(umf) {
+  ## get length of each estimate
+  estimateLengths <- sapply(umf@estimates@estimates, function(est) {
+    length(coef(est))
+  })
+  ## recurse function to generate list of indices
+  estimateInds <- function(type) {
+    if(type==1) {
+      return(list(seq(length=estimateLengths[1])))
+    } else {
+      prev.list <- estimateInds(type-1)
+      prev.max <- max(prev.list[[type-1]])
+      return(c(prev.list, list(seq(prev.max+1, prev.max +
+                                   estimateLengths[type]))))
+    }
+  }
+  retlist <- estimateInds(length(estimateLengths))
+  names(retlist) <- names(umf)
+  retlist
+}
 
 setMethod("vcov", "unmarkedFitOccuMulti",
     function (object, type, altNames = TRUE, method = "hessian", ...)

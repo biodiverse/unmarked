@@ -30,11 +30,22 @@ test_that("unmarkedMultFrame construction works",{
                             obsCovs=list(oc=oc), numPrimary=3))
 
   plot(umf1)
+
+  # Subsetting
+  umf_sub <- umf1[2:3,]
+  expect_equal(numSites(umf_sub), 2)
+  expect_equivalent(umf_sub[1,], umf1[2,])
+  expect_equivalent(umf_sub[2,], umf1[3,])
+  umf_sub <- umf1[c(2,2,4),]
+  expect_equivalent(umf_sub[1,], umf1[2,])
+  expect_equivalent(umf_sub[2,], umf1[2,])
+  expect_equivalent(umf_sub[3,], umf1[4,])
 })
 
 
 test_that("colext model fitting works", {
 
+  set.seed(123)
   umf1 <- unmarkedMultFrame(y=y, siteCovs=sc, obsCovs=list(oc=oc),
                             yearlySiteCovs=list(ysc=ysc), numPrimary=nyr)
 
@@ -69,6 +80,20 @@ test_that("colext model fitting works", {
   expect_equal(dim(r@post), c(nsites, nrep, nyr))
   expect_equal(dim(bup(r)), c(nsites, nyr))
 
+  # nonparboot
+  expect_true(is.null(fm4@projected.mean.bsse))
+  expect_true(is.null(fm4@smoothed.mean.bsse))
+  npb <- nonparboot(fm4, B=2)
+  expect_equal(length(npb@bootstrapSamples), 2)
+  expect_equal(npb@bootstrapSamples[[1]]@AIC, 19.7288, tol=1e-4)
+  v <- vcov(npb, method='nonparboot')
+  expect_equal(nrow(v), length(coef(npb)))
+  expect_is(npb@projected.mean.bsse, "matrix")
+  expect_is(npb@smoothed.mean.bsse, "matrix")
+   
+  # parboot
+  pb <- parboot(fm4, nsim=2)
+  expect_equal(pb@t.star[1,1], 10.2840, tol=1e-4)
 })
 
 test_that("colext handles missing values",{

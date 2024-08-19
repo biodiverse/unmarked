@@ -29,6 +29,8 @@ test_that("unmarkedFrameGPC subset works",{
     expect_is(umf1.site1, "unmarkedFrameGPC")
 
     umf1.sites1and1 <- umf1[c(1,1),]
+    expect_equivalent(umf1.sites1and1[1,], umf1[1,])
+    expect_equivalent(umf1.sites1and1[2,], umf1[1,])
 
     umf1.obs1and2 <- umf1[,c(1,2)]
 
@@ -47,6 +49,7 @@ test_that("unmarkedFrameGPC subset works",{
 })
 
 test_that("gpcount function works", {
+  set.seed(123)
   y <- matrix(c(0,0,0, 1,0,1, 2,2,2,
                 3,2,3, 2,2,2, 1,1,1,
                 NA,0,0, 0,0,0, 0,0,0,
@@ -107,7 +110,14 @@ test_that("gpcount function works", {
   expect_equal(dim(s[[1]]), dim(y))
 
   expect_warning(pb <- parboot(fm, nsim=1))
+  expect_equal(pb@t.star[1], 24.06449, tol=1e-4)
   expect_is(pb, "parboot")
+
+  npb <- expect_warning(nonparboot(fm, B=2))
+  expect_equal(length(npb@bootstrapSamples), 2)
+  expect_equal(npb@bootstrapSamples[[1]]@AIC, 36.08938, tol=1e-4)
+  v <- vcov(npb, method='nonparboot')
+  expect_equal(nrow(v), length(coef(npb)))
 
   # Check error when random effect in formula
   expect_error(gpcount(~(1|dummy),~1,~1,umf))

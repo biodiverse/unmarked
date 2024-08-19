@@ -116,8 +116,14 @@ test_that("unmarkedFrameDSO build properly", {
                                   survey='line', unitsIn='m', tlength=rep(1,100)))
 
   # subset sites
-  umf_sub <- umf[1:3,]
-  expect_equal(nrow(umf_sub@y), 3)
+  umf_sub <- umf[2:3,]
+  expect_equal(numSites(umf_sub), 2)
+  expect_equivalent(umf_sub[1,], umf[2,])
+  expect_equivalent(umf_sub[2,], umf[3,])
+  umf_sub <- umf[c(2,2,4),]
+  expect_equivalent(umf_sub[1,], umf[2,])
+  expect_equivalent(umf_sub[2,], umf[2,])
+  expect_equivalent(umf_sub[3,], umf[4,])
 })
 
 test_that("dso halfnorm key function works",{
@@ -178,6 +184,14 @@ test_that("dso halfnorm key function works",{
 
   fm2 <- update(fm, pformula=~1)
   expect_equal(length(coef(fm2)), 4)
+
+  npb <- nonparboot(fm, B=2)
+  expect_equal(length(npb@bootstrapSamples), 2)
+  v <- vcov(npb, method='nonparboot')
+  expect_equal(nrow(v), length(coef(npb)))
+
+  pb <- parboot(fm, nsim=2)
+  expect_equal(pb@t.star[1,1], 432.0433, tol=1e-4)
 
   fm <- distsampOpen(~1, ~1, ~1, ~x1, data = umf, K=10,keyfun="halfnorm",
                      mixture="ZIP")

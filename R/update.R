@@ -142,7 +142,9 @@ setMethod("rebuild_call", "unmarkedFitOccuMS", function(object){
   cl <- methods::callNextMethod(object)
   cl[["detformulas"]] <- quote(object@detformulas)
   cl[["psiformulas"]] <- quote(object@psiformulas)
-  cl[["phiformulas"]] <- quote(object@phiformulas)
+  if(!all(is.na(object@phiformulas))){
+    cl[["phiformulas"]] <- quote(object@phiformulas)
+  }
   cl[["parameterization"]] <- object@parameterization
   cl
 })

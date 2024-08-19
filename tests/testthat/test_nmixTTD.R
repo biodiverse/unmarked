@@ -79,6 +79,18 @@ test_that("nmixTTD can fit a Poisson/exp model",{
   expect_equivalent(length(b), M)
   expect_equivalent(b[2], 1.204738, tol=1e-5)
 
+  #Parboot (SSE doesn't work with this model)
+  pb <- parboot(fit, statistic=function(x) x@AIC, nsim=2)
+  expect_equal(pb@t.star[1,1], 166.8364, tol=1e-4)
+
+  # Nonparboot
+  npb <- nonparboot(fit, B=2)
+  expect_equal(length(npb@bootstrapSamples), 2)
+  expect_equal(npb@bootstrapSamples[[1]]@AIC, 185.8705, tol=1e-4)
+  expect_equal(numSites(npb@bootstrapSamples[[1]]@data), numSites(npb@data))
+  v <- vcov(npb, method='nonparboot')
+  expect_equal(nrow(v), length(coef(npb)))
+
   expect_error(residuals(fit))
 
   #Try with threads=2

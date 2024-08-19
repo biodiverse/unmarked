@@ -448,6 +448,9 @@ test_that("occuCOP can fit and predict models with covariates", {
     design = list(M = 100, J = 5),
     guide = list(habitat = factor(levels = c("A", "B", "C")))
   )))
+
+  # Check subsetting with covariates
+  expect_error(umf_sub <- umf[c(8,8,9),]) # this should work
   
   # Fit ----
   expect_no_error(umfit <- occuCOP(

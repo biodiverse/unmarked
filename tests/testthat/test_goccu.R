@@ -31,6 +31,17 @@ test_that("unmarkedFrameGOccu can be constructed", {
                            yearlySiteCovs=list(x3=ysc), numPrimary=T)
   expect_is(umf2, "unmarkedFrameGOccu")
   expect_equal(names(umf2@yearlySiteCovs), "x3")
+
+  umf3 <- umf2[c(2,2,4),]
+  expect_equal(numSites(umf3), 3)
+  expect_equivalent(umf3[1,], umf2[2,])
+  expect_equivalent(umf3[2,], umf2[2,])
+  expect_equivalent(umf3[3,], umf2[4,])
+
+  umf4 <- umf2[2:3,]
+  expect_equal(numSites(umf4), 2)
+  expect_equivalent(umf4[1,], umf2[2,])
+  expect_equivalent(umf4[2,], umf2[3,])
 })
 
 test_that("goccu can fit models", {
@@ -96,10 +107,14 @@ test_that("goccu can fit models", {
  
   pb <- parboot(mod2, nsim=2)
   expect_is(pb, "parboot")
+  expect_equal(pb@t.star[1,1], 117.2043, tol=1e-4)
 
-  npb <- nonparboot(mod2, B=2, bsType='site')
-  
-
+  npb <- nonparboot(mod2, B=2)
+  expect_equal(length(npb@bootstrapSamples), 2)
+  expect_equal(npb@bootstrapSamples[[1]]@AIC, 684.094, tol=1e-4)
+  expect_true(npb@bootstrapSamples[[1]]@AIC != mod2@AIC)
+  v <- vcov(npb, method='nonparboot')
+  expect_equal(nrow(v), length(coef(npb)))
 })
 
 test_that("goccu handles missing values", {

@@ -1383,6 +1383,34 @@ setMethod("[", c("unmarkedFrameGMM", "numeric", "missing", "missing"),
                      obsToY=x@obsToY, numPrimary=x@numPrimary)
 })
 
+setMethod("[", c("unmarkedFrameMMO", "numeric", "missing", "missing"),
+		function(x, i, j)
+{
+    M <- nrow(x@y)
+    y <- x@y[i,,drop=FALSE]
+    R <- obsNum(x)
+    T <- x@numPrimary
+
+    sc <- siteCovs(x)[i,,drop=FALSE]
+
+    ysc_ind <- rep(1:M, each=T)
+    ysc <- do.call("rbind", lapply(i, function(ind){
+      yearlySiteCovs(x)[ysc_ind == ind,,drop=FALSE]
+    }))
+
+    oc_ind <- rep(1:M, each=R)
+    oc <- do.call("rbind", lapply(i, function(ind){
+      obsCovs(x)[oc_ind == ind,,drop=FALSE]
+    }))
+
+    unmarkedFrameMMO(y=y, siteCovs=sc,
+                     yearlySiteCovs=ysc,
+                     obsCovs=oc,
+                     type=x@samplingMethod,
+                     numPrimary=x@numPrimary,
+                     primaryPeriod=x@primaryPeriod[i,,drop=FALSE])
+})
+
 
 setMethod("[", c("unmarkedFrameGPC", "numeric", "missing", "missing"),
 		function(x, i, j)

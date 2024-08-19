@@ -636,8 +636,8 @@ setMethod("SSE", "unmarkedFitIDS", function(fit, ...){
     return(c(SSE = sum(r^2, na.rm=T)))
 })
 
-setMethod("nonparboot", "unmarkedFitIDS",
-    function(object, B = 0, keepOldSamples = TRUE, ...)
+setMethod("nonparboot_internal", "unmarkedFitIDS",
+    function(object, B, keepOldSamples)
 {
    stop("Not currently supported for unmarkedFitIDS", call.=FALSE)
 })

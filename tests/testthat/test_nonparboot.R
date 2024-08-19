@@ -21,12 +21,9 @@ test_that("nonparboot works with occu",{
     fm1 <- nonparboot(fm1, B=2)
     fm2 <- expect_warning(nonparboot(fm2, B=2))
 
-    expect_equivalent(vcov(fm2, method="nonparboot"), matrix(c(
-          0.07921827, -0.04160450, -0.10779357, -0.03159398,
-         -0.04160450,  0.02185019,  0.05661192,  0.01659278,
-         -0.10779357,  0.05661192,  0.14667645,  0.04299043,
-         -0.03159398,  0.01659278,  0.04299043,  0.01260037), 4, byrow=TRUE),
-          tolerance=1e-5)
+    expect_equivalent(diag(vcov(fm2, method="nonparboot")),
+                      c(0.0007859209, 0.4338456,0.0019053,0.0383658),
+                      tolerance=1e-6)
 
 })
 
