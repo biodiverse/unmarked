@@ -1,8 +1,34 @@
 context("pcount fitting function")
 skip_on_cran()
 
-test_that("pcount can fit simple models",{
+test_that("unmarkedFramePCount subset works", {
 
+  y <- matrix(c(
+      8,7,
+      6,7,
+      8,8,
+      8,6,
+      7,7), nrow=5, ncol=2, byrow=TRUE)
+  siteCovs <- data.frame(x = c(0,2,3,4,1))
+  obsCovs <- data.frame(o1 = 1:10)
+  umf <- unmarkedFramePCount(y = y, siteCovs = siteCovs, obsCovs = obsCovs)
+
+  umf_sub <- umf[2:3,]
+  expect_equivalent(umf_sub[1,], umf[2,])
+  expect_equivalent(umf_sub[2,], umf[3,])
+
+  umf_sub <- umf[c(2,2,4),]
+  expect_equal(numSites(umf_sub), 3)
+  expect_equivalent(umf_sub[1,], umf[2,])
+  expect_equivalent(umf_sub[2,], umf[2,])
+  expect_equivalent(umf_sub[3,], umf[4,])
+
+  keep <- c(FALSE, FALSE, TRUE, FALSE, TRUE)
+  expect_error(umf_sub <- umf[keep,]) # this should work
+})
+
+test_that("pcount can fit simple models",{
+  set.seed(123)
   y <- matrix(c(
       8,7,
       6,7,
@@ -69,6 +95,14 @@ test_that("pcount can fit simple models",{
 
   pb <- parboot(fm, nsim=1)
   expect_is(pb, "parboot")
+  expect_equal(pb@t.star[1,1], 39.2175, tol=1e-4)
+
+  npb <- nonparboot(fm, B=2)
+  expect_equal(length(npb@bootstrapSamples), 2)
+  expect_equal(npb@bootstrapSamples[[1]]@AIC, 66.4802, tol=1e-4)
+  expect_equal(numSites(npb@bootstrapSamples[[1]]@data), numSites(npb@data))
+  v <- vcov(npb, method='nonparboot')
+  expect_equal(nrow(v), length(coef(npb)))
 
 })
 

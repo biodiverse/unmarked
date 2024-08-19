@@ -20,6 +20,19 @@ test_that("unmarkedFrameOccuMulti construction and methods work",{
   dev.off()
 
   # check subset
+  umf_sub <- umf[2:3,]
+  expect_equivalent(umf_sub[1,], umf[2,])
+  expect_equivalent(umf_sub[2,], umf[3,])
+
+  umf_sub <- umf[c(2,2,4),]
+  expect_equal(numSites(umf_sub), 3)
+  expect_equivalent(umf_sub[1,], umf[2,])
+  expect_equivalent(umf_sub[2,], umf[2,])
+  expect_equivalent(umf_sub[3,], umf[4,])
+
+  keep <- c(FALSE, FALSE, TRUE, FALSE, TRUE)
+  expect_error(umf_sub <- umf[keep,]) # this should work
+
   umf_sub <- umf[,1:2]
   expect_equal(umf_sub@ylist[[1]], umf@ylist[[1]][,1:2])
 })
@@ -111,6 +124,18 @@ test_that("occuMulti can fit models with covariates",{
   expect_error(ran <- ranef(fm))
   ran <- ranef(fm, species=1)
   expect_equal(bup(ran), rep(1,5))
+
+  # parboot
+  pb <- parboot(fm, nsim=2)
+  expect_equal(pb@t.star[1,1], 3.1111, tol=1e-4)
+
+  # nonparboot
+  npb <- nonparboot(fm, B=2)
+  expect_equal(length(npb@bootstrapSamples), 2)
+  expect_equal(npb@bootstrapSamples[[1]]@AIC, 44.5793, tol=1e-4)
+  expect_equal(numSites(npb@bootstrapSamples[[1]]@data), numSites(npb@data))
+  v <- vcov(npb, method='nonparboot')
+  expect_equal(nrow(v), length(coef(npb)))
 
   #Check site cov can be used in detection formula
   detformulas <- c('~occ_cov1','~det_cov2')

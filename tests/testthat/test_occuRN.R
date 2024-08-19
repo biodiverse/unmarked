@@ -3,6 +3,7 @@ skip_on_cran()
 
 test_that("occuRN can fit models",{
 
+  set.seed(123)
   data(birds)
   woodthrushUMF <- unmarkedFrameOccu(woodthrush.bin)
 
@@ -51,6 +52,14 @@ test_that("occuRN can fit models",{
 
   pb <- parboot(fm_C, nsim=1)
   expect_is(pb, "parboot")
+  expect_equal(pb@t.star[1,1], 129.774, tol=1e-4)
+
+  npb <- nonparboot(fm_C, B=2)
+  expect_equal(length(npb@bootstrapSamples), 2)
+  expect_equal(npb@bootstrapSamples[[1]]@AIC, 670.201, tol=1e-4)
+  expect_equal(numSites(npb@bootstrapSamples[[1]]@data), numSites(npb@data))
+  v <- vcov(npb, method='nonparboot')
+  expect_equal(nrow(v), length(coef(npb)))
 
   # check error if random effect in formula
   expect_error(occuRN(~(1|dummy)~1, umf))
