@@ -454,7 +454,7 @@ setMethod("fitted_internal", "unmarkedFitIDS", function(object){
 })
 
 # getP returns detection probability WITHOUT availability
-setMethod("getP", "unmarkedFitIDS", function(object, ...){
+setMethod("getP_internal", "unmarkedFitIDS", function(object){
 
   dets <- names(object)[! names(object) %in% c("lam","phi")]
 
