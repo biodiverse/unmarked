@@ -13,18 +13,6 @@ setClass("unmarkedFit",
         covMatBS = "optionalMatrix", # list of bootstrap sample fits
         TMB = "optionalList")) #TMB output object
 
-# constructor for unmarkedFit objects
-unmarkedFit <- function(fitType, call, formula, data, sitesRemoved,
-    estimates, AIC, opt, negLogLike, nllFun)
-{
-    umfit <- new("unmarkedFit", fitType = fitType, call = call,
-        formula = formula, data = data, sitesRemoved = sitesRemoved,
-        estimates = estimates, AIC = AIC, opt = opt,
-        negLogLike = negLogLike,
-        nllFun = nllFun)
-    return(umfit)
-}
-
 # ---------------------------- CHILD CLASSES ----------------------------
 
 
