@@ -642,7 +642,6 @@ setMethod("hist", "unmarkedFitDS", function(x, lwd=1, lty=1, ...) {
 # ----------------------- CHILD CLASS METHODS ---------------------------
 
 # Extract detection probs
-setGeneric("getP", function(object, ...) standardGeneric("getP"))
 setGeneric("getFP", function(object, ...) standardGeneric("getFP"))
 setGeneric("getB", function(object, ...) standardGeneric("getB"))
 
@@ -700,105 +699,6 @@ setMethod("getB", "unmarkedFitOccuFP", function(object, na.rm = TRUE)
   }
   return(b)
 })
-
-
-
-
-
-
-
-
-setMethod("getP", "unmarkedFitDSO",
-    function(object, na.rm = TRUE)
-{
-    umf <- getData(object)
-    y <- getY(umf)
-    M <- numSites(umf)
-
-    keep <- 1:M
-    if(na.rm & length(object@sitesRemoved)>0){
-      keep <- keep[-object@sitesRemoved]
-    }
-
-    M <- length(keep)
-    T <- umf@numPrimary
-    J <- ncol(y) / T
-
-    sig <- matrix(NA, M, T)
-    if(object@keyfun != "uniform"){
-      sig <- predict(object, type="det", level = NULL, na.rm=na.rm)$Predicted
-      sig <- matrix(sig, M, T, byrow=TRUE)
-    }
-
-    scale <- 0.0
-    if(object@keyfun == "hazard"){
-      scale <- backTransform(object, type="scale")@estimate
-    }
-
-    db <- umf@dist.breaks
-    w <- diff(db)
-    ua <- getUA(umf)
-    u <- ua$u[keep,]; a <- ua$a[keep,]
-
-    cp <- array(NA, c(M, J, T))
-    for (i in 1:M){
-      for (t in 1:T){
-        cp[i,,t] <- getDistCP(object@keyfun, sig[i,t], scale, umf@survey,
-                              db, w, a[i,], u[i,])
-      }
-    }
-    matrix(cp, nrow=M)
-})
-
-
-setMethod("getP", "unmarkedFitMMO", function(object, na.rm = TRUE)
-{
-
-  umf <- object@data
-
-  D <- getDesign(umf, object@formula, na.rm=na.rm)
-  beta <- coef(object, type='det')
-  off <- D$Xp.offset
-  if(is.null(off)) off <- rep(0, nrow(D$Xp))
-  plong <- plogis(D$Xp %*% beta + off)
-
-  M <- nrow(D$y)
-  T <- umf@numPrimary
-  J <- ncol(getY(umf)) / T
-
-  pmat <- aperm(array(plong, c(J,T,M)), c(3,1,2))
-
-  pout <- array(NA, c(M,J,T))
-  for (t in 1:T){
-    pout[,,t] <- do.call(umf@piFun, list(p=pmat[,,t]))
-  }
-  matrix(aperm(pout,c(2,3,1)), M, J*T, byrow=TRUE)
-
-})
-
-
-setMethod("getP", "unmarkedFitPCO", function(object, na.rm = TRUE)
-{
-    umf <- object@data
-    D <- getDesign(umf, object@formula, na.rm = na.rm)
-    y <- D$y
-    Xp <- D$Xp
-    Xp.offset <- D$Xp.offset
-    M <- nrow(y)
-    T <- umf@numPrimary
-    J <- ncol(y) / T
-    if(is.null(Xp.offset)) Xp.offset <- rep(0, M*T*J)
-    ppars <- coef(object, type = "det")
-    p <- plogis(Xp %*% ppars + Xp.offset)
-    p <- matrix(p, M, J*T, byrow = TRUE)
-    return(p)
-})
-
-
-
-
-
-
 
 #Y extractors for unmarkedFit objects
 setMethod("getY", "unmarkedFit", function(object) object@data@y)

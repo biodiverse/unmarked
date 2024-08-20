@@ -717,8 +717,10 @@ setMethod("ranef", "unmarkedFitPCO",
     else
       iota <- matrix(0, R, T-1)
     srm <- object@sitesRemoved
-    if(length(srm) > 0)
+    if(length(srm) > 0){
         y <- y[-object@sitesRemoved,]
+        p <- p[-object@sitesRemoved,] # temporary workaround
+    }
     ya <- array(y, c(R, J, T))
     pa <- array(p, c(R, J, T))
     post <- array(NA_real_, c(R, length(N), T))
@@ -909,8 +911,10 @@ setMethod("ranef", "unmarkedFitDailMadsen",
       iota <- matrix(0, R, T-1)
     }
     srm <- object@sitesRemoved
-    if(length(srm) > 0)
+    if(length(srm) > 0){
         y <- y[-object@sitesRemoved,]
+        p <- p[-object@sitesRemoved,] # temporary workaround
+    }
     ya <- array(y, c(R, J, T))
     pa <- array(p, c(R, J, T))
     post <- array(NA_real_, c(R, length(N), T))

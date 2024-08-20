@@ -176,6 +176,9 @@ test_that("multmixOpen handles NAs",{
   expect_equal(dim(ft), dim(umf@y))
   expect_true(all(is.na(ft[3,]))) # missing site cov
 
+  gp <- getP(fit)
+  expect_equal(dim(gp), dim(umf@y))
+
   # Check ranef
   set.seed(123)
   simy <- simData(lambda=4, gamma=0.5, omega=0.8, p=0.5,

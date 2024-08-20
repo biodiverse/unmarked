@@ -71,6 +71,7 @@ test_that("pcountOpen can fit a null model",{
   # methods
   gp <- getP(fm1)
   expect_equal(dim(gp), dim(umf@y))
+  expect_equal(gp[1,1], 0.99909, tol=1e-5)
 
   res <- residuals(fm1)
   expect_equal(dim(res), dim(umf@y))
@@ -439,6 +440,10 @@ test_that("pcountOpen simulate and fitted methods work",{
      expect_equal(dim(ft), dim(m3@data@y))
      expect_true(is.na(ft[1,1])) # missing obs cov
      expect_true(all(is.na(ft[2,]))) # missing site cov
+
+     gp <- getP(m3)
+     expect_equal(dim(gp), dim(m3@data@y))
+     expect_true(is.na(gp[1,1]))
 })
 
 

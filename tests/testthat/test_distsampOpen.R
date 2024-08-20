@@ -241,6 +241,9 @@ test_that("distsampOpen works with NAs", {
   expect_true(all(is.na(ft[3,])))
   expect_true(all(is.na(ft[1,5:8])))
 
+  gp <- getP(fm)
+  expect_equal(dim(gp), dim(fm@data@y))
+  
   set.seed(123)
   ysim <- simData(lambda=5, gamma=2, omega=0.5, sigma=40, M=50, T=5,type="line",
             keyfun="halfnorm")
