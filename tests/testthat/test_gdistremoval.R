@@ -336,6 +336,8 @@ test_that("gdistremoval can fit models",{
   gp <- getP(fit)
   expect_equivalent(dim(gp$dist), c(50,4,1))
   expect_equivalent(dim(gp$rem), c(50,5,1))
+  expect_equal(as.vector(gp$dist[1:2,1:2,1]), c(0.05957, 0.05957, 0.14775,0.14775), tol=1e-4)
+  expect_equal(as.vector(gp$rem[1:2,1:2,1]), c(0.16639,0.1979,0.1333,0.1031), tol=1e-4)
 
   s <- simulate(fit, 2)
   expect_equivalent(length(s), 2)
@@ -457,6 +459,11 @@ test_that("gdistremoval handles NAs",{
   # Dist is also NA for site 2 because these probs are multiplied
   # by the removal probs which are NA 
   expect_true(all(is.na(ft$dist[2,])))
+
+  gp <- getP(fit)
+  expect_equal(dim(gp$rem), c(50,5,1))
+  expect_true(all(is.na(gp$rem[2,,1])))
+  expect_true(all(!is.na(gp$dist[2,,1]))) # not removed because only removal prob is NA
 })
 
 test_that("multi-period data works with gdistremoval",{

@@ -119,6 +119,8 @@ test_that("occuMulti can fit models with covariates",{
   gp <- getP(fm)
   expect_equivalent(length(gp), 2)
   expect_equivalent(dim(gp[[1]]), c(N,J))
+  expect_equal(as.vector(gp[[1]][1:2,1:2]), c(0.1495,0.7914,0.3355,0.2995), tol=1e-4)
+  expect_equal(as.vector(gp[[2]][1:2,1:2]), c(0.3080,0.4923,0.5645,0.3596), tol=1e-4)
 
   # ranef
   expect_error(ran <- ranef(fm))
@@ -181,6 +183,7 @@ test_that("occuMulti can handle NAs",{
   expect_true(is.na(res[[1]][1,1]))
 
   gp <- getP(fm)
+  expect_equal(dim(gp[[1]]), dim(fm@data@ylist[[1]]))
   expect_true(is.na(gp[[1]][1,1]))
 
   #Check error thrown when all detections are missing

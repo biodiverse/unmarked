@@ -433,6 +433,10 @@ test_that("occuMS handles NAs properly",{
   expect_equal(dim(ft), dim(exfit@data@y))
   expect_true(is.na(ft[1,1]))
 
+  gp <- fitted(exfit)
+  expect_equal(dim(gp), dim(exfit@data@y))
+  expect_true(is.na(gp[1,1]))
+
   #Check that fitting works when missing site cov and no obs covs
   sc_na <- site_covs
   sc_na[1,1] <- NA
