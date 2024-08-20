@@ -28,6 +28,11 @@ setMethod("getP_internal", "unmarkedFitColExt", function(object){
   p
 })
 
+setMethod("getP_internal", "unmarkedFitDS", function(object){
+  cp <- get_dist_prob(object)
+  cp
+})
+
 setMethod("getP_internal", "unmarkedFitMPois", function(object){
   p <- methods::callNextMethod(object)
   piFun <- object@data@piFun

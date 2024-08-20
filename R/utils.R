@@ -740,8 +740,10 @@ getUA <- function(umf){
   M <- numSites(umf)
   if(inherits(umf, "unmarkedFrameGDR")){
     J <- ncol(umf@yDistance) / umf@numPrimary
-  } else{
+  } else if(methods::.hasSlot(umf, "numPrimary")){
     J <- ncol(getY(umf)) / umf@numPrimary
+  } else {
+    J <- ncol(getY(umf))
   }
   db <- umf@dist.breaks
   w <- diff(db)
@@ -765,6 +767,94 @@ getUA <- function(umf){
   list(a=a, u=u)
 
 }
+
+# Distance probability
+get_dist_prob <- function(object){
+  survey <- object@data@survey
+  key <- object@keyfun
+  db <- object@data@dist.breaks
+  M <- numSites(object@data)
+  T <- 1
+  if(methods::.hasSlot(object, "numPrimary")){
+    T <- object@numPrimary
+  }
+
+  if(inherits("object", "unmarkedFitGDR")){
+    J <- ncol(object@data@yDist) / T
+    type <- "dist"
+  } else {
+    J <- ncol(object@data@y) / T
+    type <- "det"
+  }
+  stopifnot(J == length(db) - 1)
+
+  par1 <- predict(object, type=type, level=NULL, na.rm=FALSE)$Predicted
+  par1 <- matrix(par1, M, T, byrow=TRUE)
+
+  if(key == "hazard"){
+    scale <- exp(coef(object, type = "scale"))
+  }
+
+  ua <- getUA(object@data)
+  u <- ua$u
+  a <- ua$a
+  w <- diff(db)
+
+  cp <- array(NA, c(M,J,T))
+
+  for (i in 1:M){
+    for (t in 1:T){
+      if(is.na(par1[i,t])) next
+      if(key == "halfnorm"){
+        if(survey == "line"){
+          f.0 <- 2 * dnorm(0, 0, sd=par1[i, t])
+          int <- 2 * (pnorm(db[-1], 0, sd=par1[i, t]) -
+                  pnorm(db[-(J+1)], 0, sd=par1[i, t]))
+          cp[i,,t] <- int / f.0 / w
+        } else if(survey == "point") {
+          for(j in 1:J){
+            cp[i, j, t] <- integrate(grhn, db[j], db[j+1],
+              sigma=par1[i, t], rel.tol=1e-4)$value * 2 * pi / a[i, j]
+          }
+        }
+        cp[i,,t] <- cp[i,,t] * u[i,]
+      } else if(key == "exp"){
+        if(survey == "line"){
+          for(j in 1:J) {
+            cp[i, j, t] <- integrate(gxexp, db[j], db[j+1],
+              rate=par1[i,t], rel.tol=1e-4)$value / w[j]
+          }
+        } else if(survey == "point"){
+          for(j in 1:J) {
+            cp[i, j, t] <- integrate(grexp, db[j], db[j+1],
+              rate=par1[i,t], rel.tol=1e-4)$value * 2 * pi / a[i, j]
+          }
+        }
+        cp[i,,t] <- cp[i,,t] * u[i,]
+      } else if(survey == "hazard"){
+        if(is.na(scale)) next
+        if(survey == "line"){
+          for(j in 1:J) {
+            cp[i, j, t] <- integrate(gxhaz, db[j], db[j+1],
+              shape=par1[i,t], scale=scale, rel.tol=1e-4)$value / w[j]
+          }
+        } else if(survey == "point"){
+          for(j in 1:J) {
+            cp[i, j, t] <- integrate(grhaz, db[j], db[j+1],
+              shape = par1[i,t], scale=scale, 
+              rel.tol=1e-4)$value * 2 * pi / a[i, j]
+          }
+        }
+        cp[i,,t] <- cp[i,,t] * u[i,]
+      } else if(survey == "uniform"){
+        cp[i,,t] <- u[i,]
+      }
+    }
+  }
+  cp <- matrix(cp, nrow=M)
+  cp
+}
+
 
 # Get area for converting density to abundance in distance sampling models
 get_ds_area <- function(umf, unitsOut){

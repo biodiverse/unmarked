@@ -88,7 +88,11 @@ test_that("distsamp methods work",{
   ft <- fitted(fm)
   expect_equal(round(ft,4)[1:2,1:2],
               structure(c(4.0133, 3.1567, 3.077, 2.1544), dim = c(2L, 2L)))
-  expect_equal(dim(ft), c(5,2)) 
+  expect_equal(dim(ft), c(5,2))
+
+  gp <- getP(fm)
+  expect_equal(as.vector(gp[1:2,1:2]), c(0.4782,0.4689,0.3667,0.3201), tol=1e-4)
+  expect_equal(dim(gp), c(5,2))     
 
   res <- residuals(fm)
   expect_equal(dim(res), dim(y))
@@ -120,6 +124,13 @@ test_that("distsamp works with missing values",{
   ft <- fitted(fm)
   expect_equal(dim(ft), c(5,2))
   expect_true(all(is.na(ft[2,])))
+
+  gp <- getP(fm)
+  expect_equal(dim(gp), c(5,2))
+  expect_true(all(is.na(gp[2,])))
+
+  r <- expect_warning(ranef(fm, K=15))
+  expect_equal(numSites(fm@data)-length(fm@sitesRemoved), nrow(r@post))
 })
 
 test_that("distsamp ranef method works",{

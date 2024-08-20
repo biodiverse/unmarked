@@ -301,9 +301,12 @@ setMethod("ranef", "unmarkedFitDS",
     function(object, K, ...)
 {
     y <- getY(getData(object))
+    cp <- getP(object)
     srm <- object@sitesRemoved
-    if(length(srm) > 0)
+    if(length(srm) > 0){
         y <- y[-object@sitesRemoved,]
+        cp <- cp[-object@sitesRemoved,] # temporary workaround
+    }
     if(missing(K)) {
         warning("You did not specify K, the maximum value of N, so it was set to max(y)+50")
         K <- max(y, na.rm=TRUE)+50
@@ -335,7 +338,6 @@ setMethod("ranef", "unmarkedFitDS",
         switch(unitsOut, ha = A <- A * 100, kmsq = A <- A)
         lam <- lam*A
     }
-    cp <- getP(object)
     cp <- cbind(cp, 1-rowSums(cp))
     N <- 0:K
     post <- array(0, c(R, K+1, 1))
