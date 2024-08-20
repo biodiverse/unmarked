@@ -759,8 +759,11 @@ getUA <- function(umf){
     point = {
         for(i in 1:M) {
             a[i, 1] <- pi*db[2]^2
-            for(j in 2:J)
+            if(J > 1){
+              for(j in 2:J){
                 a[i, j] <- pi*db[j+1]^2 - sum(a[i, 1:(j-1)])
+              }
+            }
             u[i,] <- a[i,] / sum(a[i,])
             }
         })
@@ -769,6 +772,7 @@ getUA <- function(umf){
 }
 
 # Distance probability
+# Consolidate this with functions below?
 get_dist_prob <- function(object){
   survey <- object@data@survey
   key <- object@keyfun
@@ -788,8 +792,11 @@ get_dist_prob <- function(object){
   }
   stopifnot(J == length(db) - 1)
 
-  par1 <- predict(object, type=type, level=NULL, na.rm=FALSE)$Predicted
-  par1 <- matrix(par1, M, T, byrow=TRUE)
+  par1 <- matrix(1, M, T)
+  if(key != "uniform"){
+    par1 <- predict(object, type=type, level=NULL, na.rm=FALSE)$Predicted
+    par1 <- matrix(par1, M, T, byrow=TRUE)
+  }
 
   if(key == "hazard"){
     scale <- exp(coef(object, type = "scale"))
@@ -831,7 +838,7 @@ get_dist_prob <- function(object){
           }
         }
         cp[i,,t] <- cp[i,,t] * u[i,]
-      } else if(survey == "hazard"){
+      } else if(key == "hazard"){
         if(is.na(scale)) next
         if(survey == "line"){
           for(j in 1:J) {
@@ -846,7 +853,7 @@ get_dist_prob <- function(object){
           }
         }
         cp[i,,t] <- cp[i,,t] * u[i,]
-      } else if(survey == "uniform"){
+      } else if(key == "uniform"){
         cp[i,,t] <- u[i,]
       }
     }
