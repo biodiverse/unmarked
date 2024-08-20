@@ -129,8 +129,10 @@ test_that("gmultmix removal model works",{
                                   1.86049,9.38619), tol=1e-4)
 
   #Check methods
-  expect_warning(gp <- getP(fm_C))
-  expect_equal(dim(gp), c(4,4)) # missing site dropped
+  gp <- getP(fm_C)
+  expect_equal(dim(gp), dim(fm_C@data@y))
+  expect_equal(as.vector(gp[1:2,1:2]), c(0.2779,0.2227,0.1891,0.1700), tol=1e-4)
+  expect_true(is.na(gp[3,2]))
 
   expect_warning(pr <- predict(fm_C, 'lambda'))
   expect_equal(dim(pr), c(4,4))
@@ -197,6 +199,7 @@ test_that("gmultmix double model works",{
 
   gp <- getP(fm)
   expect_equal(dim(gp), c(nSites, 3))
+  expect_equal(gp[1,], c(0.3469,0.1651,0.1964), tol=1e-4)
 
 })
 
@@ -228,6 +231,7 @@ test_that("gmultmix dependent double model works",{
 
   gp <- getP(fm)
   expect_equal(dim(gp), c(nSites, 2))
+  expect_equal(gp[1,], c(0.5620,0.2675), tol=1e-4)
 
 })
 

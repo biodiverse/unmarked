@@ -779,8 +779,8 @@ get_dist_prob <- function(object){
   db <- object@data@dist.breaks
   M <- numSites(object@data)
   T <- 1
-  if(methods::.hasSlot(object, "numPrimary")){
-    T <- object@numPrimary
+  if(methods::.hasSlot(object@data, "numPrimary")){
+    T <- object@data@numPrimary
   }
 
   if(inherits("object", "unmarkedFitGDR")){

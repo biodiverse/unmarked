@@ -397,6 +397,10 @@ setMethod("ranef", "unmarkedFitGMMorGDS",
         phi <- plogis(Xphi %*% beta.phi + Xphi.offset)
 
     cp <- getP(object)
+    srm <- object@sitesRemoved
+    if(length(srm) > 0){
+        cp <- cp[-object@sitesRemoved,] # temporary workaround
+    }
     cp[is.na(y)] <- NA
 
     K <- object@K
@@ -526,6 +530,10 @@ setMethod("ranef", "unmarkedFitGPC",
     phi <- matrix(phi, R, byrow=TRUE)
 
     p <- getP(object)
+    srm <- object@sitesRemoved
+    if(length(srm) > 0){
+        p <- p[-object@sitesRemoved,] # temporary workaround
+    }
     p[is.na(y)] <- NA
     pa <- array(p, c(R,J,T))
     ya <- array(y, c(R,J,T))

@@ -33,6 +33,40 @@ setMethod("getP_internal", "unmarkedFitDS", function(object){
   cp
 })
 
+# Should this return p or pi. Right now it's pi without phi.
+setMethod("getP_internal", "unmarkedFitGDS", function(object){
+  cp <- get_dist_prob(object)
+  cp
+})
+
+setMethod("getP_internal", "unmarkedFitGMM", function(object){
+  piFun <- object@data@piFun
+  M <- numSites(object@data)
+  T <- object@data@numPrimary
+  R <- numY(object@data) / T
+  J <- obsNum(object@data) / T
+
+  p <- predict(object, type = "det", level=NULL, na.rm=FALSE)$Predicted
+  p <- matrix(p, nrow=M, byrow=TRUE)
+  p <- array(p, c(M, J, T))
+  p <- aperm(p, c(1,3,2))
+
+  cp <- array(as.numeric(NA), c(M, T, R))
+  for(t in 1:T) cp[,t,] <- do.call(piFun, list(matrix(p[,t,], M, J)))
+  cp <- aperm(cp, c(1,3,2))
+  cp <- matrix(cp, nrow=M, ncol=numY(object@data))
+  cp
+})
+
+setMethod("getP_internal", "unmarkedFitGPC", function(object){
+  M <- numSites(object@data)
+  R <- ncol(object@data@y)
+  
+  p <- predict(object, type="det", level=NULL, na.rm=FALSE)$Predicted
+  p <- matrix(p, M, R, byrow=TRUE)
+  p
+})
+
 setMethod("getP_internal", "unmarkedFitMPois", function(object){
   p <- methods::callNextMethod(object)
   piFun <- object@data@piFun

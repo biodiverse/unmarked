@@ -71,8 +71,10 @@ test_that("gpcount function works", {
           2.52037155, -0.10950615), tol = 1e-5)
 
   # Check methods
-  expect_warning(gp <- getP(fm))
+  gp <- getP(fm)
   expect_equal(dim(gp), dim(y))
+  expect_true(all(is.na(gp[5,4:6])))
+  expect_equal(as.vector(gp[1:2, 1:2]), c(0.9452,0.9445,0.9413,0.9404), tol=1e-4)
 
   expect_warning(pr <- predict(fm, 'lambda'))
   expect_equal(dim(pr), c(nrow(y), 4))
