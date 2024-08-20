@@ -59,8 +59,6 @@ extracted using the methods described below.
     \item{fitted}{\code{signature(object = "unmarkedFit")}: returns expected
 		values of Y }
     \item{getData}{\code{signature(object = "unmarkedFit")}: extracts data }
-    \item{getP}{\code{signature(object = "unmarkedFit")}: calculates and extracts
-		expected detection probabilities }
     \item{getFP}{\code{signature(object = "unmarkedFit")}: calculates and extracts
   	expected false positive detection probabilities }
     \item{getB}{\code{signature(object = "unmarkedFit")}: calculates and extracts
