@@ -70,6 +70,7 @@ test_that("pcount can fit simple models",{
 
   gp <- getP(fm)
   expect_equal(dim(gp), dim(umf@y))
+  expect_equal(as.vector(gp[1:2,1:2]), c(0.9387,0.9327,0.9372,0.9312), tol=1e-4)
 
   ft <- fitted(fm)
   expect_equal(dim(ft), dim(umf@y))
@@ -124,6 +125,10 @@ test_that("pcount handles missing values", {
   expect_equal(dim(ft), dim(umf@y))
   expect_true(is.na(ft[1,1])) # missing obs cov
   expect_true(all(is.na(ft[2,]))) # missing site cov
+
+  gp <- getP(fm)
+  expect_equal(dim(gp), dim(umf@y))
+  expect_true(is.na(gp[1,1])) # missing obs cov
 })
 
 test_that("pcount predict works",{
