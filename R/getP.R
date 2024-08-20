@@ -34,36 +34,8 @@ setMethod("getP_internal", "unmarkedFitDS", function(object){
 })
 
 setMethod("getP_internal", "unmarkedFitDSO", function(object){
-  umf <- getData(object)
-  y <- getY(umf)
-  M <- numSites(umf)
-  T <- umf@numPrimary
-  J <- ncol(y) / T
-
-  sig <- matrix(NA, M, T)
-  if(object@keyfun != "uniform"){
-    sig <- predict(object, type="det", level = NULL, na.rm=FALSE)$Predicted
-    sig <- matrix(sig, M, T, byrow=TRUE)
-  }
-
-  scale <- 0.0
-  if(object@keyfun == "hazard"){
-    scale <- backTransform(object, type="scale")@estimate
-  }
-
-  db <- umf@dist.breaks
-  w <- diff(db)
-  ua <- getUA(umf)
-  u <- ua$u; a <- ua$a
-
-  cp <- array(NA, c(M, J, T))
-  for (i in 1:M){
-    for (t in 1:T){
-      cp[i,,t] <- getDistCP(object@keyfun, sig[i,t], scale, umf@survey,
-                              db, w, a[i,], u[i,])
-    }
-  }
-  matrix(cp, nrow=M)
+  cp <- get_dist_prob(object)
+  cp
 })
 
 # Should this return p or pi. Right now it's pi without phi.

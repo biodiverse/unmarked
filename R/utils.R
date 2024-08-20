@@ -774,8 +774,6 @@ getUA <- function(umf){
 # Distance probability
 # Consolidate this with functions below?
 get_dist_prob <- function(object){
-  survey <- object@data@survey
-  key <- object@keyfun
   db <- object@data@dist.breaks
   M <- numSites(object@data)
   T <- 1
@@ -792,13 +790,14 @@ get_dist_prob <- function(object){
   }
   stopifnot(J == length(db) - 1)
 
-  par1 <- matrix(1, M, T)
-  if(key != "uniform"){
+  par1 <- matrix(0, M, T)
+  if(object@keyfun != "uniform"){
     par1 <- predict(object, type=type, level=NULL, na.rm=FALSE)$Predicted
     par1 <- matrix(par1, M, T, byrow=TRUE)
   }
 
-  if(key == "hazard"){
+  scale <- 0.0
+  if(object@keyfun == "hazard"){
     scale <- exp(coef(object, type = "scale"))
   }
 
@@ -811,55 +810,12 @@ get_dist_prob <- function(object){
 
   for (i in 1:M){
     for (t in 1:T){
-      if(is.na(par1[i,t])) next
-      if(key == "halfnorm"){
-        if(survey == "line"){
-          f.0 <- 2 * dnorm(0, 0, sd=par1[i, t])
-          int <- 2 * (pnorm(db[-1], 0, sd=par1[i, t]) -
-                  pnorm(db[-(J+1)], 0, sd=par1[i, t]))
-          cp[i,,t] <- int / f.0 / w
-        } else if(survey == "point") {
-          for(j in 1:J){
-            cp[i, j, t] <- integrate(grhn, db[j], db[j+1],
-              sigma=par1[i, t], rel.tol=1e-4)$value * 2 * pi / a[i, j]
-          }
-        }
-        cp[i,,t] <- cp[i,,t] * u[i,]
-      } else if(key == "exp"){
-        if(survey == "line"){
-          for(j in 1:J) {
-            cp[i, j, t] <- integrate(gxexp, db[j], db[j+1],
-              rate=par1[i,t], rel.tol=1e-4)$value / w[j]
-          }
-        } else if(survey == "point"){
-          for(j in 1:J) {
-            cp[i, j, t] <- integrate(grexp, db[j], db[j+1],
-              rate=par1[i,t], rel.tol=1e-4)$value * 2 * pi / a[i, j]
-          }
-        }
-        cp[i,,t] <- cp[i,,t] * u[i,]
-      } else if(key == "hazard"){
-        if(is.na(scale)) next
-        if(survey == "line"){
-          for(j in 1:J) {
-            cp[i, j, t] <- integrate(gxhaz, db[j], db[j+1],
-              shape=par1[i,t], scale=scale, rel.tol=1e-4)$value / w[j]
-          }
-        } else if(survey == "point"){
-          for(j in 1:J) {
-            cp[i, j, t] <- integrate(grhaz, db[j], db[j+1],
-              shape = par1[i,t], scale=scale, 
-              rel.tol=1e-4)$value * 2 * pi / a[i, j]
-          }
-        }
-        cp[i,,t] <- cp[i,,t] * u[i,]
-      } else if(key == "uniform"){
-        cp[i,,t] <- u[i,]
-      }
+      if(is.na(par1[i,t])) next    
+      cp[i,,t] <- getDistCP(object@keyfun, par1[i,t], scale, object@data@survey,
+                            db, w, a[i,], u[i,])
     }
   }
-  cp <- matrix(cp, nrow=M)
-  cp
+  matrix(cp, nrow=M)
 }
 
 
@@ -923,7 +879,7 @@ pExp <- function(rate, survey, db, w, a){
       for(j in 1:J) {
         cp[j] <- integrate(grexp, db[j], db[j+1],
                             rate=rate, rel.tol=1e-4)$value *
-                            2 * pi * a[j]
+                            2 * pi / a[j]
       }
     }
   )
