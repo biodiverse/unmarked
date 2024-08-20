@@ -459,22 +459,6 @@ setMethod("hessian", "unmarkedFit",
 })
 
 
-setMethod("update", "unmarkedFit", function(object, ..., evaluate=TRUE){
-  inp <- list(...)
-  cl <- object@call
-  for (i in 1:length(inp)){
-    # Issue here with creating a new list element that is NULL
-    # Need to do it in two steps
-    cl[[names(inp)[i]]] <- NA # first create empty element
-    cl[[names(inp)[i]]] <- inp[[i]] # then fill it
-  }
-
-  if(!evaluate) return(cl)
-
-  eval(cl, parent.frame(2))
-})
-
-
 setGeneric("sampleSize", function(object) standardGeneric("sampleSize"))
 setMethod("sampleSize", "unmarkedFit", function(object) {
     data <- getData(object)
