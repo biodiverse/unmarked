@@ -113,6 +113,8 @@ test_that("occu can fit models with covariates",{
   # methods
   gp <- getP(fm)
   expect_equal(dim(gp), c(5,2))
+  expect_equal(as.vector(gp[1:2,1:2]), c(0.5739,0.5014,0.5377,0.4656), tol=1e-4)
+
   res <- residuals(fm)
   expect_equal(dim(res), c(5,2))
   expect_equal(res[1,1], -0.57380, tol=1e-4)
@@ -183,6 +185,14 @@ test_that("occu handles NAs",{
   expect_equal(dim(ft), dim(fm@data@y))
   expect_true(all(is.na(ft[3,]))) # missing site cov
   expect_true(is.na(ft[5,2]))     # missing obs cov
+
+  gp <- getP(fm)
+  expect_equal(dim(gp), dim(fm@data@y))
+  expect_true(all(!is.na(gp[3,]))) # missing site cov
+  expect_true(is.na(gp[5,2]))     # missing obs cov
+
+  r <- expect_warning(ranef(fm))
+  expect_equal(nrow(r@post), 4)
 })
 
 ## Add some checks here.

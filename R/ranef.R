@@ -72,8 +72,10 @@ setMethod("ranef", "unmarkedFitOccu",
     z <- 0:1
     y <- getY(getData(object))
     srm <- object@sitesRemoved
-    if(length(srm) > 0)
+    if(length(srm) > 0){
         y <- y[-object@sitesRemoved,]
+        p <- p[-object@sitesRemoved,] # temporary workaround
+    }
     y[y>1] <- 1
     post <- array(0, c(R,2,1))
     colnames(post) <- z
@@ -210,8 +212,10 @@ setMethod("ranef", "unmarkedFitOccuRN",
     N <- 0:K
     y <- getY(getData(object))
     srm <- object@sitesRemoved
-    if(length(srm) > 0)
+    if(length(srm) > 0){
         y <- y[-object@sitesRemoved,]
+        r <- r[-object@sitesRemoved,] # temporary workaround
+    }
     y[y>1] <- 1
     post <- array(NA_real_, c(R, length(N), 1))
     colnames(post) <- N
@@ -238,9 +242,12 @@ setMethod("ranef", "unmarkedFitMPois",
     function(object, K, ...)
 {
     y <- getY(getData(object))
+    cp <- getP(object)
     srm <- object@sitesRemoved
-    if(length(srm) > 0)
+    if(length(srm) > 0){
         y <- y[-object@sitesRemoved,]
+        cp <- cp[-object@sitesRemoved,] # temporary workaround
+    }
     if(missing(K)) {
         warning("You did not specify K, the maximum value of N, so it was set to max(y)+50")
         K <- max(y, na.rm=TRUE)+50
@@ -248,7 +255,6 @@ setMethod("ranef", "unmarkedFitMPois",
 
     lam <- predict(object, type="state")[,1]
     R <- length(lam)
-    cp <- getP(object)
     cp <- cbind(cp, 1-rowSums(cp, na.rm=TRUE))
     N <- 0:K
     post <- array(NA, c(R, K+1, 1))

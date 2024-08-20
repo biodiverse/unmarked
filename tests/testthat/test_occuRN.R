@@ -27,6 +27,7 @@ test_that("occuRN can fit models",{
   # check methods
   gp <- getP(fm_C)
   expect_equal(dim(gp), dim(woodthrushUMF@y))
+  expect_equal(as.vector(gp[1:2,1:2]), c(0.1381,0.1381,0.1971,0.1971), tol=1e-4)
 
   pr <- predict(fm_C, 'state')
   expect_equal(dim(pr), c(50,4))
@@ -117,5 +118,13 @@ test_that("occuRN can handle NAs",{
   expect_equal(dim(ft), dim(fm_na@data@y))
   expect_true(is.na(ft[1,1])) # missing obs cov
   expect_true(all(is.na(ft[2,]))) # missing site cov
+
+  ft <- getP(fm_na)
+  expect_equal(dim(ft), dim(fm_na@data@y))
+  expect_true(is.na(ft[1,1])) # missing obs cov
+  expect_true(all(!is.na(ft[2,]))) # missing site cov
+
+  r <- expect_warning(ranef(fm_na))
+  expect_equal(50-nrow(r@post), length(fm_na@sitesRemoved))
 })
 

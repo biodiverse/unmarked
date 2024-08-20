@@ -647,48 +647,6 @@ setGeneric("getFP", function(object, ...) standardGeneric("getFP"))
 setGeneric("getB", function(object, ...) standardGeneric("getB"))
 
 
-setMethod("getP", "unmarkedFit", function(object, na.rm = TRUE)
-{
-    formula <- object@formula
-    detformula <- as.formula(formula[[2]])
-    umf <- object@data
-    designMats <- getDesign(umf, formula, na.rm = na.rm)
-    y <- designMats$y
-    V <- cbind(designMats$V, designMats$Z_det)
-    V.offset <- designMats$V.offset
-    if (is.null(V.offset))
-        V.offset <- rep(0, nrow(V))
-    M <- nrow(y)
-    J <- ncol(y)
-    ppars <- coef(object, type = "det", fixedOnly=FALSE)
-    p <- plogis(as.matrix(V %*% ppars + V.offset))
-    p <- matrix(p, M, J, byrow = TRUE)
-    return(p)
-})
-
-
-setMethod("getP", "unmarkedFitOccuFP", function(object, na.rm = TRUE)
-{
-  formula <- object@formula
-  detformula <- object@detformula
-  stateformula <- object@stateformula
-  FPformula <- object@FPformula
-  Bformula <- object@Bformula
-  umf <- object@data
-  designMats <- getDesign(umf, detformula,FPformula,Bformula,stateformula, na.rm = na.rm)
-  y <- designMats$y
-  V <- designMats$V
-  V.offset <- designMats$V.offset
-  if (is.null(V.offset))
-    V.offset <- rep(0, nrow(V))
-  M <- nrow(y)
-  J <- ncol(y)
-  ppars <- coef(object, type = "det")
-  p <- plogis(V %*% ppars + V.offset)
-  p <- matrix(p, M, J, byrow = TRUE)
-  return(p)
-})
-
 setMethod("getP", "unmarkedFitOccuMulti", function(object)
 {
 
@@ -1071,28 +1029,6 @@ setMethod("getP", "unmarkedFitDSO",
 })
 
 
-setMethod("getP", "unmarkedFitMPois", function(object, na.rm = TRUE)
-{
-    formula <- object@formula
-    detformula <- as.formula(formula[[2]])
-    piFun <- object@data@piFun
-    umf <- object@data
-    designMats <- getDesign(umf, formula, na.rm = na.rm)
-    y <- designMats$y
-    V <- as.matrix(cbind(designMats$V, designMats$Z_det))
-    V.offset <- designMats$V.offset
-    if (is.null(V.offset))
-        V.offset <- rep(0, nrow(V))
-    M <- nrow(y)
-    J <- obsNum(umf) #ncol(y)
-    ppars <- coef(object, type = "det", fixedOnly=FALSE)
-    p <- plogis(V %*% ppars + V.offset)
-    p <- matrix(p, M, J, byrow = TRUE)
-    pi <- do.call(piFun, list(p = p))
-    return(pi)
-})
-
-
 setMethod("getP", "unmarkedFitMMO", function(object, na.rm = TRUE)
 {
 
@@ -1133,27 +1069,6 @@ setMethod("getP", "unmarkedFitPCO", function(object, na.rm = TRUE)
     ppars <- coef(object, type = "det")
     p <- plogis(Xp %*% ppars + Xp.offset)
     p <- matrix(p, M, J*T, byrow = TRUE)
-    return(p)
-})
-
-
-
-setMethod("getP", "unmarkedFitColExt", function(object, na.rm = TRUE)
-{
-    data <- object@data
-    detParms <- coef(object, 'det')
-    D <- getDesign(object@data, object@formula, na.rm=na.rm)
-    y <- D$y
-    V <- D$V
-
-    M <- nrow(y)	# M <- nrow(X.it)
-    nY <- data@numPrimary
-    J <- obsNum(data)/nY
-
-    p <- plogis(V %*% detParms)
-    p <- array(p, c(J, nY, M))
-    p <- aperm(p, c(3, 1, 2))
-    p <- matrix(p, nrow=M)
     return(p)
 })
 
