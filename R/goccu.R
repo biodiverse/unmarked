@@ -180,18 +180,16 @@ setMethod("get_orig_data", "unmarkedFitGOccu", function(object, type, ...){
   clean_covs[[datatype]]
 })
 
-setMethod("getP", "unmarkedFitGOccu",
-  function(object, na.rm=FALSE){
-  gd <- getDesign(object@data, object@formula, na.rm=na.rm)
-  p <- drop(plogis(gd$Xdet %*% coef(object, "det")))
+setMethod("getP_internal", "unmarkedFitGOccu", function(object){
   M <- numSites(object@data)
-  p <- matrix(p, nrow=M, ncol=obsNum(object@data), 
-              byrow=TRUE)
+  J <- ncol(object@data@y)
+  p <- predict(object, type="det", level=NULL, na.rm=FALSE)$Predicted
+  p <- matrix(p, nrow=M, ncol=J, byrow=TRUE)
   p
 })
 
 setMethod("fitted_internal", "unmarkedFitGOccu", function(object){
-
+  # TODO: Use predict here
   M <- numSites(object@data)
   JT <- obsNum(object@data)  
   gd <- getDesign(object@data, object@formula, na.rm=FALSE)
