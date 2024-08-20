@@ -242,24 +242,19 @@ Here are methods that you should test but probably will not have to rewrite. The
 - `confint`
 - `fitted`
 - `getData`
-- `hessian`
 - `linearComb`
-- `mle`
 - `names`
-- `nllFun`
 - `parboot`
 - `nonparboot`
 - `predict`
 - `profile`
 - `residuals`
-- `sampleSize`
 - `SE`
 - `show`
 - `summary`
 - `update`
 - `vcov`
 - `logLik`
-- `LRT`
 
 ### Methods to access new attributes {-}
 
