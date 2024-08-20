@@ -92,9 +92,11 @@ test_that("multinomPois can fit a removal model",{
     #checkEqualsNumeric(coef(m3_R),coef(m3_C), tol=1e-5)
 
     # check methods
-    expect_warning(gp <- getP(m2_C))
-    expect_equal(dim(gp), c(3,3))
-    expect_equal(gp[1,1], 0.51101, tol=1e-4)
+    gp <- getP(m2_C)
+    expect_equal(dim(gp), dim(m2_C@data@y))
+    expect_equal(as.vector(gp[1:2, 1:2]), c(0.5110,0.4213,0.2499,NA), tol=1e-4)
+    expect_true(all(is.na(gp[4,])))
+    expect_true(all(is.na(gp[5,])))
 
     expect_warning(pr <- predict(m2_C, 'state'))
     expect_equal(dim(pr), c(3,4))

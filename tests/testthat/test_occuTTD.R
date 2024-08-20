@@ -208,7 +208,9 @@ test_that("occuTTD can fit a single-season 1 obs model",{
   expect_equivalent(dim(r@post), c(N,2,1))
   b <- bup(r)
   expect_equivalent(length(b), N)
-
+  
+  gp <- getP(fitC)
+  expect_equal(dim(gp), dim(fitC@data@y))
 })
 
 test_that("occuTTD can fit a single-season multi-obs model",{

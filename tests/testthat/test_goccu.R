@@ -89,7 +89,7 @@ test_that("goccu can fit models", {
 
   gp <- getP(mod2)
   expect_equal(dim(gp), dim(umf2@y))
-  expect_equal(gp[1,1], 0.349239, tol=1e-5) 
+  expect_equal(as.vector(gp[1:2,1:2]), c(0.34923,0.35024,0.35088,0.35162), tol=1e-5) 
 
   set.seed(123)
   s <- simulate(mod2, nsim=2)

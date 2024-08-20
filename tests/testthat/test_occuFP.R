@@ -47,6 +47,11 @@ test_that("occuFP model can be fit",{
   v <- vcov(npb, method='nonparboot')
   expect_equal(nrow(v), length(coef(npb)))
 
+  # getP
+  gp <- getP(m1)
+  expect_equal(dim(gp), dim(m1@data@y))
+  expect_equal(as.vector(gp[5:6, 5:6]), c(0.4513,0.4513,0.7232,0.7232), tol=1e-4)
+
   # Check error when random effect in formula
   expect_error(occuFP(~(1|dummy), ~1, ~1, data=umf1))
 })

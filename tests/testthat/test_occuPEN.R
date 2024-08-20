@@ -129,6 +129,11 @@ test_that("occuPEN can fit models with covariates",{
   new_fit <- update(fm, formula=~1~1, data=umf[1:3,]) 
   expect_equal(length(coef(new_fit)), 2)
   expect_equal(nrow(new_fit@data@y), 3)
+
+  # getP
+  gp <- getP(fm)
+  expect_equal(dim(gp), dim(fm@data@y))
+  expect_equal(as.vector(gp[1:2,1:2]), c(0.5739,0.5014,0.5377,0.4656), tol=1e-4)
 })
 
 test_that("occuPEN can handle NAs",{
@@ -151,6 +156,10 @@ test_that("occuPEN can handle NAs",{
   ft <- fitted(fm)
   expect_true(all(is.na(ft[3,]))) # missing site cov
   expect_true(is.na(ft[5,2])) # missing obs cov
+
+  gp <- getP(fm)
+  expect_true(all(!is.na(gp[3,]))) # missing site cov
+  expect_true(is.na(gp[5,2])) # missing obs cov
 })
 
 

@@ -366,16 +366,13 @@ setMethod("get_orig_data", "unmarkedFitOccuCOP", function(object, type, ...){
 
 
 ## getP ----
-setMethod("getP", "unmarkedFitOccuCOP", function(object, na.rm = TRUE) {
+setMethod("getP_internal", "unmarkedFitOccuCOP", function(object) {
   data <- object@data
   M = nrow(getY(data))
   J = ncol(getY(data))
-  des <- getDesign(data, object@formlist, na.rm = na.rm)
-  matLambda =  do.call(object["lambda"]@invlink, 
-                       list(matrix(
-                         as.numeric(des$Xlambda %*% coef(object, 'lambda')),
-                         nrow = M, ncol = J, byrow = T)))
-  return(matLambda)
+  lam <- predict(object, type="lambda", level=NULL, na.rm=FALSE)$Predicted
+  lam <- matrix(lam, M, J, byrow=TRUE)
+  lam
 })
 
 

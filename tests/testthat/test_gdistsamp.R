@@ -162,6 +162,9 @@ test_that("gdistsamp with halfnorm keyfunction works",{
     expect_equal(length(npb@bootstrapSamples), 2)
     v <- vcov(npb, method='nonparboot')
     expect_equal(nrow(v), length(coef(npb)))
+    gp <- getP(fm_C)
+    expect_equal(dim(gp), dim(fm_C@data@y))
+    expect_equal(as.vector(gp[1:2,1:2]), c(0.1968,0.1964,0.1787,0.1761), tol=1e-4)
 
     #Negative binomial
     #fm_R <- gdistsamp(~par1, ~par2, ~par3, umf, output="density", se=FALSE,
@@ -638,8 +641,9 @@ test_that("gdistsamp handles NAs",{
   expect_warning(fm1 <- gdistsamp(~1, ~1, ~cov1, umf, keyfun="exp", output="density", se=FALSE))
 
   # Check that getP works
-  expect_warning(gp <- getP(fm1))
+  gp <- getP(fm1)
   expect_equivalent(dim(gp), c(R, T*J))
+  expect_true(all(is.na(gp[1,11:15])))
 })
 
 test_that("gdistsamp simulate method works",{

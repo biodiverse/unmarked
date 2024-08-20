@@ -94,6 +94,11 @@ test_that("colext model fitting works", {
   # parboot
   pb <- parboot(fm4, nsim=2)
   expect_equal(pb@t.star[1,1], 10.2840, tol=1e-4)
+
+  # getP
+  gp <- getP(fm4)
+  expect_equal(dim(gp), c(6,8))
+  expect_equal(gp[1,1], 0.75089, tol=1e-4)
 })
 
 test_that("colext handles missing values",{
@@ -129,6 +134,11 @@ umf5 <- umf1
   expect_equal(dim(ft), dim(umf5@y))
   expect_true(is.na(ft[1,1]))
   expect_true(all(is.na(ft[2,])))
+
+  gp <- getP(fm4)
+  expect_equal(dim(gp), dim(umf5@y))
+  expect_true(all(!is.na(gp[2,])))
+  expect_equal(as.vector(gp[1:2,1:2]), c(NA, 0.74517,0.81052,0.8001), tol=1e-4)
 
   umf5 <- umf1
   umf5@yearlySiteCovs$ysc[1] <- NA

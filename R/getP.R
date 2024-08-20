@@ -1,0 +1,187 @@
+setGeneric("getP", function(object, ...) standardGeneric("getP"))
+
+# Exported method
+setMethod("getP", "unmarkedFit", function(object, ...){
+  getP_internal(object)
+})
+
+# Internal method
+setGeneric("getP_internal", function(object) standardGeneric("getP_internal"))
+
+setMethod("getP_internal", "unmarkedFit", function(object){
+  M <- numSites(object@data)
+  J <- obsNum(object@data)
+  p <- predict(object, type="det", level=NULL, na.rm=FALSE)$Predicted
+  p <- matrix(p, M, J, byrow = TRUE)
+  p
+})
+
+setMethod("getP_internal", "unmarkedFitColExt", function(object){
+  data <- object@data
+  M <- numSites(data)
+  nY <- data@numPrimary
+  J <- obsNum(data)/nY
+  p <- predict(object, type="det", level=NULL, na.rm=FALSE)$Predicted
+  p <- array(p, c(J, nY, M))
+  p <- aperm(p, c(3, 1, 2))
+  p <- matrix(p, nrow=M)
+  p
+})
+
+setMethod("getP_internal", "unmarkedFitDS", function(object){
+  cp <- get_dist_prob(object)
+  cp
+})
+
+setMethod("getP_internal", "unmarkedFitDSO", function(object){
+  umf <- getData(object)
+  y <- getY(umf)
+  M <- numSites(umf)
+  T <- umf@numPrimary
+  J <- ncol(y) / T
+
+  sig <- matrix(NA, M, T)
+  if(object@keyfun != "uniform"){
+    sig <- predict(object, type="det", level = NULL, na.rm=FALSE)$Predicted
+    sig <- matrix(sig, M, T, byrow=TRUE)
+  }
+
+  scale <- 0.0
+  if(object@keyfun == "hazard"){
+    scale <- backTransform(object, type="scale")@estimate
+  }
+
+  db <- umf@dist.breaks
+  w <- diff(db)
+  ua <- getUA(umf)
+  u <- ua$u; a <- ua$a
+
+  cp <- array(NA, c(M, J, T))
+  for (i in 1:M){
+    for (t in 1:T){
+      cp[i,,t] <- getDistCP(object@keyfun, sig[i,t], scale, umf@survey,
+                              db, w, a[i,], u[i,])
+    }
+  }
+  matrix(cp, nrow=M)
+})
+
+# Should this return p or pi. Right now it's pi without phi.
+setMethod("getP_internal", "unmarkedFitGDS", function(object){
+  cp <- get_dist_prob(object)
+  cp
+})
+
+setMethod("getP_internal", "unmarkedFitGMM", function(object){
+  piFun <- object@data@piFun
+  M <- numSites(object@data)
+  T <- object@data@numPrimary
+  R <- numY(object@data) / T
+  J <- obsNum(object@data) / T
+
+  p <- predict(object, type = "det", level=NULL, na.rm=FALSE)$Predicted
+  p <- matrix(p, nrow=M, byrow=TRUE)
+  p <- array(p, c(M, J, T))
+  p <- aperm(p, c(1,3,2))
+
+  cp <- array(as.numeric(NA), c(M, T, R))
+  for(t in 1:T) cp[,t,] <- do.call(piFun, list(matrix(p[,t,], M, J)))
+  cp <- aperm(cp, c(1,3,2))
+  cp <- matrix(cp, nrow=M, ncol=numY(object@data))
+  cp
+})
+
+setMethod("getP_internal", "unmarkedFitGPC", function(object){
+  M <- numSites(object@data)
+  R <- ncol(object@data@y)
+  
+  p <- predict(object, type="det", level=NULL, na.rm=FALSE)$Predicted
+  p <- matrix(p, M, R, byrow=TRUE)
+  p
+})
+
+setMethod("getP_internal", "unmarkedFitMMO", function(object){
+  umf <- object@data
+  M <- numSites(umf)
+  T <- umf@numPrimary
+  J <- ncol(getY(umf)) / T
+
+  plong <- predict(object, type="det", level=NULL, na.rm=FALSE)$Predicted
+  pmat <- aperm(array(plong, c(J,T,M)), c(3,1,2))
+
+  pout <- array(NA, c(M,J,T))
+  for (t in 1:T){
+    pout[,,t] <- do.call(umf@piFun, list(p=pmat[,,t]))
+  }
+  matrix(aperm(pout,c(2,3,1)), M, J*T, byrow=TRUE)
+})
+
+setMethod("getP_internal", "unmarkedFitMPois", function(object){
+  p <- methods::callNextMethod(object)
+  piFun <- object@data@piFun
+  pi <- do.call(piFun, list(p = p))
+  pi
+})
+
+setMethod("getP_internal", "unmarkedFitNmixTTD", function(object){
+  stop("getP is not implemented for nmixTTD at this time", call.=FALSE)
+})
+
+setMethod("getP_internal", "unmarkedFitOccuMS", function(object){
+  J <- ncol(object@data@y)
+  N <- nrow(object@data@y)
+  pred <- predict(object, type='det', level=NULL)
+  lapply(pred, function(x) matrix(x$Predicted, nrow=N, ncol=J, byrow=T))
+})
+
+setMethod("getP_internal", "unmarkedFitOccuMulti", function(object){
+  ylist <- object@data@ylist
+  S <- length(ylist)
+  N <- nrow(ylist[[1]])
+  maxOrder <- object@call$maxOrder
+  if(is.null(maxOrder)) maxOrder <- length(object@data@ylist)
+  dm <- getDesign(object@data,object@detformulas,object@stateformulas, maxOrder=maxOrder)
+  pred <- predict(object,'det', level=NULL)
+  dets <- do.call(cbind,lapply(pred,`[`,,1))
+  #ugly mess
+  out <- list()
+  for (i in 1:S){
+    pmat <- array(NA,dim(ylist[[1]]))
+    for (j in 1:N){
+      ps <- dets[dm$yStart[j]:dm$yStop[j],i]
+      not_na <- !is.na(ylist[[i]][j,])
+      pmat[j,not_na] <- ps
+    }
+    out[[i]] <- pmat
+  }
+  names(out) <- names(ylist)
+  out
+})
+
+setMethod("getP_internal", "unmarkedFitOccuTTD", function(object){
+  N <- nrow(object@data@y)
+  lam <- predict(object, 'det', na.rm=FALSE)$Predicted
+  tmax <- as.numeric(t(object@data@surveyLength))
+  tdist <- ifelse("shape" %in% names(object@estimates), "weibull", "exp")
+
+  not_na <- !is.na(lam)
+  est_p <- rep(NA, length(lam))
+  if(tdist == "weibull"){
+    k <- exp(coef(object)['k(k)'])
+    est_p[not_na] <- stats::pweibull(tmax[not_na], k, 1/lam[not_na])
+  } else {
+    est_p[not_na] <- stats::pexp(tmax[not_na], lam[not_na])
+  }
+
+  matrix(est_p, nrow=N, byrow=TRUE)
+})
+
+setMethod("getP_internal", "unmarkedFitPCO", function(object){
+  umf <- object@data
+  M <- numSites(umf)
+  T <- umf@numPrimary
+  J <- ncol(umf@y) / T
+  p <- predict(object, type="det", level=NULL, na.rm=FALSE)$Predicted
+  p <- matrix(p, M, J*T, byrow = TRUE)
+  p
+})
