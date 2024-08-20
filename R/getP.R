@@ -74,6 +74,10 @@ setMethod("getP_internal", "unmarkedFitMPois", function(object){
   pi
 })
 
+setMethod("getP_internal", "unmarkedFitNmixTTD", function(object){
+  stop("getP is not implemented for nmixTTD at this time", call.=FALSE)
+})
+
 setMethod("getP_internal", "unmarkedFitOccuMS", function(object){
   J <- ncol(object@data@y)
   N <- nrow(object@data@y)

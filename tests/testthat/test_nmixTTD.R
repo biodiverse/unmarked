@@ -70,6 +70,9 @@ test_that("nmixTTD can fit a Poisson/exp model",{
   expect_equivalent(length(sim), 2)
   expect_equivalent(dim(sim[[1]]), dim(umf@y))
 
+  #getP
+  expect_error(getP(fit))
+
   #Update
   fit2 <- update(fit, data=umf[1:10,])
 
