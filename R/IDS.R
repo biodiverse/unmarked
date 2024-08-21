@@ -299,7 +299,7 @@ IDS <- function(lambdaformula = ~1,
 
 }
 
-setMethod("summary", "unmarkedFitIDS", function(object)
+setMethod("summary_internal", "unmarkedFitIDS", function(object)
 {
     cat("\nCall:\n")
     print(object@call)

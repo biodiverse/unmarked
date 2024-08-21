@@ -29,6 +29,15 @@ test_that("occu can fit simple models",{
   umf <- unmarkedFrameOccu(y = y)
   fm <- occu(~ 1 ~ 1, data = umf)
 
+  # Expect warning about big SEs
+  nul <- capture.output(expect_warning(summary(fm)))
+
+  # Check warning about NaN/NA SEs
+  fm2 <- fm
+  fm2@estimates@estimates$state@covMat[1,1] <- NaN
+  fm2@estimates@estimates$det@covMat[1,1] <- 1
+  nul <- capture.output(expect_warning(summary(fm2)))
+
   occ <- fm['state']
   det <- fm['det']
 

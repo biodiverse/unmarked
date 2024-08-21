@@ -16,8 +16,6 @@
 \alias{update,unmarkedFit-method}
 \alias{plot,profile,missing-method}
 \alias{summary,unmarkedFit-method}
-\alias{summary,unmarkedFitDS-method}
-\alias{summary,unmarkedFitIDS-method}
 \alias{smoothed}
 \alias{smoothed,unmarkedFitColExt-method}
 \alias{projected}

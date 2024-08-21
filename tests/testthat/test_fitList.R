@@ -14,8 +14,8 @@ test_that("fitList operations work",{
   fl <- fitList(fm=fm, fm2=fm2)
   expect_is(fl, "unmarkedFitList")
 
-  out <- capture.output(summary(fl))
-  expect_equal(out[c(2,23)], rep("Call:", 2))
+  out <- capture.output(expect_warning(summary(fl)))
+  expect_equal(out[c(2,20)], rep("Call:", 2))
 
   cf <- coef(fl)
   expect_equal(dim(cf), c(2,5))
@@ -33,10 +33,12 @@ test_that("fitList operations work",{
 
   # Raster predict
   r <- data.frame(x=rep(1:10, 10), y=rep(1:10, each=10), z=rnorm(100))
-  r <- raster::rasterFromXYZ(r)
-  names(r) <- "x"
-  pr <- predict(fl, type="state", newdata=r)
-  expect_is(pr, "RasterStack")
+  if(requireNamespace("raster")){
+    r <- raster::rasterFromXYZ(r)
+    names(r) <- "x"
+    pr <- predict(fl, type="state", newdata=r)
+    expect_is(pr, "RasterStack")
+  }
 
   mt <- modSel(fl)
   out <- capture.output(mt)
