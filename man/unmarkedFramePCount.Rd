@@ -3,7 +3,7 @@
 \title{Organize data for the N-mixture model fit by pcount}
 \alias{unmarkedFramePCount}
 
-\usage{unmarkedFramePCount(y, siteCovs=NULL, obsCovs=NULL, mapInfo)}
+\usage{unmarkedFramePCount(y, siteCovs=NULL, obsCovs=NULL)}
 
 \description{Organizes repeated count data along with the covariates. 
     This S4 class is required by the data argument of \code{\link{pcount}}}
@@ -16,7 +16,7 @@
     \item{obsCovs}{Either a named list of \code{\link{data.frame}}s of 
         covariates that vary within sites, or a \code{\link{data.frame}} with 
         RxJ rows in site-major order.}
-    \item{mapInfo}{Currently ignored}}
+}
 
 \details{
     unmarkedFramePCount is the S4 class that holds data to be passed 

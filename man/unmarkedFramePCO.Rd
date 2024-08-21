@@ -1,7 +1,7 @@
 \name{unmarkedFramePCO}
 \title{Create an object of class unmarkedFramePCO that contains data used by pcountOpen.}
 \alias{unmarkedFramePCO}
-\usage{unmarkedFramePCO(y, siteCovs=NULL, obsCovs=NULL, yearlySiteCovs, mapInfo,
+\usage{unmarkedFramePCO(y, siteCovs=NULL, obsCovs=NULL, yearlySiteCovs,
     numPrimary, primaryPeriod)}
 \description{Organizes repeated count data along with the covariates and possibly the dates on which each survey was conducted. This S4 class is required by the data argument of \code{\link{pcountOpen}}}
 \arguments{
@@ -16,7 +16,6 @@
     \item{yearlySiteCovs}{Either a named list of MxT \code{\link{data.frame}}s,
         or a site-major \code{\link{data.frame}} with MT rows and 1 column per
         covariate.}
-    \item{mapInfo}{Currently ignored}
     \item{numPrimary}{Maximum number of observed primary periods for each site}
     \item{primaryPeriod}{matrix of integers indicating the primary period of each survey.}
 

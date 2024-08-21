@@ -6,7 +6,7 @@
 \alias{unmarkedFrameDS}
 
 \usage{unmarkedFrameDS(y, siteCovs=NULL, dist.breaks, tlength, survey,
-    unitsIn, mapInfo)}
+    unitsIn)}
 
 \description{Organizes count data along with the covariates and metadata.
     This S4 class is required by the data argument of \code{\link{distsamp}}}
@@ -24,7 +24,7 @@
     \item{survey}{Either "point" or "line" for point- and line-transects.}
     \item{unitsIn}{Either "m" or "km" defining the measurement units for
         \emph{both} \code{dist.breaks} and \code{tlength}}.
-    \item{mapInfo}{Currently ignored}}
+}
 
 \details{
     unmarkedFrameDS is the S4 class that holds data to be passed

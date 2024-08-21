@@ -5,7 +5,7 @@
 
 \alias{unmarkedFrameOccu}
 
-\usage{unmarkedFrameOccu(y, siteCovs=NULL, obsCovs=NULL, mapInfo)}
+\usage{unmarkedFrameOccu(y, siteCovs=NULL, obsCovs=NULL)}
 
 \description{Organizes detection, non-detection data along with the covariates. 
     This S4 class is required by the data argument of \code{\link{occu}} and
@@ -19,7 +19,6 @@
     \item{obsCovs}{Either a named list of \code{\link{data.frame}}s of 
         covariates that vary within sites, or a \code{\link{data.frame}} with 
         RxJ rows in site-major order.}
-    \item{mapInfo}{Currently ignored}
   
 }
 

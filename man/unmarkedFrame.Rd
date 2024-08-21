@@ -1,7 +1,7 @@
 \name{unmarkedFrame}
 \title{Create an unmarkedFrame, or one of its child classes.}
 \alias{unmarkedFrame}
-\usage{unmarkedFrame(y, siteCovs=NULL, obsCovs=NULL, mapInfo, obsToY)}
+\usage{unmarkedFrame(y, siteCovs=NULL, obsCovs=NULL, obsToY)}
 \description{Constructor for unmarkedFrames.}
 \arguments{
   \item{y}{An MxJ matrix of the observed measured data, where M is the
@@ -13,7 +13,6 @@
     with MxJ rows in site-major order.}
   \item{obsToY}{optional matrix specifying relationship between
     observation-level covariates and response matrix}
-  \item{mapInfo}{geographic coordinate information. Currently ignored.}
 }
 
 \details{
@@ -31,7 +30,7 @@
   site first, then observation number.  Missing values are coded with
   \code{NA} in any of y, siteCovs, or obsCovs.
 
-  Additionally, unmarkedFrames contain metadata: obsToY, mapInfo.
+  Additionally, unmarkedFrames contain metadata: obsToY.
   obsToY is a matrix describing relationship between response matrix and
   observation-level covariates. Generally this does not need to be
   supplied by the user; however, it may be needed when using

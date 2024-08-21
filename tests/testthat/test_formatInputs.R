@@ -67,7 +67,6 @@ test_that("formatLong works correctly",{
                                       class = "data.frame",
                                       row.names = c(NA, -4L)),
                   siteCovs = NULL,
-                  mapInfo = NULL,
                   obsToY = structure(c(1, 0, 0, 1), .Dim = c(2L, 2L))))
 
   test <- expand.grid(site = LETTERS[1:4], julian = c(13, 20, 26))
@@ -98,7 +97,6 @@ test_that("formatLong works correctly",{
                                             sitefac = structure(c(1L, 1L, 2L, 2L),
                                                                 .Label = c("0", "1"), class = "factor")),
                                        class = "data.frame", row.names = c(NA, -4L)),
-                  mapInfo = NULL,
                   obsToY = structure(c(1, 0, 0, 0, 1, 0, 0, 0, 1), .Dim = c(3L, 3L))))
 
   # Compare manual and automatic unmarkedPCount frames
@@ -243,7 +241,6 @@ test_that("formatMult works correctly",{
                                                                 .Label = c("0", "1"), class = "factor"),
                                             scov = c(2, 4, 6, 8)), class = "data.frame",
                                        row.names = c(NA, -4L)),
-                  mapInfo = NULL,
                   obsToY = structure(c(1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
                                        0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0,
                                        0, 0, 0, 0, 1), .Dim = c(6L, 6L))))

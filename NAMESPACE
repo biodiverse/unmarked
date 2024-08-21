@@ -32,11 +32,11 @@ export(makeRemPiFun, makeCrPiFun, makeCrPiFunMb, makeCrPiFunMh)
 exportClasses(unmarkedFit, unmarkedFrame)
 
 # Methods
-exportMethods(backTransform, coef, confint, coordinates, fitted, getData,
+exportMethods(backTransform, coef, confint, fitted, getData,
               getP, getFP, getB, getY, head, linearComb,
               modSel, numSites, numY, obsCovs, obsNum, "obsCovs<-",
               obsToY, "obsToY<-", parboot, plot, hist, predict, profile,
-              projection, residuals, SE, simulate, siteCovs,
+              residuals, SE, simulate, siteCovs,
               "siteCovs<-", summary, update, vcov, yearlySiteCovs,
               "yearlySiteCovs<-", "[", smoothed, projected, nonparboot, logLik,
               ranef, bup, crossVal, posteriorSamples, sigma, randomTerms, 
@@ -46,7 +46,7 @@ exportMethods(backTransform, coef, confint, coordinates, fitted, getData,
 S3method("print", "unmarkedPostSamples")
 
 # Constructors
-export(fitList, mapInfo,
+export(fitList,
     unmarkedFrameOccu, unmarkedFrameOccuFP, unmarkedFramePCount, unmarkedFrameMPois,
     unmarkedFrameDS, unmarkedMultFrame, unmarkedFrameGMM,
     unmarkedFramePCO, unmarkedFrameGDS, unmarkedFrameGPC, unmarkedFrameOccuMulti,
