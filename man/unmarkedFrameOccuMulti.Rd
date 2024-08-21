@@ -5,7 +5,7 @@
 \alias{unmarkedFrameOccuMulti}
 
 \usage{unmarkedFrameOccuMulti(y, siteCovs=NULL, obsCovs=NULL, 
-                              maxOrder, mapInfo)}
+                              maxOrder)}
 
 \description{Organizes detection, non-detection data for multiple species along 
     with the covariates. This S4 class is required by the data argument 
@@ -25,7 +25,6 @@
         number of species (all possible interactions). Reducing this value may
         speed up creation of unmarked frame if you aren't interested in 
         higher-order interactions.}
-    \item{mapInfo}{Currently ignored}
   
 }
 

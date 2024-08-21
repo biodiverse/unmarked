@@ -25,7 +25,6 @@ setClass("unmarkedFrame",
     representation(y = "matrix",
         obsCovs = "optionalDataFrame",
         siteCovs = "optionalDataFrame",
-        mapInfo = "optionalMapInfo",
         obsToY = "optionalMatrix"),
     validity = validunmarkedFrame)
 
@@ -182,8 +181,7 @@ covsToDF <- function(covs, name, obsNum, numSites){
 }
 
 # Constructor for unmarkedFrames.
-unmarkedFrame <- function(y, siteCovs = NULL, obsCovs = NULL, mapInfo,
-                          obsToY) {
+unmarkedFrame <- function(y, siteCovs = NULL, obsCovs = NULL, obsToY) {
     if(!missing(obsToY)){
         obsNum <- nrow(obsToY)
     } else {
@@ -198,17 +196,16 @@ unmarkedFrame <- function(y, siteCovs = NULL, obsCovs = NULL, mapInfo,
     if(inherits(y, c("data.frame", "cast_matrix")))
         y <- as.matrix(y)
     if(missing(obsToY)) obsToY <- NULL
-    if(missing(mapInfo)) mapInfo <- NULL
 
     umf <- new("unmarkedFrame", y = y, obsCovs = obsCovs, siteCovs = siteCovs,
-        mapInfo = mapInfo, obsToY = obsToY)
+        obsToY = obsToY)
     umf <- umf_to_factor(umf)
     return(umf)
 }
 
 
 unmarkedFrameDS <- function(y, siteCovs = NULL, dist.breaks, tlength,
-                            survey, unitsIn, mapInfo = NULL)
+                            survey, unitsIn)
 {
     if(missing(survey))
         stop("survey argument must be specified")
@@ -229,27 +226,25 @@ unmarkedFrameDS <- function(y, siteCovs = NULL, dist.breaks, tlength,
 
 
 
-unmarkedFrameOccu <- function(y, siteCovs = NULL, obsCovs = NULL, mapInfo)
+unmarkedFrameOccu <- function(y, siteCovs = NULL, obsCovs = NULL)
 {
     J <- ncol(y)
-    umf <- unmarkedFrame(y, siteCovs, obsCovs, obsToY = diag(J),
-                         mapInfo = mapInfo)
+    umf <- unmarkedFrame(y, siteCovs, obsCovs, obsToY = diag(J))
     umf <- as(umf, "unmarkedFrameOccu")
     umf
 }
 
-unmarkedFrameOccuFP <- function(y, siteCovs = NULL, obsCovs = NULL, type, mapInfo)
+unmarkedFrameOccuFP <- function(y, siteCovs = NULL, obsCovs = NULL, type)
 {
   J <- ncol(y)
-  umf <- unmarkedFrame(y, siteCovs, obsCovs, obsToY = diag(J),
-                       mapInfo = mapInfo)
+  umf <- unmarkedFrame(y, siteCovs, obsCovs, obsToY = diag(J))
   umf <- as(umf, "unmarkedFrameOccuFP")
   umf@type <- type
   umf
 }
 
 unmarkedFrameOccuMulti <- function(y, siteCovs = NULL, obsCovs = NULL,
-                                   maxOrder, mapInfo = NULL)
+                                   maxOrder)
 {
   ylist <- y
 
@@ -298,11 +293,10 @@ unmarkedFrameOccuMulti <- function(y, siteCovs = NULL, obsCovs = NULL,
 }
 
 
-unmarkedFramePCount <- function(y, siteCovs = NULL, obsCovs = NULL, mapInfo)
+unmarkedFramePCount <- function(y, siteCovs = NULL, obsCovs = NULL)
 {
     J <- ncol(y)
-    umf <- unmarkedFrame(y, siteCovs, obsCovs, obsToY = diag(J),
-        mapInfo = mapInfo)
+    umf <- unmarkedFrame(y, siteCovs, obsCovs, obsToY = diag(J))
     umf <- as(umf, "unmarkedFramePCount")
     umf
 }
@@ -310,7 +304,7 @@ unmarkedFramePCount <- function(y, siteCovs = NULL, obsCovs = NULL, mapInfo)
 
 
 unmarkedFrameMPois <- function(y, siteCovs = NULL, obsCovs = NULL, type,
-    obsToY, mapInfo, piFun)
+    obsToY, piFun)
 {
     if(!missing(type)) {
         switch(type,
@@ -339,8 +333,7 @@ unmarkedFrameMPois <- function(y, siteCovs = NULL, obsCovs = NULL, type,
             stop("obsToY is required for multinomial-Poisson data with no specified type.")
         type <- "userDefined"
         }
-    umf <- unmarkedFrame(y, siteCovs, obsCovs, obsToY = obsToY,
-        mapInfo = mapInfo)
+    umf <- unmarkedFrame(y, siteCovs, obsCovs, obsToY = obsToY)
     umf <- as(umf, "unmarkedFrameMPois")
     umf@piFun <- piFun
     umf@samplingMethod <- type
@@ -678,7 +671,7 @@ unmarkedFrameGPC <- function(y, siteCovs=NULL, obsCovs=NULL, numPrimary,
 
 
 unmarkedFramePCO <- function(y, siteCovs = NULL, obsCovs = NULL,
-    yearlySiteCovs = NULL, mapInfo, numPrimary, primaryPeriod)
+    yearlySiteCovs = NULL, numPrimary, primaryPeriod)
 {
     M <- nrow(y)
     T <- numPrimary
@@ -893,17 +886,6 @@ setReplaceMethod("obsToY", "unmarkedFrame", function(object, value) {
 setGeneric("getY", function(object) standardGeneric("getY"))
 setMethod("getY", "unmarkedFrame", function(object) object@y)
 
-
-setGeneric("coordinates", function(object) standardGeneric("coordinates"))
-setMethod("coordinates", "unmarkedFrame", function(object) {
-    object@mapInfo@coordinates
-})
-
-
-setGeneric("projection", function(object) standardGeneric("projection"))
-setMethod("projection", "unmarkedFrame", function(object) {
-    object@mapInfo@projection
-})
 
 ################################### SUMMARY METHODS ######################
 

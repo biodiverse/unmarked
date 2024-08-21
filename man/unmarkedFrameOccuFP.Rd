@@ -4,7 +4,7 @@
 
 \alias{unmarkedFrameOccuFP}
 
-\usage{unmarkedFrameOccuFP(y, siteCovs=NULL, obsCovs=NULL, type, mapInfo)}
+\usage{unmarkedFrameOccuFP(y, siteCovs=NULL, obsCovs=NULL, type)}
 
 \description{Organizes detection, non-detection data along with the covariates.
     This S4 class is required by the data argument of \code{\link{occu}} and
@@ -21,7 +21,6 @@
     \item{type}{A vector with 3 values designating the number of occassions
 	where data is of type 1, type 2, and type 3 - see \code{\link{occuFP}}
 	for more details about data types.}
-    \item{mapInfo}{Currently ignored}
 
 }
 

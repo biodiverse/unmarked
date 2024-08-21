@@ -6,7 +6,7 @@
 \alias{unmarkedFrameMPois}
 
 \usage{unmarkedFrameMPois(y, siteCovs=NULL, obsCovs=NULL, type, obsToY, 
-    mapInfo, piFun)}
+    piFun)}
 
 \description{Organizes count data along with the covariates. 
     This S4 class is required by the data argument of 
@@ -33,7 +33,6 @@
         observer B, and detected by both), but each observation-level covariate
         can only have 2 columns, one for each observer. This matrix is created 
         automatically if \code{type} is specified. } 
-    \item{mapInfo}{Currently ignored}
     \item{piFun}{Function used to compute the multinomial cell probabilities 
         from a matrix of detection probabilities. This is created automatically
         if \code{type} is specified.}}

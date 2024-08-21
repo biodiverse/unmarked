@@ -18,8 +18,7 @@
   \item{siteCovs}{A \code{\link{data.frame}} of covariates that vary at the site level. This should have M rows and one column per covariate}
   
   \item{obsCovs}{A named list of dataframes of dimension MxJ, with one dataframe per covariate that varies between sites and observation periods}
-  
-  %% \item{mapInfo}{Currently ignored}
+
 }
 
 \details{

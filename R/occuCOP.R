@@ -311,8 +311,7 @@ setMethod("[", c("unmarkedFrameOccuCOP", "numeric", "numeric", "missing"),
               L = L,
               siteCovs = siteCovs,
               obsCovs = obsCovs,
-              obsToY = diag(length(j)),
-              mapInfo = x@mapInfo
+              obsToY = diag(length(j))
             )
           })
 

@@ -2,14 +2,10 @@
 \Rdversion{1.1}
 \docType{class}
 \alias{unmarkedFrame-class}
-\alias{coordinates,unmarkedFrame-method}
-\alias{coordinates}
-\alias{coords}
 \alias{getY}
 \alias{getY,unmarkedFrame-method}
 \alias{head,unmarkedFrame-method}
 \alias{hist,unmarkedFrameDS-method}
-\alias{mapInfo}
 \alias{numSites}
 \alias{numSites,unmarkedFrame-method}
 \alias{numY}
@@ -27,8 +23,6 @@
 \alias{plot,unmarkedFrame,missing-method}
 \alias{plot,unmarkedFrameOccuMulti,missing-method}
 \alias{plot,unmarkedFrameOccuTTD,missing-method}
-\alias{projection,unmarkedFrame-method}
-\alias{projection}
 \alias{siteCovs,unmarkedFrame-method}
 \alias{siteCovs<-,unmarkedFrame-method}
 \alias{siteCovs}
@@ -71,7 +65,6 @@ argument of the fitting functions.
     \item{\code{y}:}{Object of class \code{"matrix"}}
     \item{\code{obsCovs}:}{Object of class \code{"optionalDataFrame"}}
     \item{\code{siteCovs}:}{Object of class \code{"optionalDataFrame"}}
-    \item{\code{mapInfo}:}{Object of class \code{"optionalMapInfo"}}
     \item{\code{obsToY}:}{Object of class \code{"optionalMatrix"}}
   }
 }
@@ -83,8 +76,6 @@ argument of the fitting functions.
 	"numeric", drop = "missing")}: ... }
     \item{[}{\code{signature(x = "unmarkedFrame", i = "missing", j =
 	"numeric", drop = "missing")}: ... }
-    \item{coordinates}{\code{signature(object = "unmarkedFrame")}: extract
-		coordinates }
     \item{getY}{\code{signature(object = "unmarkedFrame")}: extract y
       matrix }
     \item{numSites}{\code{signature(object = "unmarkedFrame")}: extract M }
@@ -102,8 +93,6 @@ argument of the fitting functions.
       visualize response variable.
       Takes additional argument \code{panels} which specifies how many
       panels data should be split over.}
-    \item{projection}{\code{signature(object = "unmarkedFrame")}: extract
-		projection information }
     \item{show}{\code{signature(object = "unmarkedFrame")}: view data as
 		data.frame }
     \item{siteCovs}{\code{signature(object = "unmarkedFrame")}: extract

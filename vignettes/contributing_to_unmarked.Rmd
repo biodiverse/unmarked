@@ -81,7 +81,6 @@ Here are methods you probably will have to rewrite.
 
 Here are methods that you should test but probably will not have to rewrite. They are defined in the [`unmarkedFrame.R`](https://github.com/hmecology/unmarked/blob/master/R/unmarkedFrame.R) file, for the `unmarkedFrame` mother class.
 
-- `coordinates`
 - `getY`
 - `numSites`
 - `numY`
