@@ -500,6 +500,10 @@ test_that("occuCOP can fit and predict models with covariates", {
   expect_equal(dim(gp), dim(umfit@data@y))
   expect_equal(as.vector(gp[1:2,1:2]), c(1.0920,0.6409,5.4968,9.1728), tol=1e-4)
 
+  r <- ranef(umfit)
+  expect_equal(nrow(r@post), numSites(umfit@data))
+  expect_equal(bup(r)[1:4], c(0,0,0,0), tol=1e-4) # is this correct?
+
   # With missing values in covs
   umf_na <- umf
   umf_na@obsCovs$rain[1] <- NA
@@ -519,5 +523,7 @@ test_that("occuCOP can fit and predict models with covariates", {
   expect_error(gp <- getP(umfit))
   #expect_equal(dim(gp), dim(umfit@data@y))
   #expect_true(is.na(gp[1,1]))
+
+  expect_error(expect_warning(r <- ranef(umfit)))
 })
 

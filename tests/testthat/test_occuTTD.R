@@ -193,6 +193,10 @@ test_that("occuTTD can fit a single-season 1 obs model",{
   expect_equal(dim(ft), dim(fit_naC@data@y))
   expect_true(is.na(ft[2,1]))
 
+  r <- ranef(fit_naC)
+  expect_equal(nrow(r@post), N)
+  expect_true(all(is.na(r@post[2,,])))
+
   set.seed(123)
   p <- parboot(fitC, nsim=3)
   expect_equivalent(p@t.star[1,], 87.90704)
@@ -206,8 +210,10 @@ test_that("occuTTD can fit a single-season 1 obs model",{
 
   r <- ranef(fitC)
   expect_equivalent(dim(r@post), c(N,2,1))
+  
   b <- bup(r)
   expect_equivalent(length(b), N)
+  expect_equal(b[1:4], c(1,1,0.052295,0.221098), tol=1e-4)
   
   gp <- getP(fitC)
   expect_equal(dim(gp), dim(fitC@data@y))
@@ -272,6 +278,7 @@ test_that("occuTTD can fit a single-season multi-obs model",{
   expect_equivalent(dim(r@post), c(N,2,1))
   b <- bup(r)
   expect_equivalent(length(b), N)
+  expect_equal(b[1:4], c(1,1,0.028935,0.12426), tol=1e-4)
 
   #Check site is retained when only one observation is missing
   ttd_na <- ttd; ttd_na[1,1] <- NA

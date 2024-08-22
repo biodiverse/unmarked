@@ -458,7 +458,7 @@ setMethod("nonparboot_internal", "unmarkedFitOccuCOP",
 
 
 ## ranef ----
-setMethod("ranef", "unmarkedFitOccuCOP", function(object, ...) {
+setMethod("ranef_internal", "unmarkedFitOccuCOP", function(object, ...) {
   # Sites removed (srm) and sites kept (sk)
   srm <- object@sitesRemoved
   if (length(srm) > 0) {

@@ -353,6 +353,7 @@ test_that("gdistremoval can fit models",{
 
   r <- ranef(fit)
   expect_equivalent(length(bup(r)), 50)
+  expect_equal(bup(r)[1:4], c(2.4701,3.7661,8.2107,3.9931), tol=1e-4)
 
   pb <- parboot(fit, nsim=2)
   expect_equal(pb@t.star[1,1], 126, tol=1e-4)
@@ -464,6 +465,9 @@ test_that("gdistremoval handles NAs",{
   expect_equal(dim(gp$rem), c(50,5,1))
   expect_true(all(is.na(gp$rem[2,,1])))
   expect_true(all(!is.na(gp$dist[2,,1]))) # not removed because only removal prob is NA
+
+  r <- ranef(fit)
+  expect_equal(nrow(r@post), numSites(fit@data))
 })
 
 test_that("multi-period data works with gdistremoval",{

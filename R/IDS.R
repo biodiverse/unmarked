@@ -596,8 +596,8 @@ setMethod("nonparboot_internal", "unmarkedFitIDS",
    stop("Not currently supported for unmarkedFitIDS", call.=FALSE)
 })
 
-setMethod("ranef", "unmarkedFitIDS",
-    function(object, B = 0, keepOldSamples = TRUE, ...)
+setMethod("ranef_internal", "unmarkedFitIDS",
+    function(object, ...)
 {
    stop("Not currently supported for unmarkedFitIDS", call.=FALSE)
 })
