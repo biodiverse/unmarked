@@ -128,6 +128,7 @@ test_that("multmixOpen can fit removal models",{
   #Check ranef
   set.seed(123)
   ran <- ranef(fit)
+  expect_equal(nrow(ran@post), numSites(fit@data))
   expect_equivalent(bup(ran)[1,1], 3.450738, tol=1e-5)
 
   #parboot
@@ -178,6 +179,10 @@ test_that("multmixOpen handles NAs",{
 
   gp <- getP(fit)
   expect_equal(dim(gp), dim(umf@y))
+
+  r <- ranef(fit)
+  expect_equal(nrow(r@post), numSites(fit@data))
+  expect_true(all(is.na(r@post[3,,])))
 
   # Check ranef
   set.seed(123)

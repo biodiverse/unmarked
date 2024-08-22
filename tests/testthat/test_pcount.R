@@ -129,6 +129,10 @@ test_that("pcount handles missing values", {
   gp <- getP(fm)
   expect_equal(dim(gp), dim(umf@y))
   expect_true(is.na(gp[1,1])) # missing obs cov
+
+  r <- ranef(fm)
+  expect_equal(nrow(r@post), numSites(fm@data))
+  expect_true(all(is.na(r@post[2,,1]))) # missing site cov
 })
 
 test_that("pcount predict works",{

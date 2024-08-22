@@ -595,7 +595,7 @@ setMethod("residuals_internal", "unmarkedFitGDR", function(object){
 
 # ranef
 
-setMethod("ranef", "unmarkedFitGDR", function(object){
+setMethod("ranef_internal", "unmarkedFitGDR", function(object, ...){
 
   M <- numSites(object@data)
   T <- object@data@numPrimary

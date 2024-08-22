@@ -173,7 +173,10 @@ test_that("pcountOpen handles NAs",{
                      c(0.9714456, 0.4481042, -0.8920462, 4.0379739 ),
                      tol = 1e-4)
   expect_equal(fm3@sitesRemoved, 6)
-
+  
+  r <- ranef(fm3)
+  expect_equal(nrow(r@post), numSites(fm3@data))
+  expect_equal(bup(r)[1:4], c(2.6409,3.0457,0.04577,5.04577), tol=1e-4)
 
 
   y4 <- matrix(c(

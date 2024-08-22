@@ -208,7 +208,7 @@ setMethod("fitted_internal", "unmarkedFitGOccu", function(object){
 
 
 # based on ranef for GPC
-setMethod("ranef", "unmarkedFitGOccu", function(object, ...){
+setMethod("ranef_internal", "unmarkedFitGOccu", function(object, ...){
 
   M <- numSites(object@data)
   JT <- obsNum(object@data)

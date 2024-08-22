@@ -118,8 +118,8 @@ test_that("multinomPois can fit a removal model",{
     expect_equal(dim(res), dim(umf1@y))
 
     expect_warning(r <- ranef(m2_C, K=50))
-    expect_equal(dim(r@post), c(3,51,1))
-    expect_equal(bup(r), c(10.794,6.9317,2.655), tol=1e-4)
+    expect_equal(dim(r@post), c(numSites(m2_C@data),51,1))
+    expect_equal(bup(r), c(10.794,6.9317,2.655,NA,NA), tol=1e-4)
 
     umf2 <- unmarkedFrameMPois(y=y, siteCovs=data.frame(x1=rnorm(5)), type="removal")
     m4 <- multinomPois(~1~x1, umf2)
@@ -186,7 +186,7 @@ test_that("multinomPois can fit a dependent double observer model",{
 
   fm_C <- multinomPois(~observer-1 ~1, umf, engine="C")
   expect_equivalent(coef(fm_C), c(2.0416086, 0.7430343, 0.4564236), tol = 1e-5)
-  expect_warning(r <- ranef(fm_C, K=30))
+  r <- ranef(fm_C, K=30)
   expect_is(r, "unmarkedRanef")
 })
 

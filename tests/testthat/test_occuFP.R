@@ -52,6 +52,9 @@ test_that("occuFP model can be fit",{
   expect_equal(dim(gp), dim(m1@data@y))
   expect_equal(as.vector(gp[5:6, 5:6]), c(0.4513,0.4513,0.7232,0.7232), tol=1e-4)
 
+  # ranef
+  expect_error(r <- ranef(m1))
+
   # Check error when random effect in formula
   expect_error(occuFP(~(1|dummy), ~1, ~1, data=umf1))
 })

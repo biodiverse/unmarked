@@ -231,6 +231,10 @@ test_that("gdistsamp with halfnorm keyfunction works",{
     expect_true(all(is.na(ft[2,1:5])))
     expect_false(is.na(ft[2,6]))
 
+    r <- ranef(fm_C)
+    expect_equal(nrow(r@post), numSites(fm_C@data))
+    expect_true(all(is.na(r@post[1,,1])))
+
     #Point
     set.seed(123)
     data(issj)

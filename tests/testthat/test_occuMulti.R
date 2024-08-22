@@ -123,9 +123,13 @@ test_that("occuMulti can fit models with covariates",{
   expect_equal(as.vector(gp[[2]][1:2,1:2]), c(0.3080,0.4923,0.5645,0.3596), tol=1e-4)
 
   # ranef
-  expect_error(ran <- ranef(fm))
-  ran <- ranef(fm, species=1)
-  expect_equal(bup(ran), rep(1,5))
+  ran <- ranef(fm)
+  expect_equal(names(ran), names(fm@data@ylist))
+  expect_true(all(sapply(ran, function(x) inherits(x, "unmarkedRanef"))))
+  expect_equal(bup(ran$sp1), rep(1,5))
+  ran2 <- ranef(fm, species=1)
+  expect_is(ran2, "unmarkedRanef")
+  expect_equal(ran$sp1, ran2)
 
   # parboot
   pb <- parboot(fm, nsim=2)
@@ -185,6 +189,8 @@ test_that("occuMulti can handle NAs",{
   gp <- getP(fm)
   expect_equal(dim(gp[[1]]), dim(fm@data@ylist[[1]]))
   expect_true(is.na(gp[[1]][1,1]))
+
+  r <- ranef(fm)
 
   #Check error thrown when all detections are missing
   yna[[1]][1,] <- NA

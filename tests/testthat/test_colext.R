@@ -79,6 +79,7 @@ test_that("colext model fitting works", {
   r <- ranef(fm4)
   expect_equal(dim(r@post), c(nsites, nrep, nyr))
   expect_equal(dim(bup(r)), c(nsites, nyr))
+  expect_equal(r@post[1,1,], c(0,0,0.9865,0.99098), tol=1e-4)
 
   # nonparboot
   expect_true(is.null(fm4@projected.mean.bsse))
@@ -139,6 +140,10 @@ umf5 <- umf1
   expect_equal(dim(gp), dim(umf5@y))
   expect_true(all(!is.na(gp[2,])))
   expect_equal(as.vector(gp[1:2,1:2]), c(NA, 0.74517,0.81052,0.8001), tol=1e-4)
+
+  r <- ranef(fm4)
+  expect_true(all(is.na(r@post[fm4@sitesRemoved,,1])))
+  expect_equal(nrow(r@post), numSites(fm4@data))
 
   umf5 <- umf1
   umf5@yearlySiteCovs$ysc[1] <- NA
