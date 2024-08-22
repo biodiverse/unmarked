@@ -417,6 +417,11 @@ test_that("occuMS handles NAs properly",{
   expect_warning(fit <- occuMS(rep('~1',3), c('~V1', '~1'), data=umf,se=F))
   expect_equivalent(fit@sitesRemoved, c(1,5))
 
+  r <- ranef(fit)
+  expect_equal(nrow(r@post), numSites(fit@data))
+  expect_true(all(is.na(r@post[5,,1]))) # missing site covariate
+  expect_true(all(is.na(r@post[1,,1]))) # missing all obs
+
   oc_na <- obs_covs
   oc_na[1,1] <- NA
   umf <- unmarkedFrameOccuMS(y=y,siteCovs=site_covs,obsCovs=oc_na)
@@ -436,6 +441,9 @@ test_that("occuMS handles NAs properly",{
   gp <- fitted(exfit)
   expect_equal(dim(gp), dim(exfit@data@y))
   expect_true(is.na(gp[1,1]))
+
+  r <- ranef(exfit)
+  expect_equal(nrow(r@post), numSites(exfit@data))
 
   #Check that fitting works when missing site cov and no obs covs
   sc_na <- site_covs

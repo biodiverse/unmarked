@@ -101,6 +101,7 @@ test_that("distsamp methods work",{
   r <- ranef(fm, K=50)
   expect_is(r, "unmarkedRanef")
   expect_equal(dim(r@post), c(5,51,1))
+  expect_equivalent(r@post[2,4,1], 0.24167, tol=1e-4)
 
   expect_error(hist(fm))
 
@@ -115,7 +116,7 @@ test_that("distsamp works with missing values",{
   yna[1,1] <- NA
   siteCovs$x[2] <- NA
   yna[3,] <- NA
-  umf <- unmarkedFrameDS(y = y, siteCovs = siteCovs,
+  umf <- unmarkedFrameDS(y = yna, siteCovs = siteCovs,
         dist.breaks=c(0, 5, 10)/1000, survey="line", tlength=rep(1, 5),
         unitsIn="km")
 
@@ -129,8 +130,9 @@ test_that("distsamp works with missing values",{
   expect_equal(dim(gp), c(5,2))
   expect_true(all(is.na(gp[2,])))
 
-  r <- expect_warning(ranef(fm, K=15))
-  expect_equal(numSites(fm@data)-length(fm@sitesRemoved), nrow(r@post))
+  r <- ranef(fm, K=15)
+  expect_equal(numSites(fm@data), nrow(r@post))
+  expect_true(all(is.na(r@post[1:3,,1])))
 })
 
 test_that("distsamp ranef method works",{

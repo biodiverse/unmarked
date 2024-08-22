@@ -200,8 +200,9 @@ test_that("occu handles NAs",{
   expect_true(all(!is.na(gp[3,]))) # missing site cov
   expect_true(is.na(gp[5,2]))     # missing obs cov
 
-  r <- expect_warning(ranef(fm))
-  expect_equal(nrow(r@post), 4)
+  r <- ranef(fm)
+  expect_equal(nrow(r@post), 5)
+  expect_true(all(is.na(r@post[3,,1]))) # missing site cov
 })
 
 ## Add some checks here.
