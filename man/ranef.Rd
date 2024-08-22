@@ -1,79 +1,25 @@
-\name{ranef-methods}
-\docType{methods}
+\name{ranef}
 \alias{ranef}
-\alias{ranef-methods}
-\alias{ranef,unmarkedFitOccu-method}
-\alias{ranef,unmarkedFitOccuFP-method}
-\alias{ranef,unmarkedFitOccuRN-method}
-\alias{ranef,unmarkedFitOccuMulti-method}
-\alias{ranef,unmarkedFitOccuMS-method}
-\alias{ranef,unmarkedFitPCount-method}
-\alias{ranef,unmarkedFitMPois-method}
-\alias{ranef,unmarkedFitDS-method}
-\alias{ranef,unmarkedFitGMM-method}
-\alias{ranef,unmarkedFitGDS-method}
-\alias{ranef,unmarkedFitGPC-method}
-\alias{ranef,unmarkedFitGMMorGDS-method}
-\alias{ranef,unmarkedFitColExt-method}
-\alias{ranef,unmarkedFitPCO-method}
-\alias{ranef,unmarkedFitOccuTTD-method}
-\alias{ranef,unmarkedFitNmixTTD-method}
-\alias{ranef,unmarkedFitGDR-method}
-\alias{ranef,unmarkedFitDailMadsen-method}
-\alias{ranef,unmarkedFitGOccu-method}
-\alias{ranef,unmarkedFitOccuCOP-method}
-\alias{ranef,unmarkedFitIDS-method}
-\title{ Methods for Function \code{ranef} in Package \pkg{unmarked} }
+\alias{ranef,unmarkedFit-method}
+
+\title{Estimate posterior distributions of latent occupancy or abundance}
 \description{
 Estimate posterior distributions of the random variables (latent
-abundance or occurrence) using empirical Bayes methods. These methods
+occupancy or abundance) using empirical Bayes methods. These methods
 return an object storing the posterior distributions of the latent
 variables at each site, and for each year (primary period) in the case
-of open population models. See \link{unmarkedRanef-class} for methods
-used to manipulate the returned object.
+of open population models. See \link{unmarkedRanef-class} and \link{posteriorSamples}
+for methods used to manipulate the returned object.
 }
-\section{Methods}{
-\describe{
 
-\item{\code{signature(object = "unmarkedFitOccu")}}{Computes the
-  conditional distribution of occurrence given the data and the
-  estimates of the
-  fixed effects, \eqn{Pr(z_i=1 | y_{ij}, \hat{\psi}_i,
-  \hat{p}_{ij})}{Pr(z(i)=1 | y(i,j), psi(i), p(i,j))}}
-\item{\code{signature(object = "unmarkedFitOccuRN")}}{Computes the
-  conditional abundance distribution given the data and the estimates of
-  the fixed effects, \eqn{Pr(N_i=k | y_{ij}, \hat{\psi}_i, \hat{r}_{ij})
-  k = 0,1,\dots,K}{Pr(N(i)=k |
-  y(i,j), psi(i), r(i,j)) for k = 0,1,...,K}}
-\item{\code{signature(object = "unmarkedFitPCount")}}{\eqn{Pr(N_i=k |
-  y_{ij}, \hat{\lambda}_i, \hat{p}_{ij}) k = 0,1,\dots,K}{Pr(N(i)=k |
-  y(i,j), lambda(i), p(i,j)) for k = 0,1,...,K}}
-\item{\code{signature(object = "unmarkedFitMPois")}}{\eqn{Pr(N_i=k |
-  y_{ij}, \hat{\lambda}_i, \hat{p}_{ij}) k = 0,1,\dots,K}{Pr(N(i)=k |
-  y(i,j), lambda(i), p(i,j)) for k = 0,1,...,K}}
-\item{\code{signature(object = "unmarkedFitDS")}}{\eqn{Pr(N_i=k |
-  y_{i,1:J}, \hat{\lambda}_i, \hat{\sigma}_{i}) k =
-  0,1,\dots,K}{Pr(N(i)=k |
-  y(i,1:J), lambda(i), sigma(i)) for k = 0,1,...,K}}
-\item{\code{signature(object = "unmarkedFitGMM")}}{\eqn{Pr(M_i=k |
-  y_{i,1:J,t}, \hat{\lambda}_i, \hat{\phi}_{it}, \hat{p}_{ijt})  k =
-  0,1,\dots,K}{Pr(N(i)=k |
-  y(i,1:J,t), lambda(i), phi(i,t), p(i,j,t)) for k = 0,1,...,K}}
-\item{\code{signature(object = "unmarkedFitGDS")}}{\eqn{Pr(M_i=k |
-  y_{i,1:J,t}, \hat{\lambda}_i, \hat{\phi}_{it}, \hat{\sigma}_{it})
-  k = 0,1,\dots,K}{Pr(N(i)=k |
-  y(i,1:J,t), lambda(i), phi(i,t), sigma(i,t)) for k = 0,1,...,K}}
-\item{\code{signature(object = "unmarkedFitColExt")}}{\eqn{Pr(z_{it}=1 |
-  y_{ijt}, \hat{\psi}_i, \hat{\gamma}_{it}, \hat{\epsilon}_{it},
-  \hat{p}_{ijt})}{Pr(z(i,t)=1 |
-  y(i,j,t), psi(i), gamma(i,t), epsilon(i,t), p(i,j,t)) for k = 0,1,...,K}}
-\item{\code{signature(object = "unmarkedFitPCO")}}{\eqn{Pr(N_{it}=k |
-  y_{ijt}, \hat{\lambda}_i, \hat{\gamma}_{it}, \hat{\omega}_{it},
-  \hat{\iota}_{it}, \hat{p}_{ijt}) k = 0,1,...,K}{Pr(N(i,t)=k |
-  y(i,j,t), lambda(i), gamma(i,t), omega(i,t), iota(i,t), p(i,j,t)) for k =
-  0,1,...,K}}
-
+\usage{
+\S4method{ranef}{unmarkedFit}(object, ...)
 }
+
+\arguments{
+  \item{object}{A \code{unmarkedFit} object}
+  \item{...}{Other arguments. For some abundance models you can specify \code{K}; 
+  for multi-species models you can specify \code{species}.}
 }
 
 \note{
@@ -86,7 +32,7 @@ used to manipulate the returned object.
   than make this assumption, the basic empirical Bayes approach uses the
   observed data to estimate these final stage parameters (or to estimate
   the Bayes rule), and proceeds as in a standard Bayesian analysis.}
-  }
+}
 
 
 \section{Warning}{
@@ -115,11 +61,7 @@ used to manipulate the returned object.
 
   Royle, J.A and R.M. Dorazio. 2008. Hierarchical Modeling and Inference
   in Ecology. Academic Press.
-  }
-
-\seealso{
-  \link{unmarkedRanef-class}
-  }
+}
 
 \examples{
 # Simulate data under N-mixture model
@@ -187,5 +129,3 @@ data.frame(mean=rowMeans(pr),
 (ppd <- posteriorSamples(re, nsims=100))
 
 }
-\keyword{methods}
-

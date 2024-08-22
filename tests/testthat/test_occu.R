@@ -203,6 +203,8 @@ test_that("occu handles NAs",{
   r <- ranef(fm)
   expect_equal(nrow(r@post), 5)
   expect_true(all(is.na(r@post[3,,1]))) # missing site cov
+  ci <- confint(r)
+  expect_true(all(is.na(ci[3,])))
 })
 
 ## Add some checks here.
