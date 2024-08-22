@@ -103,9 +103,9 @@ test_that("gpcount function works", {
   res <- residuals(fm)
   expect_equal(dim(res), dim(y))
 
-  expect_warning(r <- ranef(fm))
+  r <- ranef(fm)
   expect_equal(dim(r@post), c(nrow(y), 24, 1))
-  expect_equal(bup(r), c(7.31, 12.63, 1.30, 16.12, 2.04), tol=1e-3)
+  expect_equal(bup(r), c(7.31, 12.63, 1.30, 14.90, 2.04), tol=1e-3)
 
   expect_warning(s <- simulate(fm, 2))
   expect_equal(length(s), 2)

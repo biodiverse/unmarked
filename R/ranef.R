@@ -12,10 +12,6 @@ setMethod("ranef", "unmarkedFit", function(object, ...){
 })
 
 
-setClassUnion("unmarkedFitGMMorGDS",
-              c("unmarkedFitGMM", "unmarkedFitGDS"))
-
-
 # Internal fit-type-specific function
 setGeneric("ranef_internal", function(object, ...) standardGeneric("ranef_internal"))
 
@@ -202,6 +198,161 @@ setMethod("ranef_internal", "unmarkedFitOccuFP", function(object, ...){
 })
 
 
+# Function that works for both GMM and GDS
+# Avoiding class union that doesn't work for some reason
+ranef_GMM_GDS <- function(object, ...){
+    data <- object@data
+    y <- getY(data)
+    nSites <- numSites(data)
+    T <- data@numPrimary
+    R <- numY(data) / T
+    J <- obsNum(data) / T
+
+    lambda <- predict(object, type="lambda", level=NULL, na.rm=FALSE)$Predicted
+    if(T == 1){
+        phi <- rep(1, nSites)
+    } else {
+        phi <- predict(object, type="phi", level=NULL, na.rm=FALSE)$Predicted
+    }
+
+    cp <- getP(object)
+    cp[is.na(y)] <- NA
+
+    K <- object@K
+    M <- 0:K
+
+    phi <- matrix(phi, nSites, byrow=TRUE)
+
+    if(inherits(object, "unmarkedFitGDS")) {
+        if(identical(object@output, "density")) {
+          A <- get_ds_area(data, object@unitsOut)
+          lambda <- lambda*A # Density to abundance
+        }
+    }
+
+    cpa <- array(cp, c(nSites,R,T))
+    ya <- array(y, c(nSites,R,T))
+#    ym <- apply(ya, c(1,3), sum, na.rm=TRUE)
+
+    post <- array(NA_real_, c(nSites, K+1, 1))
+    colnames(post) <- M
+    mix <- object@mixture
+    if(identical(mix, "NB")){
+        alpha <- exp(coef(object, type="alpha"))
+    } else if(identical(mix, "ZIP")){
+        psi <- plogis(coef(object, type="psi"))
+    }
+    for(i in 1:nSites) {
+        if(all(is.na(ya[i,,]))) next
+        switch(mix,
+               P  = f <- dpois(M, lambda[i]),
+               ZIP = f <- dzip(M, lambda[i], psi),
+               NB = f <- dnbinom(M, mu=lambda[i], size=alpha))
+        g <- rep(1, K+1) # outside t loop
+        for(t in 1:T) {
+            if(any(is.na(ya[i,,t])) | any(is.na(cpa[i,,t])) | is.na(phi[i,t]))
+                next
+            for(k in 1:(K+1)) {
+                y.it <- ya[i,,t]
+                ydot <- M[k]-sum(y.it, na.rm=TRUE)
+                y.it <- c(y.it, ydot)
+                if(ydot < 0) {
+                    g[k] <- 0
+                    next
+                }
+                cp.it <- cpa[i,,t]*phi[i,t]
+                cp.it <- c(cp.it, 1-sum(cp.it, na.rm=TRUE))
+                na.it <- is.na(cp.it)
+                y.it[na.it] <- NA
+                g[k] <- g[k]*dmultinom(y.it[!na.it], M[k], cp.it[!na.it])
+            }
+        }
+        fudge <- f*g
+        post[i,,1] <- fudge/sum(fudge)
+    }
+    new("unmarkedRanef", post=post)
+
+}
+
+setMethod("ranef_internal", "unmarkedFitGDS", function(object, ...){
+  ranef_GMM_GDS(object, ...)
+})
+
+setMethod("ranef_internal", "unmarkedFitGMM", function(object, ...){
+  ranef_GMM_GDS(object, ...)
+})
+
+
+setMethod("ranef_internal", "unmarkedFitGPC", function(object, ...){
+    data <- object@data
+    R <- numSites(data)
+    T <- data@numPrimary
+    y <- getY(data)
+    J <- ncol(y) / T
+
+    lambda <- predict(object, type="lambda", level=NULL, na.rm=FALSE)$Predicted
+    if(T == 1)
+        phi <- rep(1, R)
+    else
+        phi <- predict(object, type="phi", level=NULL, na.rm=FALSE)$Predicted
+    phi <- matrix(phi, R, byrow=TRUE)
+
+    p <- getP(object)
+    p[is.na(y)] <- NA
+    pa <- array(p, c(R,J,T))
+    ya <- array(y, c(R,J,T))
+
+    K <- object@K
+    M <- N <- 0:K
+    lM <- K+1
+
+    post <- array(NA_real_, c(R, K+1, 1))
+    colnames(post) <- M
+    mix <- object@mixture
+    if(identical(mix, "NB"))
+        alpha <- exp(coef(object, type="alpha"))
+    if(identical(mix, "ZIP"))
+        psi <- plogis(coef(object, type="psi"))
+
+    for(i in 1:R) {
+        if(all(is.na(ya[i,,]))) next
+        switch(mix,
+               P  = f <- dpois(M, lambda[i]),
+               NB = f <- dnbinom(M, mu=lambda[i], size=alpha),
+               ZIP = f <- dzip(M, lambda=lambda[i], psi=psi)
+        )
+        ghi <- rep(0, lM)
+        for(t in 1:T) {
+            gh <- matrix(-Inf, lM, lM)
+            for(m in M) {
+                if(m < max(ya[i,,], na.rm=TRUE)) {
+                    gh[,m+1] <- -Inf
+                    next
+                }
+                if(is.na(phi[i,t])) {
+                    g <- rep(0, lM)
+                    g[N>m] <- -Inf
+                }
+                else
+                    g <- dbinom(N, m, phi[i,t], log=TRUE)
+                h <- rep(0, lM)
+                for(j in 1:J) {
+                    if(is.na(ya[i,j,t]) | is.na(pa[i,j,t]))
+                        next
+                    h <- h + dbinom(ya[i,j,t], N, pa[i,j,t], log=TRUE)
+                }
+                gh[,m+1] <- g + h
+            }
+            ghi <- ghi + log(colSums(exp(gh)))
+        }
+        fgh <- exp(f + ghi)
+        prM <- fgh/sum(fgh)
+        post[i,,1] <- prM
+    }
+    new("unmarkedRanef", post=post)
+})
+
+
 setMethod("ranef_internal", "unmarkedFitOccuMS", function(object, ...){
 
   N <- numSites(object@data)
@@ -273,7 +424,7 @@ setMethod("ranef_internal", "unmarkedFitOccuMS", function(object, ...){
 })
 
 
-setMethod("ranef", "unmarkedFitOccuMulti", function(object, ...){
+setMethod("ranef_internal", "unmarkedFitOccuMulti", function(object, ...){
     
     species <- list(...)$species
     sp_names <- names(getData(object)@ylist)
@@ -384,223 +535,9 @@ setMethod("ranef_internal", "unmarkedFitPCount", function(object, ...){
 
 
 
-setMethod("ranef", "unmarkedFitGMMorGDS",
-    function(object, ...)
-{
-
-    data <- object@data
-    D <- getDesign(data, object@formula)
-
-    Xlam <- D$Xlam
-    Xphi <- D$Xphi
-    Xdet <- D$Xdet
-    y <- D$y  # MxJT
-    Xlam.offset <- D$Xlam.offset
-    Xphi.offset <- D$Xphi.offset
-    Xdet.offset <- D$Xdet.offset
-    if(is.null(Xlam.offset)) Xlam.offset <- rep(0, nrow(Xlam))
-    if(is.null(Xphi.offset)) Xphi.offset <- rep(0, nrow(Xphi))
-    if(is.null(Xdet.offset)) Xdet.offset <- rep(0, nrow(Xdet))
-    beta.lam <- coef(object, type="lambda")
-    beta.phi <- coef(object, type="phi")
-    beta.det <- coef(object, type="det")
-
-    lambda <- exp(Xlam %*% beta.lam + Xlam.offset)
-    if(is.null(beta.phi))
-        phi <- rep(1, nrow(Xphi))
-    else
-        phi <- plogis(Xphi %*% beta.phi + Xphi.offset)
-
-    cp <- getP(object)
-    srm <- object@sitesRemoved
-    if(length(srm) > 0){
-        cp <- cp[-object@sitesRemoved,] # temporary workaround
-    }
-    cp[is.na(y)] <- NA
-
-    K <- object@K
-    M <- 0:K
-
-    nSites <- nrow(y)
-    T <- data@numPrimary
-    R <- numY(data) / T
-    J <- obsNum(data) / T
-
-    phi <- matrix(phi, nSites, byrow=TRUE)
-
-    if(inherits(object, "unmarkedFitGDS")) {
-        if(identical(object@output, "density")) {
-            survey <- object@data@survey
-            tlength <- object@data@tlength
-            unitsIn <- object@data@unitsIn
-            unitsOut <- object@unitsOut
-            db <- object@data@dist.breaks
-            w <- diff(db)
-            u <- a <- matrix(NA, nSites, R)
-            switch(survey,
-                   line = {
-                       for(i in 1:nSites) {
-                           a[i,] <- tlength[i] * w
-                           u[i,] <- a[i,] / sum(a[i,])
-                       }
-                   },
-                   point = {
-                       for(i in 1:nSites) {
-                           a[i, 1] <- pi*db[2]^2
-                           for(j in 2:R)
-                               a[i, j] <- pi*db[j+1]^2 - sum(a[i, 1:(j-1)])
-                           u[i,] <- a[i,] / sum(a[i,])
-                       }
-                   })
-            switch(survey,
-                   line = A <- rowSums(a) * 2,
-                   point = A <- rowSums(a))
-            switch(unitsIn,
-                   m = A <- A / 1e6,
-                   km = A <- A)
-            switch(unitsOut,
-                   ha = A <- A * 100,
-                   kmsq = A <- A)
-            lambda <- lambda*A # Density to abundance
-        }
-    }
-
-    cpa <- array(cp, c(nSites,R,T))
-    ya <- array(y, c(nSites,R,T))
-#    ym <- apply(ya, c(1,3), sum, na.rm=TRUE)
-
-    post <- array(0, c(nSites, K+1, 1))
-    colnames(post) <- M
-    mix <- object@mixture
-    if(identical(mix, "NB")){
-        alpha <- exp(coef(object, type="alpha"))
-    } else if(identical(mix, "ZIP")){
-        psi <- plogis(coef(object, type="psi"))
-    }
-    for(i in 1:nSites) {
-        switch(mix,
-               P  = f <- dpois(M, lambda[i]),
-               ZIP = f <- dzip(M, lambda[i], psi),
-               NB = f <- dnbinom(M, mu=lambda[i], size=alpha))
-        g <- rep(1, K+1) # outside t loop
-        for(t in 1:T) {
-            if(all(is.na(ya[i,,t])) | is.na(phi[i,t]))
-                next
-            for(k in 1:(K+1)) {
-                y.it <- ya[i,,t]
-                ydot <- M[k]-sum(y.it, na.rm=TRUE)
-                y.it <- c(y.it, ydot)
-                if(ydot < 0) {
-                    g[k] <- 0
-                    next
-                }
-                cp.it <- cpa[i,,t]*phi[i,t]
-                cp.it <- c(cp.it, 1-sum(cp.it, na.rm=TRUE))
-                na.it <- is.na(cp.it)
-                y.it[na.it] <- NA
-                g[k] <- g[k]*dmultinom(y.it[!na.it], M[k], cp.it[!na.it])
-            }
-        }
-        fudge <- f*g
-        post[i,,1] <- fudge/sum(fudge)
-    }
-    new("unmarkedRanef", post=post)
-})
 
 
 
-
-
-
-setMethod("ranef", "unmarkedFitGPC",
-    function(object, ...)
-{
-    data <- object@data
-    D <- getDesign(data, object@formula)
-
-    Xlam <- D$Xlam
-    Xphi <- D$Xphi
-    Xdet <- D$Xdet
-    y <- D$y  # MxJT
-    Xlam.offset <- D$Xlam.offset
-    Xphi.offset <- D$Xphi.offset
-    Xdet.offset <- D$Xdet.offset
-    if(is.null(Xlam.offset)) Xlam.offset <- rep(0, nrow(Xlam))
-    if(is.null(Xphi.offset)) Xphi.offset <- rep(0, nrow(Xphi))
-    if(is.null(Xdet.offset)) Xdet.offset <- rep(0, nrow(Xdet))
-
-    beta.lam <- coef(object, type="lambda")
-    beta.phi <- coef(object, type="phi")
-    beta.det <- coef(object, type="det")
-
-    R <- nrow(y)
-    T <- data@numPrimary
-    J <- ncol(y) / T
-
-    lambda <- exp(Xlam %*% beta.lam + Xlam.offset)
-    if(is.null(beta.phi))
-        phi <- rep(1, nrow(Xphi))
-    else
-        phi <- plogis(Xphi %*% beta.phi + Xphi.offset)
-    phi <- matrix(phi, R, byrow=TRUE)
-
-    p <- getP(object)
-    srm <- object@sitesRemoved
-    if(length(srm) > 0){
-        p <- p[-object@sitesRemoved,] # temporary workaround
-    }
-    p[is.na(y)] <- NA
-    pa <- array(p, c(R,J,T))
-    ya <- array(y, c(R,J,T))
-
-    K <- object@K
-    M <- N <- 0:K
-    lM <- K+1
-
-    post <- array(0, c(R, K+1, 1))
-    colnames(post) <- M
-    mix <- object@mixture
-    if(identical(mix, "NB"))
-        alpha <- exp(coef(object, type="alpha"))
-    if(identical(mix, "ZIP"))
-        psi <- plogis(coef(object, type="psi"))
-
-    for(i in 1:R) {
-        switch(mix,
-               P  = f <- dpois(M, lambda[i]),
-               NB = f <- dnbinom(M, mu=lambda[i], size=alpha),
-               ZIP = f <- dzip(M, lambda=lambda[i], psi=psi)
-        )
-        ghi <- rep(0, lM)
-        for(t in 1:T) {
-            gh <- matrix(-Inf, lM, lM)
-            for(m in M) {
-                if(m < max(ya[i,,], na.rm=TRUE)) {
-                    gh[,m+1] <- -Inf
-                    next
-                }
-                if(is.na(phi[i,t])) {
-                    g <- rep(0, lM)
-                    g[N>m] <- -Inf
-                }
-                else
-                    g <- dbinom(N, m, phi[i,t], log=TRUE)
-                h <- rep(0, lM)
-                for(j in 1:J) {
-                    if(is.na(ya[i,j,t]) | is.na(pa[i,j,t]))
-                        next
-                    h <- h + dbinom(ya[i,j,t], N, pa[i,j,t], log=TRUE)
-                }
-                gh[,m+1] <- g + h
-            }
-            ghi <- ghi + log(colSums(exp(gh)))
-        }
-        fgh <- exp(f + ghi)
-        prM <- fgh/sum(fgh)
-        post[i,,1] <- prM
-    }
-    new("unmarkedRanef", post=post)
-})
 
 
 

@@ -151,8 +151,9 @@ test_that("gmultmix removal model works",{
   res <- residuals(fm_C)
   expect_equal(dim(res), dim(y))
 
-  expect_warning(r <- ranef(fm_C))
-  expect_equal(dim(r@post), c(4,24,1))
+  r <- ranef(fm_C)
+  expect_equal(dim(r@post), c(5,24,1))
+  expect_equal(bup(r), c(2.8579,6.9914,NA,14.3773,5.2012), tol=1e-4)
 
   expect_warning(s <- simulate(fm_C, 2))
   expect_equal(length(s), 2)
