@@ -74,6 +74,162 @@ setMethod("ranef_internal", "unmarkedFitColExt", function(object){
 })
 
 
+# DSO and MMO
+setMethod("ranef_internal", "unmarkedFitDailMadsen", function(object, ...){
+    dyn <- object@dynamics
+    formlist <- object@formlist
+    formula <- as.formula(paste(unlist(formlist), collapse=" "))
+    D <- getDesign(object@data, formula, na.rm=FALSE)
+    delta <- D$delta
+    deltamax <- max(delta, na.rm=TRUE)
+    if(!.hasSlot(object, "immigration")){ #For backwards compatibility
+      imm <- FALSE
+    } else {
+      imm <- object@immigration
+    }
+
+    #TODO: adjust if output = "density"
+    lam <- predict(object, type="lambda",level=NULL, na.rm=FALSE)$Predicted # Slow, use D$Xlam instead
+
+    R <- length(lam)
+    T <- object@data@numPrimary
+
+    p <- getP(object)
+
+    K <- object@K
+    N <- 0:K
+    y <- getY(getData(object))
+    J <- ncol(y)/T
+    if(dyn != "notrend") {
+        gam <- predict(object, type="gamma", level=NULL, na.rm=FALSE)$Predicted
+        gam <- matrix(gam, R, T-1, byrow=TRUE)
+    }
+    if(!identical(dyn, "trend")) {
+        om <- predict(object, type="omega", level=NULL, na.rm=FALSE)$Predicted
+        om <- matrix(om, R, T-1, byrow=TRUE)
+    } else {
+        om <- matrix(0, R, T-1)
+    }
+    if(imm) {
+        iota <- predict(object, type="iota",level=NULL,na.rm=FALSE)$Predicted
+        iota <- matrix(iota, R, T-1, byrow=TRUE)
+    } else {
+      iota <- matrix(0, R, T-1)
+    }
+    ya <- array(y, c(R, J, T))
+    pa <- array(p, c(R, J, T))
+    post <- array(NA_real_, c(R, length(N), T))
+    colnames(post) <- N
+    mix <- object@mixture
+    if(dyn=="notrend")
+        gam <- lam*(1-om)
+
+    if(dyn %in% c("constant", "notrend")) {
+        tp <- function(N0, N1, gam, om, iota) {
+            c <- 0:min(N0, N1)
+            sum(dbinom(c, N0, om) * dpois(N1-c, gam))
+        }
+    } else if(dyn=="autoreg") {
+        tp <- function(N0, N1, gam, om, iota) {
+            c <- 0:min(N0, N1)
+            sum(dbinom(c, N0, om) * dpois(N1-c, gam*N0 + iota))
+        }
+    } else if(dyn=="trend") {
+        tp <- function(N0, N1, gam, om, iota) {
+            dpois(N1, gam*N0 + iota)
+        }
+    } else if(dyn=="ricker") {
+        tp <- function(N0, N1, gam, om, iota) {
+            dpois(N1, N0*exp(gam*(1-N0/om)) + iota)
+        }
+    } else if(dyn=="gompertz") {
+        tp <- function(N0, N1, gam, om, iota) {
+            dpois(N1, N0*exp(gam*(1-log(N0 + 1)/log(om + 1))) + iota)
+        }
+    }
+    for(i in 1:R) {
+      P <- matrix(1, K+1, K+1)
+        switch(mix,
+               P  = g2 <- dpois(N, lam[i]),
+               NB = {
+                   alpha <- exp(coef(object, type="alpha"))
+                   g2 <- dnbinom(N, mu=lam[i], size=alpha)
+               },
+               ZIP = {
+                   psi <- plogis(coef(object, type="psi"))
+                   g2 <- (1-psi)*dpois(N, lam[i])
+                   g2[1] <- psi + (1-psi)*exp(-lam[i])
+               })
+
+        #DETECTION MODEL
+        g1 <- rep(0, K+1)
+        cp <- pa[i,,1]
+        cp_na <- is.na(cp)
+        ysub <- ya[i,,1]
+        ysub[cp_na] <- NA
+        cp <- c(cp, 1-sum(cp, na.rm=TRUE))
+        sumy <- sum(ysub, na.rm=TRUE)
+
+        is_na <- c(is.na(ysub), FALSE) | is.na(cp)
+
+        if(all(is.na(ysub))){
+          post[i,,1] <- NA
+        } else {
+
+          for(k in sumy:K){
+            yit <- c(ysub, k-sumy)
+            g1[k+1] <- dmultinom(yit[!is_na], k, cp[!is_na])
+          }
+
+          g1g2 <- g1*g2
+          post[i,,1] <- g1g2 / sum(g1g2)
+        }
+
+
+        for(t in 2:T) {
+            if(!is.na(gam[i,t-1]) & !is.na(om[i,t-1])) {
+                for(n0 in N) {
+                    for(n1 in N) {
+                        P[n0+1, n1+1] <- tp(n0, n1, gam[i,t-1], om[i,t-1], iota[i,t-1])
+                    }
+                }
+            }
+            delta.it <- delta[i,t-1]
+            if(delta.it > 1) {
+                P1 <- P
+                for(d in 2:delta.it) {
+                    P <- P %*% P1
+                }
+            }
+
+            #DETECTION MODEL
+            g1 <- rep(0, K+1)
+            cp <- pa[i,,t]
+            cp_na <- is.na(cp)
+            ysub <- ya[i,,t]
+            ysub[cp_na] <- NA
+            cp <- c(cp, 1-sum(cp, na.rm=TRUE))
+            sumy <- sum(ysub, na.rm=TRUE)
+
+            is_na <- c(is.na(ysub), FALSE) | is.na(cp)
+
+            if(all(is.na(ysub))){
+              post[i,,t] <- NA
+            } else {
+              for(k in sumy:K){
+                yit <- c(ysub, k-sumy)
+                g1[k+1] <- dmultinom(yit[!is_na], k, cp[!is_na])
+              }
+
+              g <- colSums(P * post[i,,t-1]) * g1
+              post[i,,t] <- g / sum(g)
+            }
+          }
+    }
+    new("unmarkedRanef", post=post)
+})
+
+
 setMethod("ranef_internal", "unmarkedFitDS", function(object, ...){
     y <- getY(getData(object))
     cp <- getP(object)
@@ -652,36 +808,12 @@ setMethod("ranef_internal", "unmarkedFitPCount", function(object, ...){
 })
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-setMethod("ranef", "unmarkedFitPCO",
-    function(object, ...)
-{
-#    browser()
+setMethod("ranef_internal", "unmarkedFitPCO", function(object, ...){
     dyn <- object@dynamics
+    
     formlist <- object@formlist
     formula <- as.formula(paste(unlist(formlist), collapse=" "))
-    D <- getDesign(object@data, formula)
+    D <- getDesign(object@data, formula, na.rm=FALSE)
     delta <- D$delta
     deltamax <- max(delta, na.rm=TRUE)
     if(!.hasSlot(object, "immigration")) #For backwards compatibility
@@ -689,7 +821,7 @@ setMethod("ranef", "unmarkedFitPCO",
     else
       imm <- object@immigration
 
-    lam <- predict(object, type="lambda")[,1] # Slow, use D$Xlam instead
+    lam <- predict(object, type="lambda", level=NULL, na.rm=FALSE)$Predicted # Slow, use D$Xlam instead
     R <- length(lam)
     T <- object@data@numPrimary
     p <- getP(object)
@@ -698,26 +830,22 @@ setMethod("ranef", "unmarkedFitPCO",
     y <- getY(getData(object))
     J <- ncol(y)/T
     if(dyn != "notrend") {
-        gam <- predict(object, type="gamma")[,1]
+        gam <- predict(object, type="gamma", level=NULL, na.rm=FALSE)$Predicted
         gam <- matrix(gam, R, T-1, byrow=TRUE)
     }
     if(!identical(dyn, "trend")) {
-        om <- predict(object, type="omega")[,1]
+        om <- predict(object, type="omega", level=NULL, na.rm=FALSE)$Predicted
         om <- matrix(om, R, T-1, byrow=TRUE)
     }
     else
         om <- matrix(0, R, T-1)
     if(imm) {
-        iota <- predict(object, type="iota")[,1]
+        iota <- predict(object, type="iota", level=NULL, na.rm=FALSE)$Predicted
         iota <- matrix(iota, R, T-1, byrow=TRUE)
     }
     else
       iota <- matrix(0, R, T-1)
-    srm <- object@sitesRemoved
-    if(length(srm) > 0){
-        y <- y[-object@sitesRemoved,]
-        p <- p[-object@sitesRemoved,] # temporary workaround
-    }
+
     ya <- array(y, c(R, J, T))
     pa <- array(p, c(R, J, T))
     post <- array(NA_real_, c(R, length(N), T))
@@ -799,171 +927,6 @@ setMethod("ranef", "unmarkedFitPCO",
 })
 
 
-# DSO and MMO
-setMethod("ranef", "unmarkedFitDailMadsen",
-    function(object, ...)
-{
-    dyn <- object@dynamics
-    formlist <- object@formlist
-    formula <- as.formula(paste(unlist(formlist), collapse=" "))
-    D <- getDesign(object@data, formula)
-    delta <- D$delta
-    deltamax <- max(delta, na.rm=TRUE)
-    if(!.hasSlot(object, "immigration")){ #For backwards compatibility
-      imm <- FALSE
-    } else {
-      imm <- object@immigration
-    }
-
-    #TODO: adjust if output = "density"
-    lam <- predict(object, type="lambda")[,1] # Slow, use D$Xlam instead
-
-    R <- length(lam)
-    T <- object@data@numPrimary
-
-    p <- getP(object)
-
-    K <- object@K
-    N <- 0:K
-    y <- getY(getData(object))
-    J <- ncol(y)/T
-    if(dyn != "notrend") {
-        gam <- predict(object, type="gamma")[,1]
-        gam <- matrix(gam, R, T-1, byrow=TRUE)
-    }
-    if(!identical(dyn, "trend")) {
-        om <- predict(object, type="omega")[,1]
-        om <- matrix(om, R, T-1, byrow=TRUE)
-    } else {
-        om <- matrix(0, R, T-1)
-    }
-    if(imm) {
-        iota <- predict(object, type="iota")[,1]
-        iota <- matrix(iota, R, T-1, byrow=TRUE)
-    } else {
-      iota <- matrix(0, R, T-1)
-    }
-    srm <- object@sitesRemoved
-    if(length(srm) > 0){
-        y <- y[-object@sitesRemoved,]
-        p <- p[-object@sitesRemoved,] # temporary workaround
-    }
-    ya <- array(y, c(R, J, T))
-    pa <- array(p, c(R, J, T))
-    post <- array(NA_real_, c(R, length(N), T))
-    colnames(post) <- N
-    mix <- object@mixture
-    if(dyn=="notrend")
-        gam <- lam*(1-om)
-
-    if(dyn %in% c("constant", "notrend")) {
-        tp <- function(N0, N1, gam, om, iota) {
-            c <- 0:min(N0, N1)
-            sum(dbinom(c, N0, om) * dpois(N1-c, gam))
-        }
-    } else if(dyn=="autoreg") {
-        tp <- function(N0, N1, gam, om, iota) {
-            c <- 0:min(N0, N1)
-            sum(dbinom(c, N0, om) * dpois(N1-c, gam*N0 + iota))
-        }
-    } else if(dyn=="trend") {
-        tp <- function(N0, N1, gam, om, iota) {
-            dpois(N1, gam*N0 + iota)
-        }
-    } else if(dyn=="ricker") {
-        tp <- function(N0, N1, gam, om, iota) {
-            dpois(N1, N0*exp(gam*(1-N0/om)) + iota)
-        }
-    } else if(dyn=="gompertz") {
-        tp <- function(N0, N1, gam, om, iota) {
-            dpois(N1, N0*exp(gam*(1-log(N0 + 1)/log(om + 1))) + iota)
-        }
-    }
-    for(i in 1:R) {
-      P <- matrix(1, K+1, K+1)
-        switch(mix,
-               P  = g2 <- dpois(N, lam[i]),
-               NB = {
-                   alpha <- exp(coef(object, type="alpha"))
-                   g2 <- dnbinom(N, mu=lam[i], size=alpha)
-               },
-               ZIP = {
-                   psi <- plogis(coef(object, type="psi"))
-                   g2 <- (1-psi)*dpois(N, lam[i])
-                   g2[1] <- psi + (1-psi)*exp(-lam[i])
-               })
-
-        #DETECTION MODEL
-        g1 <- rep(0, K+1)
-        cp <- pa[i,,1]
-        cp_na <- is.na(cp)
-        ysub <- ya[i,,1]
-        ysub[cp_na] <- NA
-        cp <- c(cp, 1-sum(cp, na.rm=TRUE))
-        sumy <- sum(ysub, na.rm=TRUE)
-
-        is_na <- c(is.na(ysub), FALSE) | is.na(cp)
-
-        if(all(is.na(ysub))){
-          post[i,,1] <- NA
-        } else {
-
-          for(k in sumy:K){
-            yit <- c(ysub, k-sumy)
-            g1[k+1] <- dmultinom(yit[!is_na], k, cp[!is_na])
-          }
-
-          g1g2 <- g1*g2
-          post[i,,1] <- g1g2 / sum(g1g2)
-        }
-
-
-        for(t in 2:T) {
-            if(!is.na(gam[i,t-1]) & !is.na(om[i,t-1])) {
-                for(n0 in N) {
-                    for(n1 in N) {
-                        P[n0+1, n1+1] <- tp(n0, n1, gam[i,t-1], om[i,t-1], iota[i,t-1])
-                    }
-                }
-            }
-            delta.it <- delta[i,t-1]
-            if(delta.it > 1) {
-                P1 <- P
-                for(d in 2:delta.it) {
-                    P <- P %*% P1
-                }
-            }
-
-            #DETECTION MODEL
-            g1 <- rep(0, K+1)
-            cp <- pa[i,,t]
-            cp_na <- is.na(cp)
-            ysub <- ya[i,,t]
-            ysub[cp_na] <- NA
-            cp <- c(cp, 1-sum(cp, na.rm=TRUE))
-            sumy <- sum(ysub, na.rm=TRUE)
-
-            is_na <- c(is.na(ysub), FALSE) | is.na(cp)
-
-            if(all(is.na(ysub))){
-              post[i,,t] <- NA
-            } else {
-              for(k in sumy:K){
-                yit <- c(ysub, k-sumy)
-                g1[k+1] <- dmultinom(yit[!is_na], k, cp[!is_na])
-              }
-
-              g <- colSums(P * post[i,,t-1]) * g1
-              post[i,,t] <- g / sum(g)
-            }
-          }
-    }
-    new("unmarkedRanef", post=post)
-})
-
-
-
-
 setGeneric("bup", function(object, stat=c("mean", "mode"), ...)
     standardGeneric("bup"))
 setMethod("bup", "unmarkedRanef",
@@ -978,12 +941,6 @@ setMethod("bup", "unmarkedRanef",
     out <- drop(out)
     return(out)
 })
-
-
-
-
-
-
 
 
 setMethod("confint", "unmarkedRanef", function(object, parm, level=0.95)
@@ -1011,10 +968,6 @@ setMethod("confint", "unmarkedRanef", function(object, parm, level=0.95)
     CI <- drop(CI) # Convert to matrix if T==1
     return(CI)
 })
-
-
-
-
 
 
 setMethod("show", "unmarkedRanef", function(object)

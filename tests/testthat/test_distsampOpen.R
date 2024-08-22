@@ -175,6 +175,7 @@ test_that("dso halfnorm key function works",{
   expect_equal(r[1,1:2], c(-0.8717,-0.3207),tol=1e-4)
 
   ran <- ranef(fm)
+  expect_equal(nrow(ran@post), numSites(fm@data))
   expect_equal(bup(ran)[1,1], 2.8916, tol=1e-4)
 
   set.seed(123)
@@ -243,6 +244,10 @@ test_that("distsampOpen works with NAs", {
 
   gp <- getP(fm)
   expect_equal(dim(gp), dim(fm@data@y))
+
+  r <- ranef(fm)
+  expect_equal(nrow(r@post), numSites(fm@data))
+  expect_true(all(is.na(r@post[3,,])))
   
   set.seed(123)
   ysim <- simData(lambda=5, gamma=2, omega=0.5, sigma=40, M=50, T=5,type="line",
