@@ -19,6 +19,7 @@ setMethod("posteriorSamples", "unmarkedRanef", function(object, nsims=100, ...)
   out <- array(NA, c(N, T, nsims))
 
   for (n in 1:N){
+    if(any(is.na(object@post[n,,]))) next
     for (t in 1:T){
         out[n, t, ] <- sample(0:(K-1), nsims, replace=TRUE,
                               prob=object@post[n,,t])

@@ -16,7 +16,9 @@ test_that("ranef predict method works",{
   umf <- unmarkedFramePCount(y=y)
   fm <- expect_warning(pcount(~1 ~1, umf, K=K))
 
-  re <- expect_warning(ranef(fm))
+  re <- ranef(fm)
+  expect_equal(nrow(re@post), numSites(fm@data))
+  expect_true(all(is.na(re@post[1,,1])))
 
   set.seed(123)
   ps <- posteriorSamples(re, nsim=10)
@@ -25,15 +27,15 @@ test_that("ranef predict method works",{
   sh <- capture.output(show(ps))
   expect_equal(sh[1], "Posterior samples from unmarked model")
 
-  #One is dropped bc of NA
-  expect_equivalent(dim(ps@samples), c(9,1,10))
+  expect_equivalent(dim(ps@samples), c(10,1,10))
+  expect_true(all(is.na(ps@samples[1,,1])))
 
   # Brackets
   expect_equal(ps[1,1,1], ps@samples[1,1,1,drop=FALSE])
 
   # Method for unmarkedFit objects
   set.seed(123)
-  ps2 <- expect_warning(posteriorSamples(fm, nsim=10))
+  ps2 <- posteriorSamples(fm, nsim=10)
   expect_equal(ps, ps2)
 
   # Custom function
@@ -45,7 +47,7 @@ test_that("ranef predict method works",{
   pr <- predict(re, fun=myfunc, nsim=10)
   expect_equivalent(dim(pr), c(2,10))
   expect_equal(rownames(pr), c("gr1","gr2"))
-  expect_equivalent(as.numeric(pr[1,1:3]), c(7.0,5.0,4.75))
+  expect_equivalent(as.numeric(pr[2,1:3]), c(5.2,5.6,4.8))
 
   #Dynamic model
   set.seed(7)
