@@ -8,10 +8,6 @@
 \alias{hist,unmarkedFitDS-method}
 \alias{names,unmarkedFit-method}
 \alias{plot,unmarkedFit,missing-method}
-\alias{plot,unmarkedFitOccuMulti,missing-method}
-\alias{plot,unmarkedFitGDR,missing-method}
-\alias{plot,unmarkedFitIDS,missing-method}
-\alias{plot,unmarkedFitOccuCOP,missing-method}
 \alias{profile,unmarkedFit-method}
 \alias{update,unmarkedFit-method}
 \alias{plot,profile,missing-method}
@@ -23,10 +19,6 @@
 \alias{logLik}
 \alias{logLik,unmarkedFit-method}
 \alias{getY,unmarkedFit-method}
-\alias{getY,unmarkedFitOccu-method}
-\alias{getY,unmarkedFitColExt-method}
-\alias{getY,unmarkedFitOccuRN-method}
-\alias{getY,unmarkedFitOccuMulti-method}
 
 \title{Class "unmarkedFit" }
 \description{Contains fitted model information which can be manipulated or

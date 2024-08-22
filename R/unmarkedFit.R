@@ -507,13 +507,20 @@ setMethod("plot", c("profile", "missing"), function(x) {
 
 setMethod("plot", c(x = "unmarkedFit", y = "missing"), function(x, y, ...)
 {
+  residual_plot(x, ...)
+})
+
+setGeneric("residual_plot", function(x, ...) standardGeneric("residual_plot"))
+
+setMethod("residual_plot", "unmarkedFit", function(x, ...)
+{
     r <- residuals(x)
     e <- fitted(x, na.rm = FALSE)
     plot(e, r, ylab = "Residuals", xlab = "Predicted values")
     abline(h = 0, lty = 3, col = "gray")
 })
 
-setMethod("plot", c(x = "unmarkedFitOccuMulti", y = "missing"), function(x, y, ...)
+setMethod("residual_plot", "unmarkedFitOccuMulti", function(x, ...)
 {
   r <- do.call(rbind,residuals(x))
   e <- do.call(rbind,fitted(x))
@@ -688,16 +695,20 @@ setMethod("getB", "unmarkedFitOccuFP", function(object, na.rm = TRUE)
 })
 
 #Y extractors for unmarkedFit objects
-setMethod("getY", "unmarkedFit", function(object) object@data@y)
-setMethod("getY", "unmarkedFitOccu", function(object) {
+setMethod("getY", "unmarkedFit", function(object) getY_internal(object))
+
+setGeneric("getY_internal", function(object) standardGeneric("getY_internal"))
+
+setMethod("getY_internal", "unmarkedFit", function(object) object@data@y)
+setMethod("getY_internal", "unmarkedFitOccu", function(object) {
             truncateToBinary(object@data@y)
 })
-setMethod("getY", "unmarkedFitOccuRN", function(object) {
+setMethod("getY_internal", "unmarkedFitOccuRN", function(object) {
             truncateToBinary(object@data@y)
 })
-setMethod("getY", "unmarkedFitColExt", function(object) {
+setMethod("getY_internal", "unmarkedFitColExt", function(object) {
             truncateToBinary(object@data@y)
 })
-setMethod("getY", "unmarkedFitOccuMulti", function(object) {
+setMethod("getY_internal", "unmarkedFitOccuMulti", function(object) {
             object@data@ylist
 })

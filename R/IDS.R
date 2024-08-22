@@ -495,7 +495,7 @@ setMethod("hist", "unmarkedFitIDS", function(x, lwd=1, lty=1, ...){
 
 })
 
-setMethod("plot", c(x="unmarkedFitIDS", y="missing"), function(x, y, ...){
+setMethod("residual_plot", "unmarkedFitIDS", function(x, ...){
 
   r <- residuals(x)
   f <- fitted(x)

@@ -815,7 +815,7 @@ setMethod("SSE", "unmarkedFitGDR", function(fit, ...){
 })
 
 
-setMethod("plot", c(x = "unmarkedFitGDR", y = "missing"), function(x, y, ...)
+setMethod("residual_plot", "unmarkedFitGDR", function(x, ...)
 {
     r <- residuals(x)
     e <- fitted(x)

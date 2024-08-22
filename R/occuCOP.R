@@ -392,7 +392,7 @@ setMethod("fitted_internal", "unmarkedFitOccuCOP", function(object) {
 
 
 ## plot ----
-setMethod("plot", c(x = "unmarkedFitOccuCOP", y = "missing"), function(x, y, ...) {
+setMethod("residual_plot", "unmarkedFitOccuCOP", function(x, ...) {
   y <- getY(x)
   r <- residuals(x)
   e <- fitted(x)
