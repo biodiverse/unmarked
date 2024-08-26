@@ -510,6 +510,10 @@ getSS <- function(phi) {
 
 imputeMissing <- function(umf, whichCovs = seq(length=ncol(obsCovs(umf))))
 {
+    .Deprecated("imputeMissing", package=NULL, 
+              msg = paste("imputeMissing will be deprecated in the next version."),
+             old = as.character(sys.call(sys.parent()))[1L])
+
     ## impute observation covariates
     if(!is.null(umf@obsCovs)) {
         obsCovs <- umf@obsCovs
