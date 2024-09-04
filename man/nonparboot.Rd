@@ -1,6 +1,7 @@
 \name{nonparboot}
 \alias{nonparboot}
 \alias{nonparboot,unmarkedFit-method}
+\alias{nonparboot-methods}
 
 \title{Get non-parametric bootstrap samples from an \code{unmarked} model}
 \description{
