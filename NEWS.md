@@ -1,4 +1,11 @@
-# unmarked 1.4.0
+# unmarked 1.4.3
+
+* Add integrated distance sampling model function (IDS)
+* Improved simulation and power analysis tools based on unmarkedFrame input
+* Deprecated old simulation and power analysis methods, and imputeMissing function
+* Fix noRemap issue reported by CRAN
+
+# unmarked 1.4.1
 
 * Added count-data occupancy model (occuCOP)
 * Added multi-scale occupancy model (goccu) 

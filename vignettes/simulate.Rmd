@@ -110,8 +110,25 @@ These need to be supplied as a named list, where each list element corresponds t
 Each list element is a numeric vector of the required parameter values.
 It can be tricky to figure out the structure of this list, so `simulate` allows you to not include it at first, in which case the function will return a template for you to fill in.
 
-```{r, error = TRUE}
+```r
 simulate(umf, model = model, formula = form)
+```
+
+```
+## coefs should be a named list of vectors, with the following structure
+## (replace 0s with your values):
+##
+## $state
+## (Intercept)        elev
+##           0           0
+##
+## $det
+## (Intercept)
+##           0
+```
+
+```
+## Error: Specify coefs argument as shown above
 ```
 
 We need to supply a list with two elements `state` and `det`.
@@ -218,9 +235,34 @@ mixture <- "NB"
 
 As in the previous section, we'll leave the `coefs` argument blank at first and get the correct output structure.
 
-```{r, error=TRUE}
+```r
 simulate(umf, lambdaformula=~elev, removalformula=~wind, distanceformula=~1,
          mixture="NB")
+```
+
+```
+## coefs should be a named list of vectors, with the following structure
+## (replace 0s with your values):
+##
+## $lambda
+## (Intercept)        elev
+##           0           0
+##
+## $alpha
+## alpha
+##     0
+##
+## $dist
+## (Intercept)
+##           0
+##
+## $rem
+## (Intercept)        wind
+##           0           0
+```
+
+```
+## Error: Specify coefs argument as shown above
 ```
 
 We need to set two values for the abundance (`lambda`) model on the log scale, one for `dist` which represents the distance function sigma parameter (log scale), one for the negative binomial dispersion parameter `alpha` (log scale), and two for the removal detection probability model (logit scale).
