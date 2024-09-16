@@ -18,7 +18,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">unmarked</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.4.1.9010</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.4.3</span>
       </span>
     </div>
 
@@ -187,8 +187,8 @@
 <span class="r-in"><span><span class="co"># Function returning three fit-statistics.</span></span></span>
 <span class="r-in"><span><span class="va">fitstats</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">fm</span>, <span class="va">na.rm</span><span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span>    <span class="va">observed</span> <span class="op">&lt;-</span> <span class="fu"><a href="unmarkedFrame-class.html">getY</a></span><span class="op">(</span><span class="va">fm</span><span class="op">@</span><span class="va">data</span><span class="op">)</span></span></span>
-<span class="r-in"><span>    <span class="va">expected</span> <span class="op">&lt;-</span> <span class="fu"><a href="fitted.html">fitted</a></span><span class="op">(</span><span class="va">fm</span><span class="op">)</span></span></span>
-<span class="r-in"><span>    <span class="va">resids</span> <span class="op">&lt;-</span> <span class="fu"><a href="residuals.html">residuals</a></span><span class="op">(</span><span class="va">fm</span><span class="op">)</span></span></span>
+<span class="r-in"><span>    <span class="va">expected</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fm</span><span class="op">)</span></span></span>
+<span class="r-in"><span>    <span class="va">resids</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals</a></span><span class="op">(</span><span class="va">fm</span><span class="op">)</span></span></span>
 <span class="r-in"><span>    <span class="va">sse</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">resids</span><span class="op">^</span><span class="fl">2</span>, na.rm<span class="op">=</span><span class="va">na.rm</span><span class="op">)</span></span></span>
 <span class="r-in"><span>    <span class="va">chisq</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">(</span><span class="va">observed</span> <span class="op">-</span> <span class="va">expected</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span> <span class="op">/</span> <span class="va">expected</span>, na.rm<span class="op">=</span><span class="va">na.rm</span><span class="op">)</span></span></span>
 <span class="r-in"><span>    <span class="va">freeTuke</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">observed</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">expected</span><span class="op">)</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span>, na.rm<span class="op">=</span><span class="va">na.rm</span><span class="op">)</span></span></span>

@@ -21,7 +21,7 @@ examples."><!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/m
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">unmarked</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.4.1.9010</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.4.3</span>
       </span>
     </div>
 
@@ -186,7 +186,7 @@ examples.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Simulate your own datasets first and pass to power analysis</span></span></span>
 <span class="r-in"><span><span class="va">cf</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>state<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">1</span><span class="op">)</span>, det<span class="op">=</span><span class="fl">0</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="simulate.html">simulate</a></span><span class="op">(</span><span class="va">umf</span>, model <span class="op">=</span> <span class="va">occu</span>, formula<span class="op">=</span><span class="op">~</span><span class="fl">1</span><span class="op">~</span><span class="va">x</span>, coefs<span class="op">=</span><span class="va">cf</span>, nsim <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate</a></span><span class="op">(</span><span class="va">umf</span>, model <span class="op">=</span> <span class="va">occu</span>, formula<span class="op">=</span><span class="op">~</span><span class="fl">1</span><span class="op">~</span><span class="va">x</span>, coefs<span class="op">=</span><span class="va">cf</span>, nsim <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">p2</span> <span class="op">&lt;-</span> <span class="fu">powerAnalysis</span><span class="op">(</span><span class="va">s</span>, model<span class="op">=</span><span class="va">occu</span>, formula<span class="op">=</span><span class="op">~</span><span class="fl">1</span><span class="op">~</span><span class="va">x</span>, effects<span class="op">=</span><span class="va">cf</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">p2</span></span></span>
 <span class="r-in"><span></span></span>

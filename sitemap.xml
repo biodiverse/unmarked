@@ -32,7 +32,7 @@
 <url><loc>/reference/distsampOpen.html</loc></url>
 <url><loc>/reference/extract-methods.html</loc></url>
 <url><loc>/reference/fitList.html</loc></url>
-<url><loc>/reference/fitted.html</loc></url>
+<url><loc>/reference/fitted-methods.html</loc></url>
 <url><loc>/reference/formatDistData.html</loc></url>
 <url><loc>/reference/formatMult.html</loc></url>
 <url><loc>/reference/formatWideLong.html</loc></url>
@@ -84,11 +84,10 @@
 <url><loc>/reference/predict-methods.html</loc></url>
 <url><loc>/reference/randomTerms.html</loc></url>
 <url><loc>/reference/ranef-methods.html</loc></url>
-<url><loc>/reference/residuals.html</loc></url>
 <url><loc>/reference/shinyPower.html</loc></url>
 <url><loc>/reference/sight2perpdist.html</loc></url>
 <url><loc>/reference/sigma.html</loc></url>
-<url><loc>/reference/simulate.html</loc></url>
+<url><loc>/reference/simulate-methods.html</loc></url>
 <url><loc>/reference/unmarked-package.html</loc></url>
 <url><loc>/reference/unmarkedEstimate-class.html</loc></url>
 <url><loc>/reference/unmarkedEstimateList-class.html</loc></url>

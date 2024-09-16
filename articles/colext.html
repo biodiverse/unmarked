@@ -32,7 +32,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">unmarked</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.4.1.9010</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.4.3</span>
       </span>
     </div>
 
@@ -485,16 +485,16 @@ y_{ijt} \sim Bernoulli(z_{it} p_{ijt})
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">pb</span><span class="op">@</span><span class="va">t.star</span>, <span class="fl">2</span>, <span class="va">quantile</span>, probs<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.025</span>, <span class="fl">0.975</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">turnCI</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"tau"</span>, <span class="st">"lower"</span>, <span class="st">"upper"</span><span class="op">)</span></span>
 <span><span class="va">turnCI</span></span></code></pre></div>
-<pre><code><span><span class="co">##             tau      lower     upper</span></span>
-<span><span class="co">##  [1,] 0.1532645 0.00536045 0.1974714</span></span>
-<span><span class="co">##  [2,] 0.1911530 0.07881180 0.2119585</span></span>
-<span><span class="co">##  [3,] 0.2537292 0.19777204 0.2785973</span></span>
-<span><span class="co">##  [4,] 0.2604356 0.04063769 0.4197328</span></span>
-<span><span class="co">##  [5,] 0.3989303 0.34078483 0.4720357</span></span>
-<span><span class="co">##  [6,] 0.3758690 0.32703698 0.5370796</span></span>
-<span><span class="co">##  [7,] 0.3537473 0.32696166 0.3564059</span></span>
-<span><span class="co">##  [8,] 0.3174983 0.32925238 0.4139696</span></span>
-<span><span class="co">##  [9,] 0.1704449 0.18946470 0.3186236</span></span></code></pre>
+<pre><code><span><span class="co">##           tau      lower     upper</span></span>
+<span><span class="co">## t*1 0.1532645 0.00536045 0.1974714</span></span>
+<span><span class="co">## t*2 0.1911530 0.07881180 0.2119585</span></span>
+<span><span class="co">## t*3 0.2537292 0.19777204 0.2785973</span></span>
+<span><span class="co">## t*4 0.2604356 0.04063769 0.4197328</span></span>
+<span><span class="co">## t*5 0.3989303 0.34078483 0.4720357</span></span>
+<span><span class="co">## t*6 0.3758690 0.32703698 0.5370796</span></span>
+<span><span class="co">## t*7 0.3537473 0.32696166 0.3564059</span></span>
+<span><span class="co">## t*8 0.3174983 0.32925238 0.4139696</span></span>
+<span><span class="co">## t*9 0.1704449 0.18946470 0.3186236</span></span></code></pre>
 <p>Which bootstrap method is most appropriate for variance estimation? For detailed distinctions between the non-parametric and the parametric bootstrap, see <span class="citation">Davison and Hinkley (1997)</span>. We note simply that the parametric bootstrap resamples from the fitted model, and thus the measures of uncertainty are purely functions of the distributions assumed by the model. Non-parametric bootstrap samples, in contrast, are obtained by resampling the data, not the model, and thus are not necessarily affected by the variance formulas of the model’s distributions.</p>
 </div>
 <div class="section level3">
@@ -506,9 +506,13 @@ y_{ijt} \sim Bernoulli(z_{it} p_{ijt})
 <code class="sourceCode R"><span><span class="va">chisq</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">fm</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">umf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/unmarkedFit-class.html">getData</a></span><span class="op">(</span><span class="va">fm</span><span class="op">)</span></span>
 <span>    <span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/unmarkedFrame-class.html">getY</a></span><span class="op">(</span><span class="va">umf</span><span class="op">)</span></span>
-<span>    <span class="va">fv</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fitted.html">fitted</a></span><span class="op">(</span><span class="va">fm</span><span class="op">)</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">(</span><span class="va">y</span><span class="op">-</span><span class="va">fv</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">/</span><span class="op">(</span><span class="va">fv</span><span class="op">*</span><span class="op">(</span><span class="fl">1</span><span class="op">-</span><span class="va">fv</span><span class="op">)</span><span class="op">)</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
+<span>    <span class="va">sr</span> <span class="op">&lt;-</span> <span class="va">fm</span><span class="op">@</span><span class="va">sitesRemoved</span></span>
+<span>    <span class="kw">if</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">sr</span><span class="op">)</span><span class="op">&gt;</span><span class="fl">0</span><span class="op">)</span></span>
+<span>        <span class="va">y</span> <span class="op">&lt;-</span> <span class="va">y</span><span class="op">[</span><span class="op">-</span><span class="va">sr</span>,,drop<span class="op">=</span><span class="cn">FALSE</span><span class="op">]</span></span>
+<span>    <span class="va">fv</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fm</span>, na.rm<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span>
+<span>    <span class="va">y</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">fv</span><span class="op">)</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="cn">NA</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">(</span><span class="va">y</span><span class="op">-</span><span class="va">fv</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">/</span><span class="op">(</span><span class="va">fv</span><span class="op">*</span><span class="op">(</span><span class="fl">1</span><span class="op">-</span><span class="va">fv</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">344</span><span class="op">)</span></span>
 <span><span class="va">pb.gof</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parboot.html">parboot</a></span><span class="op">(</span><span class="va">m0</span>, statistic<span class="op">=</span><span class="va">chisq</span>, nsim<span class="op">=</span><span class="fl">100</span><span class="op">)</span></span>

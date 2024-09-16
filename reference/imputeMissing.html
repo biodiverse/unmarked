@@ -19,7 +19,7 @@ average for the site and the average for the visit number."><!-- mathjax --><scr
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">unmarked</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.4.1.9010</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.4.3</span>
       </span>
     </div>
 
@@ -124,7 +124,9 @@ average for the site and the average for the visit number.</p>
 <span class="r-in"><span>     Temperature<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">pcru.data</span><span class="op">[</span>,,<span class="fl">4</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">pcruUMF</span> <span class="op">&lt;-</span> <span class="fu"><a href="unmarkedFrameOccu.html">unmarkedFrameOccu</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">pcru.bin</span>, obsCovs <span class="op">=</span> <span class="va">pcru.obscovs</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">pcruUMF.i1</span> <span class="op">&lt;-</span> <span class="fu">imputeMissing</span><span class="op">(</span><span class="va">pcruUMF</span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>imputeMissing will be deprecated in the next version.</span>
 <span class="r-in"><span><span class="va">pcruUMF.i2</span> <span class="op">&lt;-</span> <span class="fu">imputeMissing</span><span class="op">(</span><span class="va">pcruUMF</span>, whichCovs <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>imputeMissing will be deprecated in the next version.</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

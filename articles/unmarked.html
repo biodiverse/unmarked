@@ -32,7 +32,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">unmarked</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.4.1.9010</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.4.3</span>
       </span>
     </div>
 
@@ -347,22 +347,25 @@
 <span>    <span class="va">umf</span> <span class="op">&lt;-</span> <span class="va">fm</span><span class="op">@</span><span class="va">data</span></span>
 <span>    <span class="va">y</span> <span class="op">&lt;-</span> <span class="va">umf</span><span class="op">@</span><span class="va">y</span></span>
 <span>    <span class="va">y</span><span class="op">[</span><span class="va">y</span><span class="op">&gt;</span><span class="fl">1</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">1</span></span>
-<span>    <span class="va">fv</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fitted.html">fitted</a></span><span class="op">(</span><span class="va">fm</span><span class="op">)</span></span>
+<span>    <span class="va">sr</span> <span class="op">&lt;-</span> <span class="va">fm</span><span class="op">@</span><span class="va">sitesRemoved</span></span>
+<span>    <span class="kw">if</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">sr</span><span class="op">)</span><span class="op">&gt;</span><span class="fl">0</span><span class="op">)</span></span>
+<span>        <span class="va">y</span> <span class="op">&lt;-</span> <span class="va">y</span><span class="op">[</span><span class="op">-</span><span class="va">sr</span>,,drop<span class="op">=</span><span class="cn">FALSE</span><span class="op">]</span></span>
+<span>    <span class="va">fv</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fm</span>, na.rm<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span>
+<span>    <span class="va">y</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">fv</span><span class="op">)</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="cn">NA</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">(</span><span class="va">y</span><span class="op">-</span><span class="va">fv</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">/</span><span class="op">(</span><span class="va">fv</span><span class="op">*</span><span class="op">(</span><span class="fl">1</span><span class="op">-</span><span class="va">fv</span><span class="op">)</span><span class="op">)</span>, na.rm<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span>
 <span>    <span class="op">}</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="op">(</span><span class="va">pb</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parboot.html">parboot</a></span><span class="op">(</span><span class="va">fm2</span>, statistic<span class="op">=</span><span class="va">chisq</span>, nsim<span class="op">=</span><span class="fl">100</span>, parallel<span class="op">=</span><span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## </span></span>
 <span><span class="co">## Call: parboot(object = fm2, statistic = chisq, nsim = 100, parallel = FALSE)</span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## Parametric Bootstrap Statistics:</span></span>
 <span><span class="co">##    t0 mean(t0 - t_B) StdDev(t0 - t_B) Pr(t_B &gt; t0)</span></span>
-<span><span class="co">## 1 356           17.2             18.3        0.139</span></span>
+<span><span class="co">## 1 356           21.8             16.2        0.109</span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## t_B quantiles:</span></span>
 <span><span class="co">##       0% 2.5% 25% 50% 75% 97.5% 100%</span></span>
-<span><span class="co">## [1,] 309  311 325 337 348   381  404</span></span>
+<span><span class="co">## [1,] 307  312 323 330 343   368  393</span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## t0 = Original statistic computed from data</span></span>
 <span><span class="co">## t_B = Vector of bootstrap samples</span></span></code></pre>
