@@ -33,10 +33,10 @@ exportClasses(unmarkedFit, unmarkedFrame)
 
 # Methods
 exportMethods(backTransform, coef, confint, fitted, getData,
-              getP, getFP, getB, getY, head, linearComb,
+              getP, getFP, getB, getY, head, linearComb, LRT,
               modSel, numSites, numY, obsCovs, obsNum, "obsCovs<-",
               obsToY, "obsToY<-", parboot, plot, hist, predict, profile,
-              residuals, SE, simulate, siteCovs,
+              residuals, sampleSize, SE, simulate, siteCovs,
               "siteCovs<-", summary, update, vcov, yearlySiteCovs,
               "yearlySiteCovs<-", "[", smoothed, projected, nonparboot, logLik,
               ranef, bup, crossVal, posteriorSamples, sigma, randomTerms, 

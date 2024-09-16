@@ -11,6 +11,8 @@
 \alias{profile,unmarkedFit-method}
 \alias{update,unmarkedFit-method}
 \alias{plot,profile,missing-method}
+\alias{sampleSize}
+\alias{sampleSize,unmarkedFit-method}
 \alias{summary,unmarkedFit-method}
 \alias{smoothed}
 \alias{smoothed,unmarkedFitColExt-method}
@@ -18,6 +20,8 @@
 \alias{projected,unmarkedFitColExt-method}
 \alias{logLik}
 \alias{logLik,unmarkedFit-method}
+\alias{LRT}
+\alias{LRT,unmarkedFit,unmarkedFit-method}
 \alias{getY,unmarkedFit-method}
 
 \title{Class "unmarkedFit" }
@@ -50,6 +54,8 @@ extracted using the methods described below.
 		expected vs. observed values }
     \item{profile}{\code{signature(fitted = "unmarkedFit")}: used by confint
 		method='profile' }
+    \item{sampleSize}{\code{signature(object = "unmarkedFit")}: returns number
+		of sites in sample }
     \item{SE}{\code{signature(obj = "unmarkedFit")}: returns standard errors }
     \item{summary}{\code{signature(object = "unmarkedFit")}: results with more
 		details }
@@ -67,6 +73,9 @@ extracted using the methods described below.
     whether or not to return the average over sites.}
     \item{logLik}{\code{signature(object="unmarkedFit")}:
         Returns the log-likelihood.}
+    \item{LRT}{\code{signature(m1="unmarkedFit", m2="unmarkedFit")}:
+        Returns the chi-squared statistic, degrees-of-freedom, and p-value from
+        a Likelihood Ratio Test.}
 	 }
 }
 \note{ This is a superclass with child classes for each fit type }
