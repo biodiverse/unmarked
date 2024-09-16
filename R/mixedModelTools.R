@@ -343,7 +343,7 @@ add_covariates <- function(covs_long, covs_short, n){
 
   rep_idx <- rep(1:nrow(covs_short), each=exp_factor)
 
-  to_add <- covs_short[rep_idx, ]
+  to_add <- covs_short[rep_idx, ,drop=FALSE]
   stopifnot(nrow(covs_long) == nrow(to_add))
 
   cbind(covs_long, to_add)

@@ -468,6 +468,13 @@ test_that("occu can handle random effects",{
   #on.exit(options(warn=0))
   test <- modSel(fl) # shouldn't warn
   #options(warn=0)
+
+  # Test that site cov can be used as random group for detection
+  # when it's the only covariate
+  new_sc <- data.frame(siteno = factor(1:nrow(y)))
+  siteCovs(umf) <- new_sc
+  fm <- occu(~(1|siteno)~1, umf)
+  expect_equal(sigma(fm)$Groups, "siteno")
 })
 
 test_that("TMB engine gives correct det estimates when there are lots of NAs", {
