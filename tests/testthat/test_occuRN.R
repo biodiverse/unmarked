@@ -45,7 +45,7 @@ test_that("occuRN can fit models",{
   expect_equal(dim(res), dim(woodthrushUMF@y))
   expect_equal(res[1,1], 0.73757, tol=1e-4)
   
-  r <- ranef(fm_C, K=10)
+  r <- ranef(fm_C)
   expect_equal(dim(r@post), c(50,11,1))
   expect_equal(bup(r)[1:4], c(5.1059,5.6125,3.2689,5.6125), tol=1e-4)
 
@@ -126,7 +126,7 @@ test_that("occuRN can handle NAs",{
   expect_true(is.na(ft[1,1])) # missing obs cov
   expect_true(all(!is.na(ft[2,]))) # missing site cov
 
-  r <- ranef(fm_na, K=30)
+  r <- ranef(fm_na)
   expect_equal(nrow(r@post), numSites(fm_na@data))
   expect_true(all(is.na(r@post[1:2,,1])))
 })

@@ -680,10 +680,15 @@ setMethod("ranef_internal", "unmarkedFitOccuMulti", function(object, ...){
 
 
 setMethod("ranef_internal", "unmarkedFitOccuRN", function(object, ...){
-    K <- list(...)$K
-    if(is.null(K)) {
+
+    if(methods::.hasSlot(object, "K")){
+      K <- object@K
+    } else {
+      K <- list(...)$K
+      if(is.null(K)) {
         warning("You did not specify K, the maximum value of N, so it was set to 50")
         K <- 50
+      }
     }
     lam <- predict(object, type="state", level=NULL, na.rm=FALSE)$Predicted # Too slow
     R <- length(lam)
