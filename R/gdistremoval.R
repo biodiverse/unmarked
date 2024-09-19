@@ -201,19 +201,19 @@ setMethod("getDesign", "unmarkedFrameGDR",
 
   if(return.frames) return(list(sc=sc, ysc=ysc, oc=oc))
 
-  lam_fixed <- lme4::nobars(formula$lambdaformula)
+  lam_fixed <- reformulas::nobars(formula$lambdaformula)
   Xlam <- model.matrix(lam_fixed,
             model.frame(lam_fixed, sc, na.action=NULL))
 
-  phi_fixed <- lme4::nobars(formula$phiformula)
+  phi_fixed <- reformulas::nobars(formula$phiformula)
   Xphi <- model.matrix(phi_fixed,
             model.frame(phi_fixed, ysc, na.action=NULL))
 
-  dist_fixed <- lme4::nobars(formula$distanceformula)
+  dist_fixed <- reformulas::nobars(formula$distanceformula)
   Xdist <- model.matrix(dist_fixed,
             model.frame(dist_fixed, ysc, na.action=NULL))
 
-  rem_fixed <- lme4::nobars(formula$removalformula)
+  rem_fixed <- reformulas::nobars(formula$removalformula)
   Xrem <- model.matrix(rem_fixed,
             model.frame(rem_fixed, oc, na.action=NULL))
 

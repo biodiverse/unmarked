@@ -48,7 +48,7 @@ check_coefs <- function(coefs, fit, name = "coefs", quiet = FALSE){
 
   # If there are random effects, adjust the expected coefficient names
   # to remove the b vector and add the grouping covariate name
-  rand <- lapply(formulas, lme4::findbars)
+  rand <- lapply(formulas, reformulas::findbars)
   if(!all(sapply(rand, is.null))){
     stopifnot(all(required_subs %in% names(formulas)))
     rvar <- lapply(rand, function(x) unlist(lapply(x, all.vars)))
@@ -106,7 +106,7 @@ check_coefs <- function(coefs, fit, name = "coefs", quiet = FALSE){
 generate_random_effects <- function(coefs, fit){
   required_subs <- names(fit@estimates@estimates)
   formulas <- sapply(names(fit), function(x) get_formula(fit, x))
-  rand <- lapply(formulas, lme4::findbars)
+  rand <- lapply(formulas, reformulas::findbars)
   if(!all(sapply(rand, is.null))){
     rvar <- lapply(rand, function(x) unlist(lapply(x, all.vars)))
     for (i in required_subs){

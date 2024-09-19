@@ -99,7 +99,7 @@ get_summary_df <- function(fit, effects, nulls){
   # Remove random effects from output list
   effects <- check_coefs(effects, fit, quiet=TRUE)
   rvars <- sapply(names(fit), function(x){
-                       bars <- lme4::findbars(get_formula(fit, x))
+                       bars <- reformulas::findbars(get_formula(fit, x))
                        all.vars(bars[[1]])
                       })
 

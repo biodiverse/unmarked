@@ -10,8 +10,8 @@ setGeneric("handleNA", function(umf, ...) standardGeneric("handleNA"))
 setMethod("getDesign", "unmarkedFrame",
     function(umf, formula, na.rm=TRUE)
 {
-    detformula <- lme4::nobars(as.formula(formula[[2]]))
-    stateformula <- lme4::nobars(as.formula(paste("~", formula[3], sep="")))
+    detformula <- reformulas::nobars(as.formula(formula[[2]]))
+    stateformula <- reformulas::nobars(as.formula(paste("~", formula[3], sep="")))
     detVars <- all.vars(detformula)
 
     M <- numSites(umf)

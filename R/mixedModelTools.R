@@ -5,16 +5,16 @@ get_xlev <- function(data, model_frame){
 }
 
 get_reTrms <- function(formula, data, newdata=NULL){
-  fb <- lme4::findbars(formula)
-  mf <- model.frame(lme4::subbars(formula), data, na.action=stats::na.pass)
-  if(is.null(newdata)) return(lme4::mkReTrms(fb, mf))
+  fb <- reformulas::findbars(formula)
+  mf <- model.frame(reformulas::subbars(formula), data, na.action=stats::na.pass)
+  if(is.null(newdata)) return(reformulas::mkReTrms(fb, mf))
   new_mf <- model.frame(stats::terms(mf), newdata, na.action=stats::na.pass,
                         xlev=get_xlev(data, mf))
-  lme4::mkReTrms(fb, new_mf, drop.unused.levels=FALSE)
+  reformulas::mkReTrms(fb, new_mf, drop.unused.levels=FALSE)
 }
 
 get_Z <- function(formula, data, newdata=NULL){
-  if(is.null(lme4::findbars(formula))){
+  if(is.null(reformulas::findbars(formula))){
     if(is.null(newdata)){
       return(Matrix::Matrix(matrix(0, nrow=nrow(data), ncol=0),sparse=TRUE))
     } else{
@@ -28,12 +28,12 @@ get_Z <- function(formula, data, newdata=NULL){
 }
 
 get_group_vars <- function(formula){
-  rand <- lme4::findbars(formula)
+  rand <- reformulas::findbars(formula)
   ifelse(is.null(rand), 0, length(rand))
 }
 
 get_nrandom <- function(formula, data){
-  rand <- lme4::findbars(formula)
+  rand <- reformulas::findbars(formula)
   if(length(rand)==0) return(as.array(0))
 
   out <- sapply(rand, function(x){
@@ -44,7 +44,7 @@ get_nrandom <- function(formula, data){
 }
 
 has_random <- function(formula){
-  length(lme4::findbars(formula)) > 0
+  length(reformulas::findbars(formula)) > 0
 }
 
 sigma_names <- function(formula, data){
@@ -57,7 +57,7 @@ sigma_names <- function(formula, data){
 }
 
 check_formula <- function(formula, data){
-  rand <- lme4::findbars(formula)
+  rand <- reformulas::findbars(formula)
   if(is.null(rand)) return(invisible())
 
   char <- paste(formula, collapse=" ")
@@ -159,7 +159,7 @@ print_randvar_info <- function(object){
 }
 
 check_no_support <- function(formula_list){
-  has_bars <- any(sapply(formula_list, function(x) !is.null(lme4::findbars(x))))
+  has_bars <- any(sapply(formula_list, function(x) !is.null(reformulas::findbars(x))))
   if(has_bars){
     stop("This function does not support random effects", call.=FALSE)
   }
