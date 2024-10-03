@@ -73,6 +73,6 @@ LinkingTo:
     RcppEigen
 SystemRequirements: GNU make
 URL: https://groups.google.com/d/forum/unmarked,
-     https://hmecology.github.io/unmarked/
-BugReports: https://github.com/hmecology/unmarked/issues
+     https://biodiverse.github.io/unmarked/
+BugReports: https://github.com/biodiverse/unmarked/issues
 VignetteBuilder: knitr
