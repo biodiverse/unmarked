@@ -1,11 +1,30 @@
 setClass("unmarkedFrameOccuComm",
-         representation(ylist = "list"),
+         representation(ylist = "list", speciesCovs="optionalList"),
          contains = "unmarkedFrame")
 
 setClass("unmarkedFitOccuComm", contains="unmarkedFitOccu")
 
-unmarkedFrameOccuComm <- function(y, siteCovs=NULL, obsCovs=NULL){
-  new("unmarkedFrameOccuComm", y=y[[1]], ylist = y, siteCovs=siteCovs, obsCovs=obsCovs)
+
+unmarkedFrameOccuComm <- function(y, siteCovs=NULL, obsCovs=NULL, speciesCovs=NULL){  
+  # Check species covs dimensions
+  if(!is.null(speciesCovs)){
+    stopifnot(is.list(speciesCovs))
+    M <- nrow(y[[1]])
+    J <- ncol(y[[1]])
+    S <- length(y)
+    correct_dims <- sapply(speciesCovs, function(x){
+      identical(dim(x), c(M, S)) | identical(dim(x), c(M, J, S)) 
+    })
+    bad_dims <- names(speciesCovs)[!correct_dims]
+    if(length(bad_dims > 0)){
+      stop(paste0("Species covariate(s) ", paste(bad_dims, collapse=", "), " have incorrect dimensions"),
+           call.=FALSE)
+    }
+  }
+
+  obsCovs <- covsToDF(obsCovs, "obsCovs", ncol(y[[1]]), nrow(y[[1]]))
+  new("unmarkedFrameOccuComm", y=y[[1]], ylist = y, siteCovs=siteCovs, 
+      obsCovs=obsCovs, speciesCovs=speciesCovs)
 }
 
 process_multispecies_umf <- function(umf, interact_covs){
@@ -47,11 +66,42 @@ process_multispecies_umf <- function(umf, interact_covs){
     }
   }
 
+  # Add species level covs
+  spc <- umf@speciesCovs
+  if(!is.null(spc)){
+    # Site level species covs
+    spc_site <- sapply(spc, function(x) identical(dim(x), c(M, S))) 
+    spc_site <- spc[spc_site]
+    if(length(spc_site) > 0){
+      spc_site <- as.data.frame(lapply(spc_site, as.vector))
+      if(is.null(sc)){
+        sc <- spc_site
+      } else {
+        sc <- cbind(sc, spc_site)
+      }
+    }
+
+    spc_obs <- sapply(spc, function(x) identical(dim(x), c(M, J, S)))
+    spc_obs <- spc[spc_obs]
+    if(length(spc_obs) > 0){
+      spc_obs <- lapply(spc_obs, function(x){
+        x <- aperm(x, c(2, 1, 3))
+        as.vector(x)
+      })
+      spc_obs <- as.data.frame(spc_obs)
+      if(is.null(oc)){
+        oc <- spc_obs
+      } else {
+        oc <- cbind(oc, spc_obs)
+      }
+    }
+  }
+
   unmarkedFrameOccu(y = y, siteCovs=sc, obsCovs=oc)
 }
 
 multispeciesFormula <- function(form){
-  sf <- unmarked:::split_formula(form)
+  sf <- split_formula(form)
 
   covs_add_species <- character(0)
 
