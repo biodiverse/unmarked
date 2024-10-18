@@ -337,6 +337,7 @@ setMethod("predict_internal", "unmarkedFitOccuComm",
   function(object, type, newdata, backTransform = TRUE, na.rm = TRUE,
            appendData = FALSE, level=0.95, re.form=NULL, ...){
 
+  na.rm <- FALSE
   S <- length(object@data@ylist)
   M <- numSites(object@data)
   J <- obsNum(object@data)
@@ -346,10 +347,20 @@ setMethod("predict_internal", "unmarkedFitOccuComm",
   new_object@data <- process_multispecies_umf(object@data, newform$covs)
   new_object <- as(new_object, "unmarkedFitOccu")
 
+  if(missing(newdata)) newdata <- NULL
+  if(!is.null(newdata)){
+    n <- nrow(newdata)
+    newdata <- newdata[rep(1:n, S),,drop=FALSE] # rep by species
+    newdata$species <- factor(rep(names(object@data@ylist), each = n),
+                              levels = names(object@data@ylist))
+  }
+
   pr <- predict(new_object, type=type, newdata=newdata, backTransform=backTransform,
                 na.rm=na.rm, appendData=appendData, level=level, re.form=re.form, ...)
 
-  if(type == "state"){
+  if(!is.null(newdata)){
+    inds <- split(1:nrow(pr), rep(1:length(object@data@ylist), each=n))
+  } else if(type == "state"){
     inds <- split(1:nrow(pr), rep(1:length(object@data@ylist), each=M))
   } else if(type == "det"){
     inds <- split(1:nrow(pr), rep(1:length(object@data@ylist), each=M*J))
