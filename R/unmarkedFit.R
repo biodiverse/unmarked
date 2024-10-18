@@ -528,6 +528,14 @@ setMethod("residual_plot", "unmarkedFitOccuMulti", function(x, ...)
   abline(h = 0, lty = 3, col = "gray")
 })
 
+setMethod("residual_plot", "unmarkedFitOccuComm", function(x, ...)
+{
+  r <- do.call(rbind,residuals(x))
+  e <- do.call(rbind,fitted(x))
+  plot(e, r, ylab = "Residuals", xlab = "Predicted values")
+  abline(h = 0, lty = 3, col = "gray")
+})
+
 
 setMethod("hist", "unmarkedFitDS", function(x, lwd=1, lty=1, ...) {
     ymat <- getY(getData(x))
