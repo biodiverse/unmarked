@@ -361,3 +361,70 @@ setMethod("predict_internal", "unmarkedFitOccuComm",
          out
   })
 })
+
+setMethod("getP_internal", "unmarkedFitOccuComm", function(object){
+  M <- numSites(object@data)
+  J <- obsNum(object@data)
+  p <- predict(object, type="det", level=NULL, na.rm=FALSE)
+  p <- lapply(p, function(x){
+    matrix(x$Predicted, M, J, byrow = TRUE)
+  })
+  p
+})
+
+setMethod("fitted_internal", "unmarkedFitOccuComm", function(object){
+  state <- predict(object, type = "state", level=NULL, na.rm=FALSE)
+  p <- getP(object, na.rm = FALSE) # P(detection | presence)
+  fitted <- mapply(function(x, y){
+    x$Predicted * y
+  }, x = state, y = p, SIMPLIFY=FALSE)
+  fitted
+})
+
+setMethod("getY_internal", "unmarkedFitOccuComm", function(object) {
+            object@data@ylist
+})
+
+setMethod("residuals_internal", "unmarkedFitOccuComm", function(object) {
+  ylist <- getY(object)
+  fitlist <- fitted(object)
+
+  mapply(function(x, y){
+    x - y
+  }, x = ylist, y = fitlist, SIMPLIFY = FALSE)
+})
+
+setMethod("SSE", "unmarkedFitOccuComm", function(fit, ...){
+    r <- do.call(rbind, residuals(fit))
+    return(c(SSE = sum(r^2, na.rm=T)))
+})
+
+setMethod("simulate_internal", "unmarkedFitOccuComm", function(object, nsim){
+  S <- length(object@data@ylist)
+  M <- numSites(object@data)
+  new_object <- object
+  newform <- multispeciesFormula(object@formula)
+  new_object@formula <- newform$formula
+  new_object@data <- process_multispecies_umf(object@data, newform$covs)
+  new_object <- as(new_object, "unmarkedFitOccu")
+  s <- simulate(new_object, nsim = nsim)
+  inds <- split(1:nrow(s[[1]]), rep(1:S, each=M))
+  names(inds) <- names(object@data@ylist)
+
+  lapply(1:nsim, function(i){
+    this_sim <- s[[i]]
+    lapply(inds, function(x){
+      this_sim[x,,drop=FALSE] # select only one species
+    })
+  })
+})
+
+setMethod("replaceY", "unmarkedFrameOccuComm",
+          function(object, newY, replNA=TRUE, ...){
+      if(replNA){
+        newY <- mapply(function(x, y){ is.na(x) <- is.na(y); x},
+                       newY , object@ylist, SIMPLIFY=FALSE)
+      }
+      object@ylist <- newY
+      object
+})
