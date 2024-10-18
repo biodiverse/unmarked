@@ -22,9 +22,13 @@ unmarkedFrameOccuComm <- function(y, siteCovs=NULL, obsCovs=NULL, speciesCovs=NU
     }
   }
 
+  if(is.null(names(y))){
+    names(y) <- paste0("sp", sprintf("%02d", 1:S))
+  }
+
   obsCovs <- covsToDF(obsCovs, "obsCovs", ncol(y[[1]]), nrow(y[[1]]))
   new("unmarkedFrameOccuComm", y=y[[1]], ylist = y, siteCovs=siteCovs, 
-      obsCovs=obsCovs, speciesCovs=speciesCovs)
+      obsCovs=obsCovs, speciesCovs=speciesCovs, obsToY = diag(J))
 }
 
 process_multispecies_umf <- function(umf, interact_covs){
@@ -221,6 +225,7 @@ setMethod("predict_internal", "unmarkedFitOccuComm",
 
   S <- length(object@data@ylist)
   M <- numSites(object@data)
+  J <- obsNum(object@data)
   new_object <- object
   newform <- multispeciesFormula(object@formula)
   new_object@formula <- newform$formula
@@ -230,7 +235,11 @@ setMethod("predict_internal", "unmarkedFitOccuComm",
   pr <- predict(new_object, type=type, newdata=newdata, backTransform=backTransform,
                 na.rm=na.rm, appendData=appendData, level=level, re.form=re.form, ...)
 
-  inds <- split(1:nrow(pr), rep(1:length(object@data@ylist), each=numSites(object@data)))
+  if(type == "state"){
+    inds <- split(1:nrow(pr), rep(1:length(object@data@ylist), each=M))
+  } else if(type == "det"){
+    inds <- split(1:nrow(pr), rep(1:length(object@data@ylist), each=M*J))
+  }
   names(inds) <- names(object@data@ylist)
   lapply(inds, function(x){ 
          out <- pr[x,,drop=FALSE]
