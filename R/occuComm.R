@@ -31,6 +31,120 @@ unmarkedFrameOccuComm <- function(y, siteCovs=NULL, obsCovs=NULL, speciesCovs=NU
       obsCovs=obsCovs, speciesCovs=speciesCovs, obsToY = diag(J))
 }
 
+# Unmarked Frame methods
+setMethod("show", "unmarkedFrameOccuComm", function(object)
+{
+    df <- as(object, "data.frame")
+    cat("Data frame representation of unmarkedFrame object.\n")
+    cat("Only showing observation matrix for species 1.\n")
+    print(df)
+})
+
+setMethod("summary", "unmarkedFrameOccuComm", function(object,...) {
+    cat("unmarkedFrameOccuComm Object\n\n")
+    cat(nrow(object@y), "sites\n")
+    cat(length(object@ylist), "species\n")
+    cat("Maximum number of observations per site:",obsNum(object),"\n")
+    mean.obs <- mean(rowSums(!is.na(object@ylist[[1]])))
+    cat("Mean number of observations per site:",round(mean.obs,2),"\n")
+    s.one <- sapply(object@ylist,function(x) sum(rowSums(x,na.rm=TRUE)>0))
+    cat("Sites with at least one detection, quantiles by species:\n")
+    print(quantile(s.one))
+    if(!is.null(object@siteCovs)) {
+        cat("\nSite-level covariates:\n")
+        print(summary(object@siteCovs))
+    }
+    if(!is.null(object@obsCovs)) {
+        cat("\nObservation-level covariates:\n")
+        print(summary(object@obsCovs))
+    }
+    if(!is.null(object@speciesCovs)){
+        cat("\nSpecies-level covariates:\n")
+        str(object@speciesCovs)
+    }
+})
+
+setMethod("plot", c(x="unmarkedFrameOccuComm", y="missing"),
+	function (x, y, colorkey, ylab="Site", xlab="Observation", ...)
+{
+    y <- getY(x)
+    ym <- max(y, na.rm=TRUE)
+    M <- nrow(y)
+    J <- ncol(y)
+    S <- length(x@ylist)
+    y <- as.data.frame(do.call(rbind,x@ylist))
+    colnames(y) <- paste("obs",1:J)
+    y$site <- rep(1:M,S)
+    y$species <- as.factor(rep(names(x@ylist),each=M))
+    y2 <- reshape(y, idvar=c("site", "species"), varying=list(1:obsNum(x)),
+              v.names="value", direction="long")
+    y2$variable <- factor(paste("obs", y2$time), levels=colnames(y))
+    if(missing(colorkey))
+        colorkey <- list(at=0:(ym+1), labels=list(labels=as.character(0:ym),
+            at=(0:ym)+0.5))
+    levelplot(value ~ variable*site | species, y2,
+        scales=list(relation="free", x=list(labels=1:J)),
+        colorkey=colorkey, strip=T, xlab=xlab, ylab=ylab,
+        labels=names(x@ylist), ...)
+})
+
+#[ Methods for community occupancy frames
+setMethod("[", c("unmarkedFrameOccuComm", "numeric", "missing", "missing"),
+    function(x, i){
+  if(length(i) == 0) return(x)
+  M <- numSites(x)
+  J <- obsNum(x)
+  S <- length(x@ylist)
+
+  ylist <- lapply(x@ylist,function(x) x[i,,drop=F])
+ 
+  siteCovs <- siteCovs(x)
+  if (!is.null(siteCovs)) {
+    siteCovs <- siteCovs(x)[i, , drop = FALSE]
+  }
+
+  obsCovs <- obsCovs(x)
+  if (!is.null(obsCovs)) {
+    .site <- rep(1:M, each = J)
+    oc <- lapply(i, function(ind){
+      obsCovs[.site==ind,,drop=FALSE]
+    })
+    obsCovs <- do.call(rbind, oc)
+  }
+
+  # Species covs
+  spc <- x@speciesCovs
+  if(!is.null(spc)){
+    # M x S covs
+    spc_site <- sapply(spc, function(x) identical(dim(x), c(M, S))) 
+    spc_site <- spc[spc_site]
+    if(length(spc_site) > 0){
+      spc_site <- lapply(spc_site, function(x){
+        x[i,,drop=FALSE]
+      })
+    }
+    # M x J x S covs
+    spc_obs <- sapply(spc, function(x) identical(dim(x), c(M, J, S)))
+    spc_obs <- spc[spc_obs]
+    if(length(spc_obs) > 0){
+      spc_obs <- lapply(spc_obs, function(x){
+        x[i,,,drop=FALSE]
+      })
+    }
+    new_spc <- c(spc_site, spc_obs)
+  } else {
+    new_spc <- NULL
+  }
+
+  umf <- x
+  umf@y <- ylist[[1]]
+  umf@ylist <- ylist
+  umf@siteCovs <- siteCovs
+  umf@obsCovs <- obsCovs
+  umf@speciesCovs <- new_spc
+  umf
+})
+
 process_multispecies_umf <- function(umf, interact_covs){
   ylist <- umf@ylist
   M <- nrow(ylist[[1]])
