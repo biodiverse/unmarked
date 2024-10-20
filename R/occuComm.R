@@ -13,7 +13,7 @@ unmarkedFrameOccuComm <- function(y, siteCovs=NULL, obsCovs=NULL, speciesCovs=NU
     J <- ncol(y[[1]])
     S <- length(y)
     correct_dims <- sapply(speciesCovs, function(x){
-      identical(dim(x), c(M, S)) | identical(dim(x), c(M, J, S)) 
+      identical(dim(x), c(M, S)) | identical(dim(x), c(M, J, S)) | identical(length(x), S) 
     })
     bad_dims <- names(speciesCovs)[!correct_dims]
     if(length(bad_dims > 0)){
@@ -115,6 +115,10 @@ setMethod("[", c("unmarkedFrameOccuComm", "numeric", "missing", "missing"),
   # Species covs
   spc <- x@speciesCovs
   if(!is.null(spc)){
+    # length S covs are unchanged
+    spc_sp <- sapply(spc, function(x) identical(length(x), S))
+    spc_sp <- spc[spc_sp]
+
     # M x S covs
     spc_site <- sapply(spc, function(x) identical(dim(x), c(M, S))) 
     spc_site <- spc[spc_site]
@@ -131,7 +135,7 @@ setMethod("[", c("unmarkedFrameOccuComm", "numeric", "missing", "missing"),
         x[i,,,drop=FALSE]
       })
     }
-    new_spc <- c(spc_site, spc_obs)
+    new_spc <- c(spc_site, spc_obs, spc_sp)
   } else {
     new_spc <- NULL
   }
@@ -187,6 +191,19 @@ process_multispecies_umf <- function(umf, interact_covs){
   # Add species level covs
   spc <- umf@speciesCovs
   if(!is.null(spc)){
+    # Length S covs
+    spc_sp <- sapply(spc, function(x) identical(length(x), S))
+    spc_sp <- spc[spc_sp]
+    if(length(spc_sp) > 0){
+      spc_sp <- lapply(spc_sp, function(x) rep(x, each=M))
+      spc_sp <- as.data.frame(spc_sp)
+      if(is.null(sc)){
+        sc <- spc_sp
+      } else {
+        sc <- cbind(sc, spc_sp)
+      }
+    }
+
     # Site level species covs
     spc_site <- sapply(spc, function(x) identical(dim(x), c(M, S))) 
     spc_site <- spc[spc_site]
@@ -218,15 +235,29 @@ process_multispecies_umf <- function(umf, interact_covs){
   unmarkedFrameOccu(y = y, siteCovs=sc, obsCovs=oc)
 }
 
-multispeciesFormula <- function(form){
+multispeciesFormula <- function(form, species_covs){
   sf <- split_formula(form)
 
   covs_add_species <- character(0)
 
   # Det formula
   det_nobar <- reformulas::nobars(sf[[1]])
+
+  # Remove length S species covs from random part of formula
+  species_S <- names(species_covs)[sapply(species_covs, function(x) is.vector(x))]
+
+  trms_obj <- stats::terms(det_nobar)
+  trms <- attr(trms_obj, "term.labels")
+  if(attr(trms_obj, "intercept")){
+    trms <- c("1", trms)
+  } else {
+    trms <- c("0", trms)
+  }
+  rand_trms <- trms[!trms %in% species_S]
+  rand_form <- stats::reformulate(rand_trms)
+
   bars <- ifelse(det_nobar == ~1, "|", "||")
-  rand <- paste0("+ (", safeDeparse(det_nobar[[2]]), " ", bars, " species)")
+  rand <- paste0("+ (", safeDeparse(rand_form[[2]]), " ", bars, " species)")
   
   barexp <- reformulas::findbars(sf[[1]])
   if(!is.null(barexp)){
@@ -250,8 +281,20 @@ multispeciesFormula <- function(form){
 
   # State formula
   state_nobar <- reformulas::nobars(sf[[2]])
+
+  # Remove species covs from random part of formula
+  trms_obj <- stats::terms(state_nobar)
+  trms <- attr(trms_obj, "term.labels")
+  if(attr(trms_obj, "intercept")){
+    trms <- c("1", trms)
+  } else {
+    trms <- c("0", trms)
+  }
+  rand_trms <- trms[!trms %in% species_S]
+  rand_form <- stats::reformulate(rand_trms)
+
   bars <- ifelse(state_nobar == ~1, "|", "||")
-  rand <- paste0("+ (", safeDeparse(state_nobar[[2]]), " ", bars, " species)")
+  rand <- paste0("+ (", safeDeparse(rand_form[[2]]), " ", bars, " species)")
 
   barexp <- reformulas::findbars(sf[[2]])
   if(!is.null(barexp)){
@@ -283,7 +326,7 @@ safeDeparse <- function(inp) {
 }
 
 occuComm <- function(formula, data, ...){
-  newform <- multispeciesFormula(formula)
+  newform <- multispeciesFormula(formula, data@speciesCovs)
   newumf <- process_multispecies_umf(data, newform$covs)
   out <- occu(newform$formula, data=newumf, ...)
   out@call <- match.call()
