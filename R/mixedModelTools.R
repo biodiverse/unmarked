@@ -251,7 +251,8 @@ setMethod("sigma", "unmarkedFit", function(object, type, level=0.95, ...){
 setGeneric("randomTerms", function(object, ...) standardGeneric("randomTerms"))
 
 
-setMethod("randomTerms", "unmarkedEstimate", function(object, level=0.95, ...){
+setMethod("randomTerms", "unmarkedEstimate", 
+          function(object, level=0.95, addMean = FALSE, ...){
 
   rv <- object@randomVarInfo
   if(length(rv)==0){
@@ -275,6 +276,25 @@ setMethod("randomTerms", "unmarkedEstimate", function(object, level=0.95, ...){
   b_var <- object@estimates[rv_idx]
   b_se <- sqrt(diag(object@covMat[rv_idx,rv_idx,drop=FALSE]))
 
+  if(addMean){
+    #b_se <- rep(NA, length(b_var)) 
+    fixed <- object@estimates[!rv_idx]
+
+    for (i in unique(Name)){
+      if(is.na(fixed[i])) next
+      b_var[Name == i] <- b_var[Name == i] + fixed[i] 
+      
+      # Calculate SE of sum
+      fixed_ind <- which(names(fixed) == i)
+      rand_inds <- which(Name == i) + length(fixed)
+      var_fixed <- object@covMat[fixed_ind, fixed_ind]
+      vars_rand <- diag(object@covMat[rand_inds, rand_inds,drop=FALSE])
+      covvar <- object@covMat[fixed_ind, rand_inds]
+      b_se[Name == i] <- sqrt(var_fixed + vars_rand + 2 * covvar)      
+    }
+    
+  }
+
   z <- qnorm((1-level)/2, lower.tail = FALSE)
   lower <- b_var - z*b_se
   upper <- b_var + z*b_se
@@ -284,10 +304,10 @@ setMethod("randomTerms", "unmarkedEstimate", function(object, level=0.95, ...){
 })
 
 
-setMethod("randomTerms", "unmarkedFit", function(object, type, level=0.95, ...){
+setMethod("randomTerms", "unmarkedFit", function(object, type, level=0.95, addMean = FALSE, ...){
 
   if(!missing(type)){
-    return(randomTerms(object[type], level))
+    return(randomTerms(object[type], level, addMean))
   }
 
   has_random <- sapply(object@estimates@estimates,
@@ -296,7 +316,7 @@ setMethod("randomTerms", "unmarkedFit", function(object, type, level=0.95, ...){
     stop("No random effects in this model", call.=FALSE)
   }
   keep <- object@estimates@estimates[has_random]
-  out <- lapply(keep, randomTerms, level=level)
+  out <- lapply(keep, randomTerms, level=level, addMean=addMean)
   out <- do.call(rbind, out)
   rownames(out) <- NULL
   out
