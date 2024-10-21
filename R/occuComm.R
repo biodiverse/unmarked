@@ -253,8 +253,16 @@ multispeciesFormula <- function(form, species_covs){
   } else {
     trms <- c("0", trms)
   }
-  rand_trms <- trms[!trms %in% species_S]
-  rand_form <- stats::reformulate(rand_trms)
+ 
+  # This is necessary to identify S covariates inside functions like scale()
+  trms_S <- sapply(trms, function(x){
+    trm_form <- as.formula(paste0("~", x))
+    vars <- all.vars(trm_form)
+    if(length(vars) == 0) return(FALSE)
+    all(vars %in% species_S)
+  })
+  
+  rand_form <- stats::reformulate(trms[!trms_S])
 
   bars <- ifelse(det_nobar == ~1, "|", "||")
   rand <- paste0("+ (", safeDeparse(rand_form[[2]]), " ", bars, " species)")
@@ -290,8 +298,15 @@ multispeciesFormula <- function(form, species_covs){
   } else {
     trms <- c("0", trms)
   }
-  rand_trms <- trms[!trms %in% species_S]
-  rand_form <- stats::reformulate(rand_trms)
+
+  trms_S <- sapply(trms, function(x){
+    trm_form <- as.formula(paste0("~", x))
+    vars <- all.vars(trm_form)
+    if(length(vars) == 0) return(FALSE)
+    all(vars %in% species_S)
+  })
+
+  rand_form <- stats::reformulate(trms[!trms_S])
 
   bars <- ifelse(state_nobar == ~1, "|", "||")
   rand <- paste0("+ (", safeDeparse(rand_form[[2]]), " ", bars, " species)")
@@ -340,7 +355,7 @@ setMethod("ranef_internal", "unmarkedFitOccuComm", function(object){
   S <- length(object@data@ylist)
   M <- numSites(object@data)
   new_object <- object
-  newform <- multispeciesFormula(object@formula)
+  newform <- multispeciesFormula(object@formula, object@data@speciesCovs)
   new_object@formula <- newform$formula
   new_object@data <- process_multispecies_umf(object@data, newform$covs)
   new_object <- as(new_object, "unmarkedFitOccu")
@@ -360,7 +375,7 @@ setMethod("richness", "unmarkedFitOccuComm",
   S <- length(object@data@ylist)
   M <- numSites(object@data)
   new_object <- object
-  newform <- multispeciesFormula(object@formula)
+  newform <- multispeciesFormula(object@formula, object@data@speciesCovs)
   new_object@formula <- newform$formula
   new_object@data <- process_multispecies_umf(object@data, newform$covs)
   new_object <- as(new_object, "unmarkedFitOccu")
@@ -385,7 +400,7 @@ setMethod("predict_internal", "unmarkedFitOccuComm",
   M <- numSites(object@data)
   J <- obsNum(object@data)
   new_object <- object
-  newform <- multispeciesFormula(object@formula)
+  newform <- multispeciesFormula(object@formula, object@data@speciesCovs)
   new_object@formula <- newform$formula
   new_object@data <- process_multispecies_umf(object@data, newform$covs)
   new_object <- as(new_object, "unmarkedFitOccu")
@@ -457,7 +472,7 @@ setMethod("simulate_internal", "unmarkedFitOccuComm", function(object, nsim){
   S <- length(object@data@ylist)
   M <- numSites(object@data)
   new_object <- object
-  newform <- multispeciesFormula(object@formula)
+  newform <- multispeciesFormula(object@formula, object@data@speciesCovs)
   new_object@formula <- newform$formula
   new_object@data <- process_multispecies_umf(object@data, newform$covs)
   new_object <- as(new_object, "unmarkedFitOccu")
