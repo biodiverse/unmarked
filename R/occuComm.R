@@ -5,13 +5,13 @@ setClass("unmarkedFrameOccuComm",
 setClass("unmarkedFitOccuComm", contains="unmarkedFitOccu")
 
 
-unmarkedFrameOccuComm <- function(y, siteCovs=NULL, obsCovs=NULL, speciesCovs=NULL){  
+unmarkedFrameOccuComm <- function(y, siteCovs=NULL, obsCovs=NULL, speciesCovs=NULL){
+  M <- nrow(y[[1]])
+  J <- ncol(y[[1]])
+  S <- length(y)
   # Check species covs dimensions
   if(!is.null(speciesCovs)){
     stopifnot(is.list(speciesCovs))
-    M <- nrow(y[[1]])
-    J <- ncol(y[[1]])
-    S <- length(y)
     correct_dims <- sapply(speciesCovs, function(x){
       identical(dim(x), c(M, S)) | identical(dim(x), c(M, J, S)) | identical(length(x), S) 
     })
@@ -496,6 +496,14 @@ setMethod("replaceY", "unmarkedFrameOccuComm",
       }
       object@ylist <- newY
       object
+})
+
+setMethod("residual_plot", "unmarkedFitOccuComm", function(x, ...)
+{
+  r <- do.call(rbind,residuals(x))
+  e <- do.call(rbind,fitted(x))
+  plot(e, r, ylab = "Residuals", xlab = "Predicted values")
+  abline(h = 0, lty = 3, col = "gray")
 })
 
 setMethod("summary_internal", "unmarkedFitOccuComm", function(object)
