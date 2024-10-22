@@ -497,3 +497,46 @@ setMethod("replaceY", "unmarkedFrameOccuComm",
       object@ylist <- newY
       object
 })
+
+setMethod("summary_internal", "unmarkedFitOccuComm", function(object)
+{
+  cat("\nCall:\n")
+  print(object@call)
+  cat("\n")
+  summaryOut <- summary(object@estimates)
+  cat("AIC:", object@AIC,"\n")
+
+  M <- numSites(object@data)
+  S <- length(object@data@ylist)
+  sr <- object@sitesRemoved
+  srmat <- matrix(1:(M*S), M, S)
+  srmat[srmat %in% sr] <- NA
+  sr <- apply(srmat, 1, function(x) any(is.na(x)))
+  sr <- which(sr)
+
+  cat("Number of species:", S)
+  cat("\nNumber of sites:", numSites(object@data) - length(sr))
+  if(length(sr) > 0){
+    cat("\nID of sites removed due to NA:", sr)
+  }
+  if(!identical(object@opt$convergence, 0L)){
+    warning("Model did not converge. Try providing starting values or increasing maxit control argment.", call.=FALSE)
+  }
+
+  # Check for potentially bad estimates
+  if(!is.null(object@opt$hessian)){
+    se <- SE(object)
+    has_na <- any(is.na(se)) | any(is.nan(se))
+    big_se <- any(abs(se) >= 5)
+    if(has_na | big_se){
+      warning("Large or missing SE values. Be very cautious using these results.", call.=FALSE)
+    }
+  }
+
+  nboot <- length(object@bootstrapSamples)
+  if(nboot > 0){
+    cat("\nBootstrap iterations:", nboot)
+  }
+  cat("\n\n")
+  invisible(summaryOut)
+})
