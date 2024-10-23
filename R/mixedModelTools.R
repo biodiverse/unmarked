@@ -7,10 +7,10 @@ get_xlev <- function(data, model_frame){
 get_reTrms <- function(formula, data, newdata=NULL){
   fb <- reformulas::findbars(formula)
   mf <- model.frame(reformulas::subbars(formula), data, na.action=stats::na.pass)
-  if(is.null(newdata)) return(reformulas::mkReTrms(fb, mf))
+  if(is.null(newdata)) return(reformulas::mkReTrms(fb, mf, calc.lambdat = FALSE))
   new_mf <- model.frame(stats::terms(mf), newdata, na.action=stats::na.pass,
                         xlev=get_xlev(data, mf))
-  reformulas::mkReTrms(fb, new_mf, drop.unused.levels=FALSE)
+  reformulas::mkReTrms(fb, new_mf, drop.unused.levels=FALSE, calc.lambdat = FALSE)
 }
 
 get_Z <- function(formula, data, newdata=NULL){
@@ -21,25 +21,38 @@ get_Z <- function(formula, data, newdata=NULL){
       return(Matrix::Matrix(matrix(0, nrow=nrow(newdata), ncol=0),sparse=TRUE))
     }
   }
-  check_formula(formula, data)
-  Zt <- get_reTrms(formula, data, newdata)$Zt
-  Z <- t(as.matrix(Zt))
-  Matrix::Matrix(Z, sparse=TRUE)
+  check_formula(formula)
+  Zt_list <- get_reTrms(formula, data, newdata)$Ztlist
+
+  # Reorder rows by random effect instead of by level
+  # so d d d e e e --> d e d e d e
+  # this should only change things for factors
+  out <- lapply(Zt_list, function(x){
+    id <- ave(rownames(x) == rownames(x), rownames(x), FUN=cumsum)
+    x[order(id),,drop=FALSE]
+  })
+  Zt <- do.call(rbind, out)
+  Matrix::t(Zt)
 }
 
-get_group_vars <- function(formula){
+get_group_vars <- function(formula, data){
   rand <- reformulas::findbars(formula)
-  ifelse(is.null(rand), 0, length(rand))
+  if(is.null(rand)) return(0)
+  re <- get_reTrms(formula, data)
+  length(unlist(re$cnms))
 }
 
 get_nrandom <- function(formula, data){
   rand <- reformulas::findbars(formula)
   if(length(rand)==0) return(as.array(0))
+  
+  re <- get_reTrms(formula, data)
 
-  out <- sapply(rand, function(x){
-    col_nm <- as.character(x[[3]])
-    length(unique(data[[col_nm]]))
+  col_nms <- rep(names(re$cnms), sapply(re$cnms, length))
+  out <- sapply(col_nms, function(x){
+    length(unique(data[[x]]))
   })
+
   as.array(out)
 }
 
@@ -56,21 +69,30 @@ sigma_names <- function(formula, data){
   nms
 }
 
-check_formula <- function(formula, data){
+form_has_correlated_effects <- function(formula){
+  bars <- reformulas::findbars(formula)
+  if(is.null(bars)) return(FALSE)
+  out <- sapply(bars, function(x){
+    form <- stats::as.formula(as.call(list(as.name("~"), x[[2]])))
+    terms_obj <- stats::terms(form)
+    terms <- attr(terms_obj, "term.labels")
+    if(attr(terms_obj, "intercept")) terms <- c("1", terms)
+    length(terms) > 1
+  })
+  any(out)
+}
+
+check_formula <- function(formula){
   rand <- reformulas::findbars(formula)
   if(is.null(rand)) return(invisible())
+
+  if(form_has_correlated_effects(formula)){
+    stop("Correlated random slopes and intercepts are not supported. Replace | with || in your formula(s).", call.=FALSE)
+  }
 
   char <- paste(formula, collapse=" ")
   if(grepl(":|/", char)){
     stop("Nested random effects (using / and :) are not supported",
-         call.=FALSE)
-  }
-  theta <- get_reTrms(formula, data)$theta
-  if(0 %in% theta){
-    stop("Failed to create random effects model matrix.\n
-Possible reasons:\n
-(1) Correlated slopes and intercepts are not supported. Replace | with || in your formula(s).\n
-(2) You have specified random slopes for an R factor variable. Try converting the variable to a series of indicator variables instead.",
          call.=FALSE)
   }
 }
@@ -126,7 +148,7 @@ use_tmb_bootstrap <- function(mod, type, re.form){
 
 # Gather information about grouping variables for a given submodel
 get_randvar_info <- function(tmb_report, type, formula, data){
-  ngv <- get_group_vars(formula)
+  ngv <- get_group_vars(formula, data)
   if(ngv == 0) return(list()) #Return blank list if there are no grouping variables
 
   sigma_type <- paste0("lsigma_",type)
@@ -305,7 +327,7 @@ setMethod("randomTerms", "unmarkedFit", function(object, type, level=0.95, ...){
 get_ranef_inputs <- function(forms, datalist, dms, Zs){
   stopifnot(!is.null(names(datalist)))
   mods <- names(datalist)
-  ngv <- lapply(forms, get_group_vars)
+  ngv <- mapply(get_group_vars, forms, datalist)
   names(ngv) <- paste0("n_group_vars_",mods)
   ngroup <- mapply(get_nrandom, forms, datalist, SIMPLIFY=FALSE)
   names(ngroup) <- paste0("n_grouplevels_",mods)
