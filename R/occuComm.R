@@ -418,19 +418,25 @@ setMethod("predict_internal", "unmarkedFitOccuComm",
   new_object <- as(new_object, "unmarkedFitOccu")
 
   if(missing(newdata)) newdata <- NULL
-  if(!is.null(newdata)){
-    n <- nrow(newdata)
-    newdata <- newdata[rep(1:n, S),,drop=FALSE] # rep by species
-    newdata$species <- factor(rep(names(object@data@ylist), each = n),
-                              levels = names(object@data@ylist))
-  }
+  #if(!is.null(newdata)){
+  #  n <- nrow(newdata)
+  #  newdata <- newdata[rep(1:n, S),,drop=FALSE] # rep by species
+  #  newdata$species <- factor(rep(names(object@data@ylist), each = n),
+  #                            levels = names(object@data@ylist))
+  #}
 
   pr <- predict(new_object, type=type, newdata=newdata, backTransform=backTransform,
                 na.rm=na.rm, appendData=appendData, level=level, re.form=re.form, ...)
 
-  if(!is.null(newdata)){
-    inds <- split(1:nrow(pr), rep(1:length(object@data@ylist), each=n))
-  } else if(type == "state"){
+  if(!is.null(newdata)){ # if using newdata, return now
+    return(pr) 
+  }
+
+  #if(!is.null(newdata)){
+  #  inds <- split(1:nrow(pr), rep(1:length(object@data@ylist), each=n))
+  #} else if(type == "state"){
+  # Otherwise divide up by species
+  if(type == "state"){
     inds <- split(1:nrow(pr), rep(1:length(object@data@ylist), each=M))
   } else if(type == "det"){
     inds <- split(1:nrow(pr), rep(1:length(object@data@ylist), each=M*J))
