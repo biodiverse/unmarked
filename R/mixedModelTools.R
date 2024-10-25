@@ -28,7 +28,7 @@ get_Z <- function(formula, data, newdata=NULL){
   # so d d d e e e --> d e d e d e
   # this should only change things for factors
   out <- lapply(Zt_list, function(x){
-    id <- ave(rownames(x) == rownames(x), rownames(x), FUN=cumsum)
+    id <- stats::ave(rownames(x) == rownames(x), rownames(x), FUN=cumsum)
     x[order(id),,drop=FALSE]
   })
   Zt <- do.call(rbind, out)
@@ -89,8 +89,11 @@ check_formula <- function(formula){
   if(form_has_correlated_effects(formula)){
     stop("Correlated random slopes and intercepts are not supported. Replace | with || in your formula(s).", call.=FALSE)
   }
+ 
+  rhs <- lapply(rand, function(x) x[[3]])
+  rhs_all <- lapply(rhs, function(x) paste(deparse(x), collapse=""))
 
-  char <- paste(formula, collapse=" ")
+  char <- paste(rhs_all, collapse=" ")
   if(grepl(":|/", char)){
     stop("Nested random effects (using / and :) are not supported",
          call.=FALSE)
@@ -156,11 +159,12 @@ get_randvar_info <- function(tmb_report, type, formula, data){
   sigma_est <- tmb_report$par.fixed[sigma_ind]
   sigma_cov <- as.matrix(tmb_report$cov.fixed[sigma_ind,sigma_ind])
   re <- get_reTrms(formula, data)
+  Z <- get_Z(formula, data) # inefficient!!
 
   list(names=sigma_names(formula, data), estimates=sigma_est, covMat=sigma_cov,
        invlink="exp", invlinkGrad="exp", n_obs=nrow(data),
        n_levels=lapply(re$flist, function(x) length(levels(x))), cnms=re$cnms,
-       levels=rownames(re$Zt))
+       levels=colnames(Z))
 }
 
 get_fixed_names <- function(tmb_report){
@@ -175,7 +179,8 @@ print_randvar_info <- function(object){
 
   val <- do.call(object$invlink, list(object$estimates))
 
-  disp <- data.frame(Groups=names(object$cnms), Name=unlist(object$cnms),
+  disp <- data.frame(Groups=rep(names(object$cnms), sapply(object$cnms, length)), 
+                     Name=unlist(object$cnms),
                      Variance=round(val^2,3), Std.Dev.=round(val,3))
   cat("Random effects:\n")
   print(disp, row.names=FALSE)
@@ -246,7 +251,7 @@ setMethod("sigma", "unmarkedEstimate", function(object, level=0.95, ...){
   ses <- sqrt(diag(rinf$covMat))
   lower <- vals - z*ses
   upper <- vals + z*ses
-  Groups <- names(rinf$cnms)
+  Groups <- rep(names(rinf$cnms), sapply(rinf$cnms, length))
   Name <- unlist(rinf$cnms)
   data.frame(Model=object@short.name, Groups=Groups, Name=Name, sigma=exp(vals),
              lower=exp(lower), upper=exp(upper))
@@ -280,16 +285,17 @@ setMethod("randomTerms", "unmarkedEstimate", function(object, level=0.95, ...){
     stop("No random effects in this submodel", call.=FALSE)
   }
 
-  Groups <- lapply(1:length(rv$cnms), function(x){
-                  gn <- names(rv$cnms)[x]
-                  rep(gn, rv$n_levels[[gn]])
+  gname <- rep(names(rv$cnms), sapply(rv$cnms, length))
+
+  Groups <- lapply(1:length(gname), function(x){
+                  rep(gname[x], rv$n_levels[[gname[x]]])
           })
   Groups <- do.call(c, Groups)
 
-  Name <-  lapply(1:length(rv$cnms), function(x){
-                  gn <- names(rv$cnms)[x]
-                  var <- rv$cnms[[x]]
-                  rep(var, rv$n_levels[[gn]])
+  Name <- unlist(rv$cnms)
+
+  Name <-  lapply(1:length(Name), function(x){
+                  rep(Name[x], rv$n_levels[[gname[x]]])
           })
   Name <- do.call(c, Name)
 
