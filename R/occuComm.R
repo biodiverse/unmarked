@@ -6,6 +6,18 @@ setClass("unmarkedFitOccuComm", contains="unmarkedFitOccu")
 
 
 unmarkedFrameOccuComm <- function(y, siteCovs=NULL, obsCovs=NULL, speciesCovs=NULL){
+
+  if(is.array(y)){
+    # If array, convert to list
+    if(length(dim(y)) != 3){
+      stop("Incorrect y array dimensions", call.=FALSE)
+    }
+    S <- dim(y)[3]
+    ylist <- lapply(1:S, function(x) y[,,x])
+    names(ylist) <- dimnames(y)[[3]]
+    y <- ylist
+  }
+
   M <- nrow(y[[1]])
   J <- ncol(y[[1]])
   S <- length(y)
