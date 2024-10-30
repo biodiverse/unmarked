@@ -72,7 +72,7 @@ setMethod("summary", "unmarkedFrameOccuComm", function(object,...) {
     }
     if(!is.null(object@speciesCovs)){
         cat("\nSpecies-level covariates:\n")
-        str(object@speciesCovs)
+        utils::str(object@speciesCovs)
     }
 })
 
@@ -352,10 +352,11 @@ safeDeparse <- function(inp) {
   paste(sapply(out, trimws), collapse=" ")
 }
 
-occuComm <- function(formula, data, ...){
+occuComm <- function(formula, data, starts, method="BFGS", se=TRUE, ...){
   newform <- multispeciesFormula(formula, data@speciesCovs)
   newumf <- process_multispecies_umf(data, newform$covs)
-  out <- occu(newform$formula, data=newumf, ...)
+  if(missing(starts)) starts <- NULL
+  out <- occu(newform$formula, data=newumf, starts = starts, method = method, se = se, ...)
   out@call <- match.call()
   out@formula <- formula
   out@data <- data
