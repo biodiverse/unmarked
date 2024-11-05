@@ -276,7 +276,8 @@ multispeciesFormula <- function(form, species_covs){
   
   rand_form <- stats::reformulate(trms[!trms_S])
 
-  bars <- ifelse(det_nobar == ~1, "|", "||")
+  nterm <- length(trms[!trms_S])
+  bars <- ifelse(nterm == 1, "|", "||")
   rand <- paste0("+ (", safeDeparse(rand_form[[2]]), " ", bars, " species)")
   
   barexp <- reformulas::findbars(sf[[1]])
@@ -320,7 +321,8 @@ multispeciesFormula <- function(form, species_covs){
 
   rand_form <- stats::reformulate(trms[!trms_S])
 
-  bars <- ifelse(state_nobar == ~1, "|", "||")
+  nterm <- length(trms[!trms_S])
+  bars <- ifelse(nterm == 1, "|", "||")
   rand <- paste0("+ (", safeDeparse(rand_form[[2]]), " ", bars, " species)")
 
   barexp <- reformulas::findbars(sf[[2]])
