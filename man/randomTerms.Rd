@@ -12,8 +12,8 @@
 }
 
 \usage{
-\S4method{randomTerms}{unmarkedEstimate}(object, level=0.95, ...)
-\S4method{randomTerms}{unmarkedFit}(object, type, level=0.95, ...)
+\S4method{randomTerms}{unmarkedEstimate}(object, level=0.95, addMean = FALSE, ...)
+\S4method{randomTerms}{unmarkedFit}(object, type, level=0.95, addMean = FALSE, ...)
 }
 
 \arguments{
@@ -22,6 +22,8 @@
   \item{level}{Significance level to use for confidence interval}
   \item{type}{If provided, return only random effect terms from the chosen
     submodel type (as a character string)}
+  \item{addMean}{Logical. Should the corresponding mean intercept or slope (if any)
+    be added to the value of the random effect (yielding the complete random intercept/slope)?}
   \item{...}{Other arguments}
 } 
 

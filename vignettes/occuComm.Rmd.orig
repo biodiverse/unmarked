@@ -1,0 +1,337 @@
+---
+title: Community occupancy models with occuComm
+author: Ken Kellner
+date: October 25, 2024
+bibliography: unmarked.bib
+csl: ecology.csl
+output: 
+  rmarkdown::html_vignette:
+    fig_width: 5
+    fig_height: 3.5
+    number_sections: true
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Community occupancy models with occuComm}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r,echo=FALSE}
+knitr::opts_chunk$set(fig.path="occuComm-figures/")
+```
+
+# Introduction
+
+In a community occupancy model, detection-nondetection data from multiple species are analyzed together.
+Intercepts and slopes in the model are species-specific and come from common distributions, allowing for information sharing across species.
+This structure also allows estimation of site richness.
+For example, suppose you have sites indexed $i$, occasions $j$ and species $s$.
+The true occupancy state at a site is
+
+$$z_{is} \sim \mathrm{Bernoulli}(\psi_{is})$$
+
+with detection data $y_{ijs}$ modeled as
+
+$$y_{ijs} \sim \mathrm{Bernoulli}(p_{ijs} \cdot z_{is}) $$
+
+Occupancy probability $\psi_{is}$ can be modeled as a function of covariates with species-specific random intercepts and slopes coming from common distributions:
+
+$$\psi_{is} = \mathrm{logit}(\beta_{0,s} + \beta_{i,s} \cdot x_i) $$
+
+$$ \beta_{0,s} \sim \mathrm{Normal}(\mu_{\beta_0}, \sigma_{\beta_0}) $$
+
+$$ \beta_{1,s} \sim \mathrm{Normal}(\mu_{\beta_1}, \sigma_{\beta_1}) $$
+
+A similar structure can be implemented for detection probability $p$.
+
+Note there is a variety of this model that incorporates hypothetical completely unobserved species using data augmentation, but that is not a model that `unmarked` is able to fit at this time.
+
+# Example dataset
+
+We'll use an avian point count dataset from the Swiss breeding bird survey (MHB) in 2014.
+The data are counts of 158 species at 267 sites. 
+The dataset is included in the `AHMbook` package.
+For more detailed analyses of this dataset, see [Applied Hiearchical Modeling in Ecology](https://www.sciencedirect.com/book/9780128013786/applied-hierarchical-modeling-in-ecology), Volume 1, section 11.6.
+You can also check `?MHB2014` for more information.
+
+```{r}
+library(AHMbook)
+data(MHB2014)
+names(MHB2014)
+```
+
+Included in this dataset:
+
+1. `species`: Species-level information and covariates
+2. `sites`: Site covariates
+3. `counts`: Counts by site and species
+4. `date`: Sampling dates (site by occasion)
+5. `dur`: Sampling duration (site by occasion) 
+
+# Organize the dataset
+
+## Detection-nondetection data
+
+We'll start by converting the count data to detection-nondetection data (`y`).
+The counts are provided in an array format.
+For use with `occuComm`, the `y` array should have dimensions site (M) x occasion (J) x species (S).
+You can also specify `y` as a list with length equal to S, with each list element a matrix with dimensions M x J (similar to `occuMulti`).
+We'll keep things as an array.
+
+```{r}
+y <- MHB2014$counts
+dim(y)
+y[y > 0] <- 1
+```
+
+## Species covariates
+
+The model allows for species-level covariates.
+The covariates must be provided as a named list.
+Each list element is a separate covariate and can have one of three dimensions: either a vector of length S, a matrix M x S, or an array M x J x S depending on how the covariate varies.
+For example, you could provide the mean body weight of the species as a vector of length S, or the density of the preferred prey of the species at each site (which could differ by species) as a matrix M x S.
+In the MHB data, all the species covariates are body size measurements and thus are vectors of length S.
+
+```{r}
+spcov <- as.list(MHB2014$species[,c("body.length", "body.mass", "wing.span")])
+str(spcov)
+```
+
+## Site covariates
+
+These are organized as usual for `unmarked` models and are contained in `MHB2014$sites`.
+
+```{r}
+sitecov <- MHB2014$site[c("elev", "rlength", "forest")]
+head(sitecov)
+```
+
+## Observation covariates
+
+Again these are organized as usual for `unmarked` (as a named list).
+
+```{r}
+obscov <- MHB2014[c("date", "dur")]
+lapply(obscov, head)
+```
+
+## Create `unmarkedFrame`
+
+The `unmarkedFrame` type for this model is called `unmarkedFrameOccuComm`.
+Note the `speciesCovs` argument which is unique to this `unmarkedFrame` type.
+
+```{r}
+library(unmarked)
+umf <- unmarkedFrameOccuComm(y = y, siteCovs = sitecov,
+                             obsCovs = obscov, speciesCovs = spcov)
+head(umf)
+```
+
+# Fit a model
+
+With the dataset organized we can now fit a model with `occuComm`.
+We'll specify a model with an effect of elevation (site-level) and body mass (species-level) on occupancy, and no covariates on detection.
+The `occuComm` function automatically sets up the species-level random effects for intercepts and slopes.
+Note however that there will be no random slope by species for species-level covariates of length S (as this would not make sense).
+We can specify the model formulas exactly the same as with the single-species `occu` function.
+This model takes a while to fit given the large number of species.
+
+```{r}
+fit <- occuComm(~1 ~scale(elev) + scale(body.mass),
+                data = umf)
+fit
+```
+
+We get estimates of the overall (mean) intercepts and slopes.
+We also get estimates of the random effects SDs for the intercepts and for the elevation slopes (but not for body mass, as noted above).
+
+There is some missing data in the model which generates a warning.
+You can ignore the exact number of missing sites reported by the warning - in fact there is only one missing site (#30) which is reported correctly in the summary.
+
+## Estimates of random intercepts and slopes
+
+We can get estimates of the random intercept and slope terms with `randomTerms`.
+
+```{r}
+rand_est <- randomTerms(fit)
+head(rand_est)
+tail(rand_est)
+```
+
+The estimates provided by this function are mean-0 (i.e., they come from a normal distribution with mean 0).
+Thus to get the complete intercept and slope for each species, we need to add the "fixed" part of the intercept and slope (shown in the `Fixed effects` section of the summary, or with `coef()`) to the random part shown above.
+We can do this with an argument:
+
+```{r}
+rand_est <- randomTerms(fit, addMean = TRUE)
+head(rand_est)
+```
+
+## Get estimates of occupancy
+
+As usual with `unmarked`, we can use `predict`.
+The `predict` function will return estimates of occupancy for each site and species by default.
+
+```{r}
+pr <- predict(fit, type='state')
+lapply(pr[1:3], head)
+```
+
+## Plot covariate relationships by species
+
+We'll plot estimated occupancy by elevation for four species: Common Buzzard, Northern Raven, Eurasian Jay, and European Crested Tit.
+We also need to get the corresponding body mass of each species.
+
+```{r}
+sp <- c("Common Buzzard", "Northern Raven", "Eurasian Jay", "European Crested Tit")
+body_mass <- MHB2014$species$body.mass
+names(body_mass) <- MHB2014$species$engname
+body_mass <- unname(body_mass[sp])
+```
+
+First create a sequence of elevation values.
+
+```{r}
+elev_seq <- seq(min(sitecov$elev), max(sitecov$elev), length.out=100)
+```
+
+For each species we create a `newdata` data frame with elevation and the species name and matching body mass.
+Then we use `predict`, and plot the results.
+
+```{r occuComm-predict, fig.cap="Predicted occupancy by species"}
+par(mfrow=c(2,2), mar=c(4,3,2,1))
+for (i in 1:length(sp)){
+  nd <- data.frame(elev=elev_seq,
+                   species = sp[i],
+                   body.mass = body_mass[i])
+  pr <- predict(fit, 'state', newdata=nd)
+  plot(elev_seq, pr$Predicted, type='l', xlab="Elevation", ylab="Occupancy",
+       main = sp[i], ylim=c(0,1))
+  polygon(c(elev_seq, rev(elev_seq)), c(pr$lower, rev(pr$upper)), col='grey90', border=NA)
+  lines(elev_seq, pr$Predicted)
+}
+par(mfrow=c(1,1))
+```
+
+## Richness
+
+There's a built-in function for calculating richness at each site from the model.
+
+```{r}
+rich <- richness(fit)
+head(rich)
+```
+
+To get the uncertainty of this estimate, we can return a complete posterior and calculate CIs:
+
+```{r}
+post <- richness(fit, posterior=TRUE)
+est <- apply(post@samples, 1, mean)
+low <- apply(post@samples, 1, quantile, 0.025)
+up <- apply(post@samples, 1, quantile, 0.975)
+```
+
+And compare them to naive richness:
+
+```{r occuComm-rich, fig.cap="Richness by site"}
+rich_naive <- MHB2014$counts
+rich_naive[rich_naive > 0] <- 1
+rich_naive <- apply(rich_naive, c(1,3), 
+                    function(x) if(all(is.na(x))) return(NA) else return(max(x, na.rm=TRUE))) 
+rich_naive <- apply(rich_naive, 1, sum, na.rm=TRUE)
+
+plot(rich_naive, est, xlab="Observed species", ylab="Estimated richness", 
+     pch=19, col=rgb(0,0,0,alpha=0.2))
+segments(rich_naive, low, rich_naive, up)
+abline(a=0, b=1)
+```
+
+This figure should look similar to Figure 11.8 in the AHM 1 book (it's not quite the same model).
+
+# Handling guilds or similar groups
+
+In community occupancy models it is common to specify an additional hierarchical structure above species, e.g. guild.
+In this version of the model, rather than the random intercepts and slopes coming from common distributions across *all* species, instead information is shared only among species belonging to the same guild.
+The model structure is the same as above except the random effect hyperparameters are guild-specific where each species $s$ belongs to one guild $g$.
+
+$$\psi_{is(g)} = \mathrm{logit}(\beta_{0,s(g)} + \beta_{i,s(g)} \cdot x_i) $$
+
+$$ \beta_{0,s(g)} \sim \mathrm{Normal}(\mu_{\beta_{0,g}}, \sigma_{\beta_{0,g}}) $$
+
+$$ \beta_{1,s(g)} \sim \mathrm{Normal}(\mu_{\beta_{1,g}}, \sigma_{\beta_{1,g}}) $$
+
+For example, see the analysis in section 11.6.3 of AHM 1.
+
+The `occuComm` function cannot directly handle this extra hierarchical layer as you can in say, JAGS or NIMBLE.
+However, we can get pretty close.
+Note that often when we fit a guild-based model like this, we are in effect fitting entirely separate models for each guild.
+That is, since no information is being shared among guilds (only within them) we can simply separate the data by guild and fit separate models to each piece and get the same result.
+We can then combine the results to get richness, if needed.
+This `occuComm` is able to do.
+
+## Dividing the data by guild
+
+We'll divide the species into three "guilds" based on body mass.
+This code is identical to the code in AHM 1, section 11.6.3.
+
+```{r occuComm-hist, fig.cap="Distribution of log10(body mass)"}
+# Look at distribution of body mass among 136 observed species
+# Get mean species mass
+mass <- MHB2014$species$body.mass 
+hist(log10(mass), breaks = 40, col = "grey")
+# Look at log10
+gmass <- as.numeric(log10(mass) %/% 1.3 + 1)
+# Size groups 1, 2 and 3
+gmass[gmass == 4] <- 3 # Mute swan is group 3, too
+```
+
+## Fit separate models by guild
+
+Now we simply divide our complete dataset into pieces by guild and fit the same model to each dataset separately.
+
+```{r}
+# Guild 1
+spcovs1 <- lapply(spcov, function(x) x[gmass == 1])
+umf1 <- unmarkedFrameOccuComm(y = umf@ylist[gmass == 1],
+                              siteCovs = sitecov,
+                              obsCovs = obscov,
+                              speciesCovs = spcovs1)
+fit1 <- update(fit, data = umf1)
+
+# Guild 2
+spcovs2 <- lapply(spcov, function(x) x[gmass == 2])
+umf2 <- unmarkedFrameOccuComm(y = umf@ylist[gmass == 2],
+                              siteCovs = sitecov,
+                              obsCovs = obscov,
+                              speciesCovs = spcovs2)
+fit2 <- update(fit, data = umf2)
+
+# Guild 3
+spcovs3 <- lapply(spcov, function(x) x[gmass == 3])
+umf3 <- unmarkedFrameOccuComm(y = umf@ylist[gmass == 3],
+                              siteCovs = sitecov,
+                              obsCovs = obscov,
+                              speciesCovs = spcovs3)
+fit3 <- update(fit, data = umf3)
+```
+
+## Calculate richness
+
+To get richness across the entire community, we get posterior samples of richness for each guild and combine them. 
+
+```{r}
+post1 <- richness(fit1, posterior=TRUE)
+post2 <- richness(fit2, posterior=TRUE)
+post3 <- richness(fit3, posterior=TRUE)
+
+rich_all <- post1@samples + post2@samples + post3@samples
+rich_all <- drop(rich_all)
+```
+
+The result is more or less identical to our previous richness estimate using a single model.
+
+```{r occuComm-comp, fig.cap="Richness estimate comparison"}
+rich_mean <- apply(rich_all, 1, mean)
+plot(rich, rich_mean, xlab="Combined model", ylab="Guilds model")
+abline(a=0, b=1)
+```
