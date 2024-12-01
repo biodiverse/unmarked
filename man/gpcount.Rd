@@ -154,9 +154,9 @@ umf <- unmarkedFrameGPC(y=ym, numPrimary=nVisits)
 \dontrun{
 fmu <- gpcount(~1, ~1, ~1, umf, K=40, control=list(trace=TRUE, REPORT=1))
 
-backTransform(fmu, type="lambda")
-backTransform(fmu, type="phi")
-backTransform(fmu, type="det")
+predict(fmu, type="lambda")[1,]
+predict(fmu, type="phi")[1,]
+predict(fmu, type="det")[1,]
 }
 
 }

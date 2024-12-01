@@ -130,6 +130,10 @@ setMethod("predict_inputs_from_umf", "unmarkedFit",
   designMats <- getDesign(newdata, object@formula, na.rm = na.rm)
   if(type == "state") list_els <- c("X","Z_state","X.offset")
   if(type == "det") list_els <- c("V","Z_det","V.offset")
+  if(type == "scale"){ # no covariates
+    n <- nrow(designMats$V)
+    return(list(X = matrix(1, nrow=n, ncol=1), offset = rep(0, n)))
+  }
 
   X <- designMats[[list_els[1]]]
   if(is.null(re.form)) X <- cbind(X, designMats[[list_els[2]]])

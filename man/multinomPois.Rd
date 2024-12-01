@@ -90,7 +90,7 @@ ovenFrame <- unmarkedFrameMPois(ovendata.list$data,
 (fm1 <- multinomPois(~ 1 ~ ufc + trba, ovenFrame))
 
 # Detection probability for a single pass
-backTransform(fm1, type="det")
+predict(fm1, type="det")[1,]
 
 # Detection probability after 4 removal passes
 rowSums(getP(fm1))

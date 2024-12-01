@@ -349,11 +349,12 @@ lines(upper ~ woody, E.abundance, col=gray(0.7))
 ```
 
 What about detection probability? Since there was no evidence of
-variation in $p$, we can simply back-transform the logit-scale estimate
-to obtain $\hat{p}$.
+variation in $p$, we can run `predict` on the model with `type = 'det'`
+in order to back-transform the logit-scale estimate and obtain $\hat{p}$.
+We show just the first row of the output since all sites/occasions have identical \hat{p}.
 
 ```{r}
-backTransform(M0.woody, type="det")
+predict(M0.woody, type='det')[1,]
 ```
 
 As suggested by the raw data, detection probability was very high. The

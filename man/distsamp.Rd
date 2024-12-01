@@ -107,9 +107,10 @@ hist(ltUMF)
 
 # Some methods to use on fitted model
 summary(fm1)
-backTransform(fm1, type="state")                # animals / ha
+
+predict(fm1, type = "state")[1,]                # animals / ha
 exp(coef(fm1, type="state", altNames=TRUE))     # same
-backTransform(fm1, type="det")                  # half-normal SD
+predict(fm1, type = "det")[1,]                  # half-normal SD
 hist(fm1, xlab="Distance (m)")	# Only works when there are no det covars
 # Empirical Bayes estimates of posterior distribution for N_i
 plot(ranef(fm1, K=50))
