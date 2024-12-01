@@ -13,7 +13,7 @@ output:
     number_sections: true
     toc: true
 vignette: >
-  %\VignetteIndexEntry{Dynamic occupancy models}
+  %\VignetteIndexEntry{Dynamic occupancy models in unmarked}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
@@ -21,7 +21,7 @@ vignette: >
 ```{r,echo=FALSE}
 options(rmarkdown.html_vignette.check_title = FALSE)
 knitr::opts_chunk$set(message=FALSE, warning=FALSE)
-knitr::opts_chunk$set(fig.path="")
+knitr::opts_chunk$set(fig.path="colext-figures/")
 set.seed(456)
 ```
 
@@ -416,16 +416,16 @@ inverse-logit function, named `plogis` in R.
 plogis(-0.813)
 ```
 
-Alternatively, we can use `backTransform`, which
-computes standard errors using the delta method. Confidence intervals
-are also easily obtained using the function `confint`.
+Alternatively, we can use `predict`, which also computes a 95% confidence interval.
 We first remind ourselves of the names of parameters, which can all be
 used as arguments for these functions.
+By default `predict` returns estimates of occupancy for each site.
+We select just the first row of `predict` output because all sites have
+the same occupancy estimate.
 
 ```{r}
 names(m0)
-backTransform(m0, type="psi")
-confint(backTransform(m0, type="psi"))
+predict(m0, type="psi")[1,]
 ```
 
 Next, we fit the dynamic occupancy model with full year-dependence in
@@ -459,9 +459,7 @@ Again, all estimates are shown on the logit-scale. Back-transforming
 estimates when covariates, such as year, are present involves an
 extra step. Specifically, we need to tell `unmarked` the values
 of our covariate
-at which we want an estimate. This can be done using
-`backTransform` in combination with `linearComb`, although
-it can be easier to use `predict`. `predict` allows the user
+at which we want an estimate. This is easiest using `predict`. `predict` allows the user
 to supply a data.frame in which each row represents a combination of
 covariate values of interest. Below, we create data.frames called
 `nd` with each row representing a year.
