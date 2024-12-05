@@ -97,8 +97,8 @@ IDS <- function(lambdaformula = ~1,
   stopifnot(is.null(durationOC) || (length(durationOC) == numSites(dataOC)))
   surveyDurations <- list(ds=durationDS, pc=durationPC, oc=durationOC)
 
-  stopifnot(keyfun %in% c("halfnorm", "exp"))
-  keyidx <- switch(keyfun, "halfnorm"={1}, "exp"={2})
+  stopifnot(keyfun %in% c("halfnorm", "exp", "hazard"))
+  keyidx <- switch(keyfun, "halfnorm"={1}, "exp"={2}, "hazard"={3})
 
   if(missing(maxDistPC)) maxDistPC <- max(dataDS@dist.breaks)
   if(missing(maxDistOC)) maxDistOC <- max(dataDS@dist.breaks)
@@ -154,7 +154,7 @@ IDS <- function(lambdaformula = ~1,
 
   # Parameter stuff------------------------------------------------------------
   # Doesn't support hazard
-  pind_mat <- matrix(0, nrow=5, ncol=2)
+  pind_mat <- matrix(0, nrow=8, ncol=2)
   pind_mat[1,] <- c(1, ncol(gd_hds$X))
   pind_mat[2,] <- max(pind_mat) + c(1, ncol(gd_hds$V))
   if(!is.null(detformulaPC) & !is.null(dataPC)){
@@ -166,6 +166,16 @@ IDS <- function(lambdaformula = ~1,
   if(has_avail){
     pind_mat[5,] <- max(pind_mat) + c(1, ncol(Xavail_ds))
   }
+  # Hazard-rate scale parameter(s)
+  if(keyfun == "hazard"){
+    pind_mat[6,] <- max(pind_mat) + 1
+    if(!is.null(detformulaOC) & !is.null(dataOC)){
+      pind_mat[7,] <- max(pind_mat) + 1
+    }
+    if(!is.null(detformulaOC) & !is.null(dataOC)){
+      pind_mat[8,] <- max(pind_mat) + 1
+    }
+  }
 
   if(is.null(starts)){
     lam_init <- log(mean(apply(dataDS@y, 1, sum, na.rm=TRUE)) / lam_adjust[1])
@@ -173,13 +183,20 @@ IDS <- function(lambdaformula = ~1,
                      beta_hds = c(log(median(dataDS@dist.breaks)),rep(0, ncol(gd_hds$V)-1)),
                      beta_pc = rep(0,0),
                      beta_oc = rep(0,0),
-                     beta_avail = rep(0,0))
+                     beta_avail = rep(0,0),
+                     beta_schds = rep(0,0),  # hazard rate scale inits
+                     beta_scpc = rep(0,0), 
+                     beta_scoc = rep(0,0))
 
+    if(keyfun == "hazard") params_tmb$beta_schds <- 0
+    
     if(!is.null(detformulaPC) & !is.null(dataPC)){
       params_tmb$beta_pc <- c(log(maxDistPC/2), rep(0, ncol(gd_pc$V)-1))
+      if(keyfun == "hazard") params_tmb$beta_scpc <- 0
     }
     if(!is.null(detformulaOC) & !is.null(dataOC)){
       params_tmb$beta_oc <- c(log(maxDistOC/2), rep(0, ncol(gd_oc$V)-1))
+      if(keyfun == "hazard") params_tmb$beta_scoc <- 0
     }
     if(has_avail){
       params_tmb$beta_avail <- rep(0, ncol(Xavail_ds))
@@ -193,13 +210,20 @@ IDS <- function(lambdaformula = ~1,
                      beta_hds = starts[pind_mat[2,1]:pind_mat[2,2]],
                      beta_pc = rep(0,0),
                      beta_oc = rep(0,0),
-                     beta_avail = rep(0,0))
+                     beta_avail = rep(0,0),
+                     beta_schds = rep(0,0),  # hazard rate scale inits
+                     beta_scpc = rep(0,0), 
+                     beta_scoc = rep(0,0))
+    
+    if(keyfun == "hazard") params_tmb$beta_schds <- pind_mat[6,1]
 
     if(!is.null(detformulaPC) & !is.null(dataPC)){
       params_tmb$beta_pc <- starts[pind_mat[3,1]:pind_mat[3,2]]
+      if(keyfun == "hazard") params_tmb$beta_scpc <- starts[pind_mat[7,1]]
     }
     if(!is.null(detformulaOC) & !is.null(dataOC)){
       params_tmb$beta_oc <- starts[pind_mat[4,1]:pind_mat[4,2]]
+      if(keyfun == "hazard") params_tmb$beta_scoc <- starts[pind_mat[8,1]]
     }
     if(has_avail){
       params_tmb$beta_avail <- starts[pind_mat[5,1]:pind_mat[5,2]]
