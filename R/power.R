@@ -69,7 +69,7 @@ powerAnalysis_internal <- function(object, model, data_sims,
     parallel::clusterEvalQ(cl, library(unmarked))
   }
   
-  sum_dfs <- pbapply::pblapply(data_sims, function(x){
+  sum_dfs <- lapply2(data_sims, function(x){
               fit <- fun(..., data = x)
           }, cl=cl)
   sum_dfs <- lapply(sum_dfs, get_summary_df, effects=effects, nulls=nulls)

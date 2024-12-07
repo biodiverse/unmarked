@@ -69,6 +69,8 @@ test_that("custom datasets can be passed to powerAnalysis",{
 test_that("powerAnalysis can be run in parallel",{
   skip_on_cran()
   skip_on_ci()
+  #skip_if(!requireNamespace("pbapply", quietly=TRUE), 
+  #        "pbapply package unavailable")
 
   set.seed(123)
   ef <- list(state=c(0, -0.4), det=0)
