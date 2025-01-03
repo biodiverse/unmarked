@@ -153,7 +153,6 @@ IDS <- function(lambdaformula = ~1,
     kmsq = lam_adjust <- lam_adjust)
 
   # Parameter stuff------------------------------------------------------------
-  # Doesn't support hazard
   pind_mat <- matrix(0, nrow=8, ncol=2)
   pind_mat[1,] <- c(1, ncol(gd_hds$X))
   pind_mat[2,] <- max(pind_mat) + c(1, ncol(gd_hds$V))
@@ -279,6 +278,14 @@ IDS <- function(lambdaformula = ~1,
 
   est_list <- list(lam=lam_est, ds=dist_est)
 
+  if(keyfun == "hazard"){
+    ds_haz_coef <- get_coef_info(sdr, "schds", "(Intercept)", pind_mat[6,1]:pind_mat[6,2])
+    ds_est_haz <- unmarkedEstimate("Distance sampling scale", short.name="ds_scale",
+      estimates = ds_haz_coef$ests[1], covMat = ds_haz_coef$cov, fixed=1,
+      invlink="exp", invlinkGrad="exp")
+    est_list <- c(est_list, list(schds=ds_est_haz))
+  }
+
   if(!is.null(detformulaPC) & !is.null(dataPC)){
     pc_coef <- get_coef_info(sdr, "pc", colnames(gd_pc$V),
                                         pind_mat[3,1]:pind_mat[3,2])
@@ -287,6 +294,14 @@ IDS <- function(lambdaformula = ~1,
       estimates = pc_coef$ests, covMat = pc_coef$cov, fixed=1:ncol(gd_pc$V),
       invlink = "exp", invlinkGrad = "exp")
     est_list <- c(est_list, list(pc=pc_est))
+
+    if(keyfun == "hazard"){
+      pc_haz_coef <- get_coef_info(sdr, "scpc", "(Intercept)", pind_mat[7,1]:pind_mat[7,2])
+      pc_est_haz <- unmarkedEstimate("Point count scale", short.name="pc_scale",
+        estimates = pc_haz_coef$ests[1], covMat = pc_haz_coef$cov, fixed=1,
+        invlink="exp", invlinkGrad="exp")
+      est_list <- c(est_list, list(scpc=pc_est_haz))
+    }
   }
 
   if(!is.null(detformulaOC) & !is.null(dataOC)){
@@ -296,6 +311,14 @@ IDS <- function(lambdaformula = ~1,
       estimates = oc_coef$ests, covMat = oc_coef$cov, fixed=1:ncol(gd_oc$V),
       invlink = "exp", invlinkGrad = "exp")
     est_list <- c(est_list, list(oc=oc_est))
+
+    if(keyfun == "hazard"){
+      oc_haz_coef <- get_coef_info(sdr, "scoc", "(Intercept)", pind_mat[8,1]:pind_mat[8,2])
+      oc_est_haz <- unmarkedEstimate("Presence/absence scale", short.name="oc_scale",
+        estimates = oc_haz_coef$ests[1], covMat = oc_haz_coef$cov, fixed=1,
+        invlink="exp", invlinkGrad="exp")
+      est_list <- c(est_list, list(scoc=oc_est_haz))
+    }
   }
 
   if(has_avail){
