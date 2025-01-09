@@ -110,20 +110,12 @@ setMethod("getP_internal", "unmarkedFitOccuMulti", function(object){
   ylist <- object@data@ylist
   S <- length(ylist)
   N <- nrow(ylist[[1]])
-  maxOrder <- object@call$maxOrder
-  if(is.null(maxOrder)) maxOrder <- length(object@data@ylist)
-  dm <- getDesign(object@data,object@detformulas,object@stateformulas, maxOrder=maxOrder)
+  J <- ncol(ylist[[1]])
   pred <- predict(object,'det', level=NULL)
-  dets <- do.call(cbind,lapply(pred,`[`,,1))
-  #ugly mess
+  stopifnot(nrow(pred) == N*J)
   out <- list()
   for (i in 1:S){
-    pmat <- array(NA,dim(ylist[[1]]))
-    for (j in 1:N){
-      ps <- dets[dm$yStart[j]:dm$yStop[j],i]
-      not_na <- !is.na(ylist[[i]][j,])
-      pmat[j,not_na] <- ps
-    }
+    pmat <- matrix(pred[[i]]$Predicted, nrow=N, ncol=J, byrow=TRUE)
     out[[i]] <- pmat
   }
   names(out) <- names(ylist)
