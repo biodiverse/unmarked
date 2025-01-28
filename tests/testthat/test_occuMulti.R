@@ -174,6 +174,10 @@ test_that("occuMulti can handle NAs",{
 
   yna <- y
   yna[[1]][1,1] <- NA
+  det_covs_na <- det_covs
+  det_covs_na$det_cov1[1] <- NA
+  det_covs_na$det_cov2[8] <- NA
+
   expect_warning(umf <- unmarkedFrameOccuMulti(y = yna, siteCovs = occ_covs, obsCovs = det_covs))
 
   #Check correct answer given when missing detection
@@ -181,16 +185,29 @@ test_that("occuMulti can handle NAs",{
   expect_equivalent(coef(fm)[c(1,7)], c(6.63207,0.35323), tol= 1e-4)
 
   fit <- fitted(fm)
-  expect_true(is.na(fit[[1]][1,1]))
+  expect_true(!is.na(fit[[1]][1,1]))
 
   res <- residuals(fm)
   expect_true(is.na(res[[1]][1,1]))
 
   gp <- getP(fm)
   expect_equal(dim(gp[[1]]), dim(fm@data@ylist[[1]]))
-  expect_true(is.na(gp[[1]][1,1]))
+  expect_true(!is.na(gp[[1]][1,1]))
 
   r <- ranef(fm)
+
+  # When a detection cov is also missing
+  expect_warning(umf <- unmarkedFrameOccuMulti(y = yna, siteCovs = occ_covs, obsCovs = det_covs_na))
+  expect_warning(fm <- occuMulti(detformulas, stateformulas, data = umf, se=FALSE))
+  fit <- fitted(fm)
+  expect_true(is.na(fit[[1]][1,1]))
+  expect_true(is.na(fit[[2]][4,2]))
+  expect_equal(sum(!is.na(fit[[1]])), 9)
+
+  gp <- getP(fm)
+  expect_equal(dim(gp[[1]]), dim(fm@data@ylist[[1]]))
+  expect_true(is.na(gp[[1]][1,1]))
+  expect_true(is.na(gp[[2]][4,2]))
 
   #Check error thrown when all detections are missing
   yna[[1]][1,] <- NA
