@@ -206,3 +206,89 @@ test_that("IDS handles missing values", {
   ))
 
 })
+
+test_that("Hazard-rate works with IDS", {
+
+  # Simulate IDS dataset
+  set.seed(123)
+
+  # First simulate distance sampling data
+  # Distance sampling sites
+  Mds <- 300
+  elev <- rnorm(Mds)
+  # Distance breaks
+  db <- seq(0, 0.3, length.out=7)
+  # blank unmarked frame
+  umf_ds <- unmarkedFrameDS(y = matrix(NA, Mds, length(db)-1),
+                            siteCovs = data.frame(elev = elev), 
+                            survey="point", dist.breaks = db, unitsIn='km')
+
+  # True coefficient values
+  cf <- list(state = c(3, -0.5), # abundance intercept and effect of elevation 
+            det = -2.5,         # detection sigma - exp(-2.5) = 0.08 
+            scale = log(2))     # detection hazard rate scale = 2
+
+  # Simulate response
+  umf_ds <- simulate(umf_ds, formula=~1~elev, coefs=cf,
+                     keyfun = "hazard", output = "density", unitsOut = "kmsq")[[1]]
+
+  # Fit regular distance sampling model as test
+  mod <- distsamp(~1~elev, umf_ds, keyfun="hazard", output="density", unitsOut = "kmsq")
+  mod
+
+  # good correspondance
+  expect_equivalent(coef(mod), c(2.8913, -0.4381, -2.4697, 0.60489), tol=1e-4)
+
+  # "Point count" sites
+  # simulate these as 1-bin distance
+  Mpc <- 500
+  elev2 <- rnorm(Mpc)
+  max_dist <- 0.5
+  db2 <- c(0, max_dist) # single bin
+
+  # blank unmarked frame
+  umf_pc <- unmarkedFrameDS(y = matrix(NA, Mpc, 1), # single column in y
+                          siteCovs = data.frame(elev = elev2),
+                          survey = "point", dist.breaks=db2, unitsIn="km")
+
+  # simulate response (same coefficients)
+  umf_pc <- simulate(umf_pc, formula=~1~elev, coefs=cf,
+                   keyfun = "hazard", output = "density", unitsOut = "kmsq")[[1]]
+
+
+  # convert to unmarkedFramePcount
+  umf_pc2 <- unmarkedFramePCount(y = umf_pc@y,
+                                siteCovs = umf_pc@siteCovs)
+
+  # Fit IDS model (in this case: common abundance and detection processes,
+  # and common duration)
+  mod2 <- IDS(lambdaformula = ~elev, detformulaDS = ~1,
+              dataDS = umf_ds, dataPC = umf_pc2, keyfun = "hazard", 
+              unitsOut = "kmsq", maxDistPC = 0.5)
+ 
+  # similar to just distance sampling data
+  expect_equivalent(coef(mod2),
+                    c(2.8419,-0.5070, -2.4420, 0.6313), tol=1e-5)
+  #cbind(true=unlist(cf), est=coef(mod2))
+
+  # Check with separate formulas
+  mod3 <- IDS(lambdaformula = ~elev, detformulaDS = ~1, detformulaPC = ~1,
+              dataDS = umf_ds, dataPC = umf_pc2, keyfun = "hazard", 
+              unitsOut = "kmsq", maxDistPC = 0.5)
+  
+  # Also make sure the coefs are in the right order: lam, then all sigma, then all haz scales
+  expect_equal(coef(mod3),
+                    c(`lam(Int)` = 2.86807, `lam(elev)` = -0.50746, 
+                      `ds(Int)` = -2.47106, `pc(Int)` = -3.37866, 
+                      `ds_scale(Int)` = 0.60447, `pc_scale(Int)` = -0.02817), tol=1e-5)
+  
+  # estimation doesn't really work for this one
+  expect_warning(se <- SE(mod3))
+  expect_true(is.nan(se["pc(Int)"]))
+  expect_true(is.nan(se["pc_scale(Int)"]))
+
+  # Make sure different formulas for sigma work
+  mod4 <- IDS(lambdaformula = ~1, detformulaDS = ~elev, detformulaPC = ~1,
+              dataDS = umf_ds, dataPC = umf_pc2, keyfun = "hazard", 
+              unitsOut = "kmsq", maxDistPC = 0.5)
+})
