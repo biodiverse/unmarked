@@ -98,6 +98,9 @@ IDS <- function(lambdaformula = ~1,
   surveyDurations <- list(ds=durationDS, pc=durationPC, oc=durationOC)
 
   stopifnot(keyfun %in% c("halfnorm", "exp", "hazard"))
+  if(keyfun == "hazard"){
+    warning("Support for hazard key function is experimental and may yield poor estimates.", call.=FALSE)
+  }
   keyidx <- switch(keyfun, "halfnorm"={1}, "exp"={2}, "hazard"={3})
 
   if(missing(maxDistPC)) maxDistPC <- max(dataDS@dist.breaks)

@@ -262,9 +262,9 @@ test_that("Hazard-rate works with IDS", {
 
   # Fit IDS model (in this case: common abundance and detection processes,
   # and common duration)
-  mod2 <- IDS(lambdaformula = ~elev, detformulaDS = ~1,
+  mod2 <- expect_warning(IDS(lambdaformula = ~elev, detformulaDS = ~1,
               dataDS = umf_ds, dataPC = umf_pc2, keyfun = "hazard", 
-              unitsOut = "kmsq", maxDistPC = 0.5)
+              unitsOut = "kmsq", maxDistPC = 0.5))
  
   # similar to just distance sampling data
   expect_equivalent(coef(mod2),
@@ -272,9 +272,9 @@ test_that("Hazard-rate works with IDS", {
   #cbind(true=unlist(cf), est=coef(mod2))
 
   # Check with separate formulas
-  mod3 <- IDS(lambdaformula = ~elev, detformulaDS = ~1, detformulaPC = ~1,
+  mod3 <- expect_warning(IDS(lambdaformula = ~elev, detformulaDS = ~1, detformulaPC = ~1,
               dataDS = umf_ds, dataPC = umf_pc2, keyfun = "hazard", 
-              unitsOut = "kmsq", maxDistPC = 0.5)
+              unitsOut = "kmsq", maxDistPC = 0.5))
   
   # Also make sure the coefs are in the right order: lam, then all sigma, then all haz scales
   expect_equal(coef(mod3),
@@ -288,7 +288,7 @@ test_that("Hazard-rate works with IDS", {
   expect_true(is.nan(se["pc_scale(Int)"]))
 
   # Make sure different formulas for sigma work
-  mod4 <- IDS(lambdaformula = ~1, detformulaDS = ~elev, detformulaPC = ~1,
+  mod4 <- expect_warning(IDS(lambdaformula = ~1, detformulaDS = ~elev, detformulaPC = ~1,
               dataDS = umf_ds, dataPC = umf_pc2, keyfun = "hazard", 
-              unitsOut = "kmsq", maxDistPC = 0.5)
+              unitsOut = "kmsq", maxDistPC = 0.5))
 })
