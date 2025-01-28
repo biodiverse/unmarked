@@ -48,6 +48,14 @@ Type tmb_IDS(objective_function<Type>* obj) {
   PARAMETER_VECTOR(beta_pc);
   PARAMETER_VECTOR(beta_oc);
   PARAMETER_VECTOR(beta_avail);
+  PARAMETER_VECTOR(beta_schds); // hazard-rate scales
+  PARAMETER_VECTOR(beta_scpc);
+  PARAMETER_VECTOR(beta_scoc);
+
+  Type scale_hds = 0;
+  if(key_hds == 3){
+    scale_hds = exp(beta_schds(0));
+  }
 
   int survey = 1; // Only point counts supported
 
@@ -74,7 +82,7 @@ Type tmb_IDS(objective_function<Type>* obj) {
 
   for (int i=0; i<M; i++){
 
-    vector<Type> cp = distance_prob(key_hds, sigma_hds(i), Type(0), survey,
+    vector<Type> cp = distance_prob(key_hds, sigma_hds(i), scale_hds, survey,
                                     db_hds, w_hds, a_hds, u_hds);
 
     for (int j=0; j<J; j++){
@@ -95,10 +103,17 @@ Type tmb_IDS(objective_function<Type>* obj) {
 
   //vector<Type> sigma_pc = V_pc * beta_pc;
   vector<Type> sigma_pc;
+  Type scale_pc = 0;
   if(beta_pc.size() > 0){
     sigma_pc = V_pc * beta_pc;
+    if(key_hds == 3){
+      scale_pc = exp(beta_scpc(0));
+    }
   } else{
     sigma_pc = V_pc * beta_hds;
+    if(key_hds == 3){
+      scale_pc = scale_hds;
+    }
   }
   sigma_pc = exp(sigma_pc);
 
@@ -111,7 +126,7 @@ Type tmb_IDS(objective_function<Type>* obj) {
   }
 
   for (int i=0; i<M; i++){
-    vector<Type> cp = distance_prob(key_pc, sigma_pc(i), Type(0), survey,
+    vector<Type> cp = distance_prob(key_pc, sigma_pc(i), scale_pc, survey,
                                     db_pc, w_pc, a_pc, u_pc);
     loglik -= dpois(y_pc(i,0), lam_pc(i) * cp(0) * p_avail_pc(i), true);
   }
@@ -131,10 +146,17 @@ Type tmb_IDS(objective_function<Type>* obj) {
 
   //vector<Type> sigma_oc = V_oc * beta_oc;
   vector<Type> sigma_oc;
+  Type scale_oc = 0;
   if(beta_oc.size() > 0){
     sigma_oc = V_oc * beta_oc;
+    if(key_hds == 3){
+      scale_oc = exp(beta_scoc(0));
+    }
   } else{
     sigma_oc = V_oc * beta_hds;
+    if(key_hds == 3){
+      scale_oc = scale_hds;
+    }
   }
   sigma_oc = exp(sigma_oc);
 
@@ -153,7 +175,7 @@ Type tmb_IDS(objective_function<Type>* obj) {
 
   for (int i=0; i<M; i++){
 
-    vector<Type> q = 1 - distance_prob(key_oc, sigma_oc(i), Type(0), survey,
+    vector<Type> q = 1 - distance_prob(key_oc, sigma_oc(i), scale_oc, survey,
                                     db_oc, w_oc, a_oc, u_oc) * p_avail_oc(i);
     //vector<Type> q = 1 - distance_prob(key_oc, sigma_oc(i), Type(0), survey,
     //                                db_oc, w_oc, a_oc, u_oc);
