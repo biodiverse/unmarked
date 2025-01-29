@@ -49,6 +49,14 @@ A similar structure can be implemented for detection probability \eqn{p}.
 Note there is a variety of this model that incorporates hypothetical completely 
 unobserved species using data augmentation, but that is not a model that 
 \code{unmarked} is able to fit at this time.
+
+See the vignette for \code{occuComm} and Kery and Royle (2016), Section 11.6
+for more details.
+}
+
+\references{
+Kery, Marc, and J. Andrew Royle. 2016. \emph{Applied Hierarchical Modeling in
+  Ecology}, Volume 1. Academic Press.
 }
 
 \value{unmarkedFitOccuComm object describing the model fit.}
