@@ -29,7 +29,7 @@ statistical analysis of data from surveys of unmarked
 animals. Currently, the focus is on hierarchical models that
 separately model a latent state (or states) and an observation
 process. This vignette provides a brief overview of the package -
-for a more thorough treatment see @fiskeChandler_2011.
+for a more thorough treatment see @fiskeChandler_2011 and @kellner2023.
 
 # Overview of unmarked
 
@@ -135,11 +135,13 @@ specified for occupancy here.  See `?occu` for more details.
 
 `unmarked` fitting functions return `unmarkedFit` objects which can be
 queried to investigate the model fit.  Variables can be
-back-transformed to the unconstrained scale using `backTransform`.
-Standard errors are computed using the delta method.
+back-transformed to the unconstrained scale using `predict`, which also
+returns a 95% confidence interval.
+Since there are no occupancy covariates, all sites have the same occupancy
+estimate, and we can look at just the first row of the output.
 
 ```{r}
-backTransform(fm2, 'state')
+predict(fm2, 'state')[1,]
 ```
 
 The expected probability that a site was
@@ -159,17 +161,18 @@ the probability of detection given a site is occupied and all
 covariates are set to 0.
 
 ```{r}
-backTransform(linearComb(fm2, coefficients = c(1,0,0), type = 'det'))
+nd <- data.frame(MinAfterSunset = 0, Temperature = 0)
+round(predict(fm2, type = 'det', newdata = nd, appendData = TRUE), 2)
 ```
 
 Thus, we can say that the expected probability of detection was 0.552
-when time of day and temperature are fixed at their mean value. A
-`predict` method also exists, which can be used to obtain estimates of
-parameters at specific covariate values.
+when time of day and temperature are fixed at their mean value. The
+`predict` metho can also be used to obtain estimates of
+parameters at a range of specific covariate values.
 
 ```{r}
-newData <- data.frame(MinAfterSunset = 0, Temperature = -2:2)
-round(predict(fm2, type = 'det', newdata = newData, appendData=TRUE), 2)
+nd <- data.frame(MinAfterSunset = 0, Temperature = -2:2)
+round(predict(fm2, type = 'det', newdata = nd, appendData=TRUE), 2)
 ```
 
 Confidence intervals are requested with `confint`, using either the
@@ -194,7 +197,7 @@ organizing models using the `fitList` function.
 ```{r}
 fms <- fitList('psi(.)p(.)' = fm1, 'psi(.)p(Time+Temp)' = fm2)
 modSel(fms)
-predict(fms, type='det', newdata = newData)
+predict(fms, type='det', newdata = nd)
 ```
 
 

@@ -97,8 +97,11 @@ IDS <- function(lambdaformula = ~1,
   stopifnot(is.null(durationOC) || (length(durationOC) == numSites(dataOC)))
   surveyDurations <- list(ds=durationDS, pc=durationPC, oc=durationOC)
 
-  stopifnot(keyfun %in% c("halfnorm", "exp"))
-  keyidx <- switch(keyfun, "halfnorm"={1}, "exp"={2})
+  stopifnot(keyfun %in% c("halfnorm", "exp", "hazard"))
+  if(keyfun == "hazard"){
+    warning("Support for hazard key function is experimental and may yield poor estimates.", call.=FALSE)
+  }
+  keyidx <- switch(keyfun, "halfnorm"={1}, "exp"={2}, "hazard"={3})
 
   if(missing(maxDistPC)) maxDistPC <- max(dataDS@dist.breaks)
   if(missing(maxDistOC)) maxDistOC <- max(dataDS@dist.breaks)
@@ -153,8 +156,7 @@ IDS <- function(lambdaformula = ~1,
     kmsq = lam_adjust <- lam_adjust)
 
   # Parameter stuff------------------------------------------------------------
-  # Doesn't support hazard
-  pind_mat <- matrix(0, nrow=5, ncol=2)
+  pind_mat <- matrix(0, nrow=8, ncol=2)
   pind_mat[1,] <- c(1, ncol(gd_hds$X))
   pind_mat[2,] <- max(pind_mat) + c(1, ncol(gd_hds$V))
   if(!is.null(detformulaPC) & !is.null(dataPC)){
@@ -166,6 +168,16 @@ IDS <- function(lambdaformula = ~1,
   if(has_avail){
     pind_mat[5,] <- max(pind_mat) + c(1, ncol(Xavail_ds))
   }
+  # Hazard-rate scale parameter(s)
+  if(keyfun == "hazard"){
+    pind_mat[6,] <- max(pind_mat) + 1
+    if(!is.null(detformulaPC) & !is.null(dataPC)){
+      pind_mat[7,] <- max(pind_mat) + 1
+    }
+    if(!is.null(detformulaOC) & !is.null(dataOC)){
+      pind_mat[8,] <- max(pind_mat) + 1
+    }
+  }
 
   if(is.null(starts)){
     lam_init <- log(mean(apply(dataDS@y, 1, sum, na.rm=TRUE)) / lam_adjust[1])
@@ -173,13 +185,20 @@ IDS <- function(lambdaformula = ~1,
                      beta_hds = c(log(median(dataDS@dist.breaks)),rep(0, ncol(gd_hds$V)-1)),
                      beta_pc = rep(0,0),
                      beta_oc = rep(0,0),
-                     beta_avail = rep(0,0))
+                     beta_avail = rep(0,0),
+                     beta_schds = rep(0,0),  # hazard rate scale inits
+                     beta_scpc = rep(0,0), 
+                     beta_scoc = rep(0,0))
 
+    if(keyfun == "hazard") params_tmb$beta_schds <- 0
+    
     if(!is.null(detformulaPC) & !is.null(dataPC)){
       params_tmb$beta_pc <- c(log(maxDistPC/2), rep(0, ncol(gd_pc$V)-1))
+      if(keyfun == "hazard") params_tmb$beta_scpc <- 0
     }
     if(!is.null(detformulaOC) & !is.null(dataOC)){
       params_tmb$beta_oc <- c(log(maxDistOC/2), rep(0, ncol(gd_oc$V)-1))
+      if(keyfun == "hazard") params_tmb$beta_scoc <- 0
     }
     if(has_avail){
       params_tmb$beta_avail <- rep(0, ncol(Xavail_ds))
@@ -193,13 +212,20 @@ IDS <- function(lambdaformula = ~1,
                      beta_hds = starts[pind_mat[2,1]:pind_mat[2,2]],
                      beta_pc = rep(0,0),
                      beta_oc = rep(0,0),
-                     beta_avail = rep(0,0))
+                     beta_avail = rep(0,0),
+                     beta_schds = rep(0,0),  # hazard rate scale inits
+                     beta_scpc = rep(0,0), 
+                     beta_scoc = rep(0,0))
+    
+    if(keyfun == "hazard") params_tmb$beta_schds <- pind_mat[6,1]
 
     if(!is.null(detformulaPC) & !is.null(dataPC)){
       params_tmb$beta_pc <- starts[pind_mat[3,1]:pind_mat[3,2]]
+      if(keyfun == "hazard") params_tmb$beta_scpc <- starts[pind_mat[7,1]]
     }
     if(!is.null(detformulaOC) & !is.null(dataOC)){
       params_tmb$beta_oc <- starts[pind_mat[4,1]:pind_mat[4,2]]
+      if(keyfun == "hazard") params_tmb$beta_scoc <- starts[pind_mat[8,1]]
     }
     if(has_avail){
       params_tmb$beta_avail <- starts[pind_mat[5,1]:pind_mat[5,2]]
@@ -281,6 +307,30 @@ IDS <- function(lambdaformula = ~1,
       estimates=avail_coef$ests, covMat=avail_coef$cov, fixed=1:ncol(Xavail_ds),
       invlink="exp", invlinkGrad="exp")
     est_list <- c(est_list, list(phi=avail_est))
+  }
+
+  if(keyfun == "hazard"){
+    ds_haz_coef <- get_coef_info(sdr, "schds", "(Intercept)", pind_mat[6,1]:pind_mat[6,2])
+    ds_est_haz <- unmarkedEstimate("Distance sampling scale", short.name="ds_scale",
+      estimates = ds_haz_coef$ests[1], covMat = ds_haz_coef$cov, fixed=1,
+      invlink="exp", invlinkGrad="exp")
+    est_list <- c(est_list, list(schds=ds_est_haz))
+
+    if(!is.null(detformulaPC) & !is.null(dataPC)){
+      pc_haz_coef <- get_coef_info(sdr, "scpc", "(Intercept)", pind_mat[7,1]:pind_mat[7,2])
+      pc_est_haz <- unmarkedEstimate("Point count scale", short.name="pc_scale",
+        estimates = pc_haz_coef$ests[1], covMat = pc_haz_coef$cov, fixed=1,
+        invlink="exp", invlinkGrad="exp")
+      est_list <- c(est_list, list(scpc=pc_est_haz))
+    }
+
+    if(!is.null(detformulaOC) & !is.null(dataOC)){
+      oc_haz_coef <- get_coef_info(sdr, "scoc", "(Intercept)", pind_mat[8,1]:pind_mat[8,2])
+      oc_est_haz <- unmarkedEstimate("Presence/absence scale", short.name="oc_scale",
+        estimates = oc_haz_coef$ests[1], covMat = oc_haz_coef$cov, fixed=1,
+        invlink="exp", invlinkGrad="exp")
+      est_list <- c(est_list, list(scoc=oc_est_haz))
+    }
   }
 
   est_list <- unmarkedEstimateList(est_list)

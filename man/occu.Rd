@@ -110,12 +110,9 @@ obsCovs(pferUMF) <- data.frame(obsvar1 = rnorm(numSites(pferUMF) * obsNum(pferUM
 confint(fm, type='det', method = 'normal')
 confint(fm, type='det', method = 'profile')
 
-# estimate detection effect at obsvars=0.5
-(lc <- linearComb(fm['det'],c(1,0.5)))
-
-# transform this to probability (0 to 1) scale and get confidence limits
-(btlc <- backTransform(lc))
-confint(btlc, level = 0.9)
+# estimate detection probability and 95% CI at obsvars=0.5
+nd <- data.frame(obsvar1 = 0.5)
+predict(fm, type = "det", newdata = nd, appendData = TRUE)
 
 # Empirical Bayes estimates of proportion of sites occupied
 re <- ranef(fm)

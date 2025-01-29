@@ -149,12 +149,12 @@ umf1 <- unmarkedFrameGMM(y=y.ijt, numPrimary=T, type="removal")
 
 (m1 <- gmultmix(~1, ~1, ~1, data=umf1, K=30))
 
-backTransform(m1, type="lambda")        # Individuals per plot
-backTransform(m1, type="phi")           # Probability of being avilable
-(p <- backTransform(m1, type="det"))    # Probability of detection
-p <- coef(p)
+predict(m1, type="lambda")[1,]          # Individuals per plot
+predict(m1, type="phi")[1,]             # Probability of being avilable
+(p <- predict(m1, type="det")[1,])      # Probability of detection
 
 # Multinomial cell probabilities under removal design
+p <- p$Predicted
 c(p, (1-p) * p, (1-p)^2 * p)
 
 # Or more generally:

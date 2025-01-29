@@ -191,26 +191,30 @@ haz_Null
 
 # Manipulating results
 
-Back-transforming estimates to the original scale and obtaining
-standard errors via the delta method is easily accomplished:
+Use `predict` to get estimates and 95% confidence intervals from the model
+on the original scale. Note that since this is the null model, all sites
+will have the same estimates and we can just look at the first row of the output.
 
 ```{r}
 names(haz_Null)
-backTransform(haz_Null, type="state")
-backTransform(haz_Null, type="det")
-backTransform(haz_Null, type="scale")
-backTransform(linearComb(hn_Hab.Ht['det'], c(1, 5)))
+predict(haz_Null, type="state")[1,]
+predict(haz_Null, type="det")[1,]
+predict(haz_Null, type="scale")[1,]
 ```
 
-The first back-transformation returns population density, since this
+The first call to `predict` returns population density, since this
 is the default state parameter modeled when `distsamp`'s
-`output` argument is set to `"density"`. The second
-back-transformation returns the hazard-rate shape parameter, and third
-is the hazard-rate scale parameter. When covariates are present,
-`backTransform` in conjunction with `linearComb` should be
-used. Here, we requested the value of sigma when canopy height was 5
-meters tall. Note that the intercept was included in the calculation
-by setting the first value in the linear equation to 1.
+`output` argument is set to `"density"`. The second returns the hazard-rate
+shape parameter, and third is the hazard-rate scale parameter.
+
+When covariates are present, `predict` in conjunction with the `newdata`
+argument should be used. Here, we request the value of sigma when canopy
+height was 5 meters tall.
+
+```{r}
+nd <- data.frame(canopyHt = 5)
+predict(hn_Hab.Ht, type = 'det', newdata=nd, appendData = TRUE)
+```
 
 Parameters that do not occur in the likelihood may also be of
 interest. For example, the number of individuals occurring in the

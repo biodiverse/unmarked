@@ -213,6 +213,8 @@ test_that("distsamp line keyfunctions work",{
     D <- backTransform(fm.haz, type="state")
     Sh <- backTransform(fm.haz, type="det")
     Sc <- backTransform(fm.haz, type="scale")
+    pr <- predict(fm.haz, type='scale')$Predicted[1] # make sure predict works with scale
+    expect_equal(Sc@estimate, pr) 
     expect_equivalent(coef(D), 137.0375, tol=1e-4)
     expect_equivalent(SE(D), 16.82505, tol=1e-4)
     expect_equivalent(coef(Sh), 15.90262, tol=1e-4)

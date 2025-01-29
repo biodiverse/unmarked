@@ -44,8 +44,11 @@ distsamp <- function(formula, data,
         point = {
             for(i in 1:M) {
                 a[i, 1] <- pi*db[2]^2
-                for(j in 2:J)
+                if(J > 1){
+                  for(j in 2:J){
                     a[i, j] <- pi*db[j+1]^2 - sum(a[i, 1:(j-1)])
+                  }
+                }
                 u[i,] <- a[i,] / sum(a[i,])
                 }
             })

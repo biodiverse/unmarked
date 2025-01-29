@@ -199,10 +199,9 @@ m1 <- gdistsamp(~1, ~1, ~1, umf, output="density", K=50)
 
 summary(m1)
 
-
-backTransform(m1, type="lambda")
-backTransform(m1, type="phi")
-backTransform(m1, type="det")
+predict(m1, type = 'lambda')[1,]
+predict(m1, type = 'phi')[1,]
+predict(m1, type = 'det')[1,]
 
 \dontrun{
 # Empirical Bayes estimates of abundance at each site

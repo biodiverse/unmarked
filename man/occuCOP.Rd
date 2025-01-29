@@ -151,7 +151,7 @@ print(fitCov)
 
 # We back-transform the parameter's estimates
 ## Back-transformed occupancy probability with no covariates
-backTransform(fitNull, "psi")
+predict(fitNull, "psi")[1,]
 
 ## Back-transformed occupancy probability depending on habitat use
 predict(fitCov,
@@ -160,7 +160,7 @@ predict(fitCov,
         appendData = TRUE)
 
 ## Back-transformed detection rate with no covariates
-backTransform(fitNull, "lambda")
+predict(fitNull, "lambda")[1,]
 
 ## Back-transformed detection rate depending on wind
 predict(fitCov,
