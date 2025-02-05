@@ -528,7 +528,6 @@ setMethod("residual_plot", "unmarkedFitOccuMulti", function(x, ...)
   abline(h = 0, lty = 3, col = "gray")
 })
 
-
 setMethod("hist", "unmarkedFitDS", function(x, lwd=1, lty=1, ...) {
     ymat <- getY(getData(x))
     dbreaks <- getData(x)@dist.breaks

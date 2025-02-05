@@ -7,6 +7,7 @@
 
 knitr::knit("colext.Rmd.orig", output="colext.Rmd")
 knitr::knit("powerAnalysis.Rmd.orig", output="powerAnalysis.Rmd")
+knitr::knit("occuComm.Rmd.orig", output="occuComm.Rmd")
 
 # This will run all the R code in the .Rmd.orig file and save the results
 # directly into the corresponding .Rmd file, which will then compile instantly on CRAN
