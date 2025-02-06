@@ -82,11 +82,23 @@ goccu <- function(psiformula, phiformula, pformula, data,
     }
   }
 
+  # Determine which configurations of available states should not be
+  # included in likelihood because relevant primary periods were missing
+  alpha_drop <- matrix(NA, M, nrow(alpha_potential))
+  for (i in 1:M){
+    dropped <- rep(0, nrow(alpha_potential))
+    for (j in 1:nrow(alpha_potential)){
+      check_drop <- alpha_potential[j,] * missing_session[i,]
+      if(sum(check_drop) > 0) dropped[j] <- 1
+    }
+    alpha_drop[i,] <- dropped
+  }
+
   # Bundle data for TMB
   dataList <- list(y=y, T=T, link=ifelse(linkPsi=='cloglog', 1, 0), 
                    Xpsi=Xpsi, Xphi=Xphi, Xp=Xp,
                    n_possible=n_possible,
-                   alpha_potential=alpha_potential,
+                   alpha_potential=alpha_potential, alpha_drop = alpha_drop,
                    known_present=known_present, known_available=known_available, 
                    missing_session=missing_session)
 

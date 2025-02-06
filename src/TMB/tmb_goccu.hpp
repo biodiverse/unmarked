@@ -19,6 +19,7 @@ Type tmb_goccu(objective_function<Type>* obj) {
 
   DATA_INTEGER(n_possible);
   DATA_MATRIX(alpha_potential);
+  DATA_MATRIX(alpha_drop);
   DATA_VECTOR(known_present);
   DATA_MATRIX(known_available);
   DATA_MATRIX(missing_session);
@@ -93,6 +94,12 @@ Type tmb_goccu(objective_function<Type>* obj) {
       exp_poss_lp = 0.0;
 
       for (int k=0; k<n_possible; k++){
+
+        //If this configuration of available states is not possible
+        //because some of the included primary periods were dropped,
+        //then don't add anything to the likelihood
+        if(alpha_drop(i, k) == 1) continue;
+
         poss_lp = log(psi(i));
 
         for (int t=0; t<T; t++){
