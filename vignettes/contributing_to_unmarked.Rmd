@@ -295,8 +295,6 @@ You need to write the documentation files for the new classes and functions you 
   - [Example for `occu`](https://github.com/biodiverse/unmarked/blob/master/man/occu.Rd)
   - [Example for `gdistremoval`](https://github.com/biodiverse/unmarked/blob/master/man/gdistremoval.Rd)
 - Add your fitting function to the reference of all functions to [_pkgdown.yml](https://github.com/biodiverse/unmarked/blob/master/_pkgdown.yml)
-- Add the specific "type" for the predict methods of your `unmarkedFit` class to [predict-methods.Rd](https://github.com/biodiverse/unmarked/blob/master/man/predict-methods.Rd)
-- Add your `getP` method for the signature of you `unmarkedFitList` object in [getP-methods.Rd](https://github.com/biodiverse/unmarked/blob/master/man/getP-methods.Rd).
 
 Depending on how much you had to add, you may also need to update existing files:
 
