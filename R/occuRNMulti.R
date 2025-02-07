@@ -31,7 +31,7 @@ occuRNMulti <- function(detformulas, stateformulas, data, modelOccupancy,
   modocc <- rep(0, S)
   names(modocc) <- names(data@ylist)
   if(!missing(modelOccupancy)){
-    stopifnot(all(modelOccupancy %in% names(modocc)))
+    stopifnot(all(names(modelOccupancy) %in% names(modocc)))
     modocc[modelOccupancy] <- 1
     not_allowed_occ <- colSums(dep)
     sp_mismatch <- modocc & not_allowed_occ
@@ -123,7 +123,7 @@ occuRNMulti <- function(detformulas, stateformulas, data, modelOccupancy,
 
   umfit <- new("unmarkedFitOccuRNMulti", fitType = "occuRNMulti", call = match.call(),
                 detformulas = detformulas, stateformulas = stateformulas,
-                modelOccupancy = modocc,
+                modelOccupancy = modocc, K = K,
                 formula = ~1, data = data,
                 #sitesRemoved = designMats$removed.sites,
                 estimates = estimateList, AIC = fmAIC, opt = fm,

@@ -42,6 +42,7 @@ umf <- unmarkedFrameOccuMulti(y=list(coyote=y1, marten=y2, fisher=y3),
                               siteCovs=sc, obsCovs=oc)
 
 test_that("occuRNMulti can fit 2-species models",{
+  set.seed(123)
   umf2 <- umf
   umf2@ylist <- umf@ylist[1:2]
   sf <- list(coyote = ~1,
@@ -55,10 +56,15 @@ test_that("occuRNMulti can fit 2-species models",{
   pr <- suppressMessages(predict(fit, type='state'))
   expect_equal(length(pr), 2)
   expect_equal(nrow(pr[[1]]), 50)
+  expect_equivalent(pr[[1]][1,], c(1.4752, 0.3751, 0.85566, 2.3372), tol=1e-4)
 
   nd <- data.frame(x1=c(0,1))
   pr <- suppressMessages(predict(fit, type='state', newdata=nd))
   expect_equal(pr[[2]]$Predicted, c(0.8009, 2.0334), tol=1e-4)
+
+  gp <- getP(fit)
+  expect_equal(length(gp), 2)
+  expect_equal(gp[[1]][1], 0.25131, tol=1e-5)
 
   res <- residuals(fit)
   expect_equal(length(res), 2)
@@ -67,9 +73,11 @@ test_that("occuRNMulti can fit 2-species models",{
   s <- simulate(fit, nsim=2)
   expect_equal(length(s), 2)
   expect_equal(length(s[[1]]), 2)
+  expect_equal(s[[1]]$coyote[1,], c(1,0,1,0,0))
 
   pb <- parboot(fit, nsim=2)
   expect_is(pb, "parboot")
+  expect_equal(pb@t.star, matrix(c(83.82374, 82.75981), ncol=1), tol=1e-5)
 
   # Unsupported methods
   expect_error(ranef(fit))
@@ -102,7 +110,7 @@ test_that("occuRNMulti can fit 2-species models",{
 })
 
 test_that("occuRNMulti can fit 3-species models", {
-            
+  set.seed(123)
   # `sp1 --> sp2 --> sp3`
   sf <- list(coyote = ~1,
            marten = list(~1, coyote = ~x1),
@@ -110,10 +118,42 @@ test_that("occuRNMulti can fit 3-species models", {
   df <- list(coyote=~1, marten=~1, fisher=~1)
 
   fit <- occuRNMulti(df, sf, umf[1:10,])
-  expect_equal(length(coef(fit)), 9)
+  expect_equal(coef(fit),
+    c(`lam([coyote] (Intercept))` = 0.03985, 
+      `lam([marten] (Intercept))` = -1.23100, 
+      `lam([marten:coyote] (Intercept))` = -2.0736, 
+      `lam([marten:coyote] x1)` = 2.8966, 
+      `lam([fisher] (Intercept))` = -0.7461, 
+      `lam([fisher:marten] (Intercept))` = -0.1908, 
+      `p([coyote] (Intercept))` = -0.14523, 
+      `p([marten] (Intercept))` = -1.54227, 
+      `p([fisher] (Intercept))` = -0.85930), tol=1e-4)
+
   pr <- suppressMessages(predict(fit, 'state'))
   expect_equal(length(pr), 3)
-  
+  expect_equal(pr$coyote$Predicted[1], 1.04066, tol=1e-4)
+  expect_equal(pr$marten$Predicted[1], 0.27334, tol=1e-4)
+  expect_equal(pr$fisher$Predicted[1], 0.45007, tol=1e-4)
+
+  gp <- getP(fit)
+  expect_equal(length(gp), 3)
+  expect_equal(gp$coyote[1,1], 0.46375, tol=1e-4)
+  expect_equal(gp$marten[1,1], 0.17620, tol=1e-4)
+  expect_equal(gp$fisher[1,1], 0.29748, tol=1e-4)
+
+  s <- simulate(fit)
+  expect_equal(length(s[[1]]), 3)
+  expect_equal(s[[1]]$coyote[2,], c(0,1,1,1,1))
+
+  res <- residuals(fit)
+  expect_equal(length(res), 3)
+  expect_equal(res$coyote[1,1], -0.3828, tol=1e-4)
+  expect_equal(res$marten[1,1], -0.04702, tol=1e-4)
+  expect_equal(res$fisher[1,1], -0.12531, tol=1e-4)
+
+  pb <- parboot(fit, nsim=1)
+  expect_equal(pb@t.star, matrix(16.21791))
+
   # `sp2 <-- sp1 --> sp3`
   sf <- list(coyote = ~1,
            marten = list(~1, coyote = ~x1),
