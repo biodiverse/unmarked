@@ -5,7 +5,8 @@ setClass("unmarkedFitOccuRNMulti",
          representation(
             detformulas = "list",
             stateformulas = "list",
-            modelOccupancy = "numeric"),
+            modelOccupancy = "numeric",
+            K = "numeric"),
          contains = "unmarkedFit")
 
 occuRNMulti <- function(detformulas, stateformulas, data, modelOccupancy,
@@ -535,7 +536,7 @@ calc_dependent_response <- function(samps, X, object, nr, sp_top, sp_2nd, sp_3rd
 }
 
 
-setMethod("getP", "unmarkedFitOccuRNMulti", function(object)
+setMethod("getP_internal", "unmarkedFitOccuRNMulti", function(object)
 {
 
   ylist <- object@data@ylist
@@ -550,7 +551,7 @@ setMethod("getP", "unmarkedFitOccuRNMulti", function(object)
   pr
 })
 
-setMethod("fitted", "unmarkedFitOccuRNMulti", function(object, na.rm=FALSE){
+setMethod("fitted_internal", "unmarkedFitOccuRNMulti", function(object){
   S <- length(object@data@ylist)
   M <- nrow(object@data@ylist[[1]])
   J <- ncol(object@data@ylist[[1]])
@@ -578,7 +579,7 @@ setMethod("fitted", "unmarkedFitOccuRNMulti", function(object, na.rm=FALSE){
   fitted
 })
 
-setMethod("residuals", "unmarkedFitOccuRNMulti", function(object, ...){
+setMethod("residuals_internal", "unmarkedFitOccuRNMulti", function(object){
   ylist <- object@data@ylist
   S <- length(ylist)
   ft <- fitted(object)
@@ -594,14 +595,14 @@ setMethod("SSE", "unmarkedFitOccuRNMulti", function(fit, ...){
     return(c(SSE = sum(r^2, na.rm=T)))
 })
 
-setMethod("nonparboot", "unmarkedFitOccuRNMulti",
-    function(object, B = 0, keepOldSamples = TRUE, ...)
+setMethod("nonparboot_internal", "unmarkedFitOccuRNMulti",
+    function(object, B = 0, keepOldSamples = TRUE)
 {
   stop("Method not supported for this fit type", call.=FALSE)
 })
 
-setMethod("simulate", "unmarkedFitOccuRNMulti", 
-  function(object, nsim = 1, seed = NULL, na.rm=TRUE){
+setMethod("simulate_internal", "unmarkedFitOccuRNMulti", 
+  function(object, nsim){
 
   ylist <- object@data@ylist
   M <- nrow(ylist[[1]])
@@ -649,41 +650,15 @@ setMethod("replaceY", "unmarkedFrameOccuRNMulti",
 })
 
 
-setMethod("update", "unmarkedFitOccuRNMulti",
-    function(object, detformulas, stateformulas, ..., evaluate = TRUE)
-{
-
-    call <- object@call
-    if (is.null(call))
-        stop("need an object with call slot")
-    if(!missing(detformulas)){
-      call[["detformulas"]] <- detformulas
-    } else {
-      call[["detformulas"]] <- object@detformulas
-    }
-    if(!missing(stateformulas)){
-      call[["stateformulas"]] <- stateformulas
-    } else {
-      call[["stateformulas"]] <- object@stateformulas
-    }
-    extras <- match.call(call=sys.call(-1),
-                         expand.dots = FALSE)$...
-    if (length(extras) > 0) {
-        existing <- !is.na(match(names(extras), names(call)))
-        for (a in names(extras)[existing])
-            call[[a]] <- extras[[a]]
-        if (any(!existing)) {
-            call <- c(as.list(call), extras[!existing])
-            call <- as.call(call)
-            }
-        }
-    if (evaluate)
-        eval(call, parent.frame(2))
-    else call
+setMethod("rebuild_call", "unmarkedFitOccuRNMulti", function(object){
+  cl <- methods::callNextMethod(object)
+  cl[["stateformulas"]] <- quote(object@stateformulas)
+  cl[["detformulas"]] <- quote(object@detformulas)
+  cl[["modelOccupancy"]] <- object@modelOccupancy
+  cl[["K"]] <- object@K
+  cl
 })
 
-setMethod("ranef", "unmarkedFitOccuRNMulti",
-    function(object, B = 0, keepOldSamples = TRUE, ...)
-{
+setMethod("ranef_internal", "unmarkedFitOccuRNMulti", function(object){
    stop("Not currently supported for occuRNMulti", call.=FALSE)
 })

@@ -3,6 +3,7 @@
 \alias{predict,unmarkedFit-method}
 \alias{predict,unmarkedFitOccuMulti-method}
 \alias{predict,unmarkedFitOccuMS-method}
+\alias{predict,unmarkedFitOccuRNMulti-method}
 \alias{predict,unmarkedFitList-method}
 \alias{predict,unmarkedRanef-method}
 
