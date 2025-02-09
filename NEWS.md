@@ -6,7 +6,6 @@
 * Improve and standardize documentation for these methods
 * More tests for these methods
 * Use reformulas package instead of lme4 for random effects formula handling
-* Deprecate imputeMissing function
 * Fix likelihood bug in goccu when primary periods were missing
 * Fix bug in occuMulti getP method
 
