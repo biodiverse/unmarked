@@ -11,7 +11,8 @@
 <script src="../bootstrap-toc.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous">
 <!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- pkgdown --><link href="../pkgdown.css" rel="stylesheet">
-<script src="../pkgdown.js"></script><meta property="og:title" content="Contributing to unmarked: guide to adding a new model to `unmarked`">
+<script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
+<meta property="og:title" content="Contributing to unmarked: guide to adding a new model to `unmarked`">
 <!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
 <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
 <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
@@ -32,7 +33,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">unmarked</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.4.3</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.5.0</span>
       </span>
     </div>
 
@@ -64,6 +65,9 @@
       <a href="../articles/distsamp.html">Distance sampling analysis in unmarked</a>
     </li>
     <li>
+      <a href="../articles/occuComm.html">Community occupancy models with occuComm</a>
+    </li>
+    <li>
       <a href="../articles/occuMulti.html">Multispecies occupancy models with occuMulti</a>
     </li>
     <li>
@@ -83,7 +87,7 @@
       </ul>
 <ul class="nav navbar-nav navbar-right">
 <li>
-  <a href="https://github.com/hmecology/unmarked/" class="external-link">
+  <a href="https://github.com/biodiverse/unmarked/" class="external-link">
     <span class="fab fa-github fa-lg"></span>
 
   </a>
@@ -98,59 +102,91 @@
 
 
 
-      </header><script src="contributing_to_unmarked_files/accessible-code-block-0.0.1/empty-anchor.js"></script><div class="row">
+      </header><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
-      <h1 data-toc-skip>Contributing to unmarked: guide to adding a new model to <code>unmarked</code>
+      <h1 data-toc-skip>Contributing to unmarked: guide to adding a new
+model to <code>unmarked</code>
 </h1>
-                        <h4 data-toc-skip class="author">Ken Kellner</h4>
-                                    <h4 data-toc-skip class="author">Léa Pautrel</h4>
+                        <h4 data-toc-skip class="author">Ken
+Kellner</h4>
+                                    <h4 data-toc-skip class="author">Léa
+Pautrel</h4>
                         
             <h4 data-toc-skip class="date">December 08, 2023</h4>
       
-      <small class="dont-index">Source: <a href="https://github.com/hmecology/unmarked/blob/HEAD/vignettes/contributing_to_unmarked.Rmd" class="external-link"><code>vignettes/contributing_to_unmarked.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/biodiverse/unmarked/blob/HEAD/vignettes/contributing_to_unmarked.Rmd" class="external-link"><code>vignettes/contributing_to_unmarked.Rmd</code></a></small>
       <div class="hidden name"><code>contributing_to_unmarked.Rmd</code></div>
 
     </div>
 
     
     
-<p>Follow the steps in this guide to add a new model to the <code>unmarked</code> package. Note that the order can be adjusted based on your preferences. For instance, you can start with <a href="#the-likelihood-function">the likelihood function</a>, as it forms the core of adding a model to unmarked, and then build the rest of the code around it. In this document, the steps are ordered as they would occur in an <code>unmarked</code> analysis workflow.</p>
-<p>This guide uses the recently developed <code>gdistremoval</code> function for examples, mainly because most of the relevant code is in a single file instead of spread around. It also uses <code>occu</code> functions to show simpler examples that may be easier to understand.</p>
+<p>Follow the steps in this guide to add a new model to the
+<code>unmarked</code> package. Note that the order can be adjusted based
+on your preferences. For instance, you can start with <a href="#the-likelihood-function">the likelihood function</a>, as it forms
+the core of adding a model to unmarked, and then build the rest of the
+code around it. In this document, the steps are ordered as they would
+occur in an <code>unmarked</code> analysis workflow.</p>
+<p>This guide uses the recently developed <code>gdistremoval</code>
+function for examples, mainly because most of the relevant code is in a
+single file instead of spread around. It also uses <code>occu</code>
+functions to show simpler examples that may be easier to understand.</p>
 <div class="section level2">
 <h2 class="unnumbered" id="prerequisites-and-advices">Prerequisites and advices<a class="anchor" aria-label="anchor" href="#prerequisites-and-advices"></a>
 </h2>
 <ul>
 <li>
-<p>Before you start coding, you should use git to version your code:</p>
+<p>Before you start coding, you should use git to version your
+code:</p>
 <ul>
-<li>Fork the <code>unmarked</code> <a href="https://github.com/rbchan/unmarked" class="external-link">repository</a> on Github</li>
+<li>Fork the <code>unmarked</code> <a href="https://github.com/biodiverse/unmarked" class="external-link">repository</a> on
+Github</li>
 <li>Make a new branch with your new function as the name</li>
 <li>Add the new code</li>
 </ul>
 </li>
-<li><p><code>unmarked</code> uses S4 for objects and methods - if you aren’t familiar with S4 you may want to consult a book or tutorial such as <a href="https://kasperdanielhansen.github.io/genbioconductor/html/R_S4.html" class="external-link">this one</a>.</p></li>
-<li><p>If you are unfamiliar with building a package in R, here are two tutorials that may help you: <a href="https://kbroman.org/pkg_primer/" class="external-link">Karl Broman’s guide to building packages</a> and <a href="https://cran.r-project.org/doc/manuals/R-exts.html" class="external-link">the official R-project guide</a>. If you are using RStudio, their <a href="https://docs.posit.co/ide/user/ide/guide/pkg-devel/writing-packages.html" class="external-link">documentation on writing package</a> could also be useful, especially to understand how to use the <strong>Build</strong> pane.</p></li>
-<li><p>To avoid complex debugging in the end, I suggest you to regularly install and load the package as you add new code. You can easily do so in RStudio in the Build pane, by clicking on “Install &gt; Clean and install”. This will also allow you to test your functions cleanly.</p></li>
-<li><p>Write <a href="#write-tests">tests</a> and <a href="#write-documentation">documentation</a> as you add new functions, classes, and methods. This eases the task, avoiding the need to write everything at the end.</p></li>
+<li><p><code>unmarked</code> uses S4 for objects and methods - if you
+aren’t familiar with S4 you may want to consult a book or tutorial such
+as <a href="https://kasperdanielhansen.github.io/genbioconductor/html/R_S4.html" class="external-link">this
+one</a>.</p></li>
+<li><p>If you are unfamiliar with building a package in R, here are two
+tutorials that may help you: <a href="https://kbroman.org/pkg_primer/" class="external-link">Karl Broman’s guide to building
+packages</a> and <a href="https://cran.r-project.org/doc/manuals/R-exts.html" class="external-link">the official
+R-project guide</a>. If you are using RStudio, their <a href="https://docs.posit.co/ide/user/ide/guide/pkg-devel/writing-packages.html" class="external-link">documentation
+on writing package</a> could also be useful, especially to understand
+how to use the <strong>Build</strong> pane.</p></li>
+<li><p>To avoid complex debugging in the end, I suggest you to regularly
+install and load the package as you add new code. You can easily do so
+in RStudio in the Build pane, by clicking on “Install &gt; Clean and
+install”. This will also allow you to test your functions
+cleanly.</p></li>
+<li><p>Write <a href="#write-tests">tests</a> and <a href="#write-documentation">documentation</a> as you add new functions,
+classes, and methods. This eases the task, avoiding the need to write
+everything at the end.</p></li>
 </ul>
 </div>
 <div class="section level2">
-<h2 id="organise-the-input-data-design-the-unmarkedframe-object">Organise the input data: design the <code>unmarkedFrame</code> object<a class="anchor" aria-label="anchor" href="#organise-the-input-data-design-the-unmarkedframe-object"></a>
+<h2 id="organise-the-input-data-design-the-unmarkedframe-object">Organise the input data: design the <code>unmarkedFrame</code>
+object<a class="anchor" aria-label="anchor" href="#organise-the-input-data-design-the-unmarkedframe-object"></a>
 </h2>
-<p>Most model types in unmarked have their own <code>unmarkedFrame</code>, a specialized kind of data frame. This is an S4 object which contains, at a minimum, the response (y). It may also include site covariates, observation covariates, primary period covariates, and other info related to study design (such as distance breaks).</p>
-<p>In some cases you may be able to use an existing <code>unmarkedFrame</code> subclass. You can list all the existing <code>unmarkedFrame</code> subclasses by running the following code:</p>
+<p>Most model types in unmarked have their own
+<code>unmarkedFrame</code>, a specialized kind of data frame. This is an
+S4 object which contains, at a minimum, the response (y). It may also
+include site covariates, observation covariates, primary period
+covariates, and other info related to study design (such as distance
+breaks).</p>
+<p>In some cases you may be able to use an existing
+<code>unmarkedFrame</code> subclass. You can list all the existing
+<code>unmarkedFrame</code> subclasses by running the following code:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">showClass</span><span class="op">(</span><span class="st">"unmarkedFrame"</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## Class "unmarkedFrame" [package "unmarked"]</span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## Slots:</span></span>
 <span><span class="co">##                                                                               </span></span>
-<span><span class="co">## Name:                  y           obsCovs          siteCovs           mapInfo</span></span>
-<span><span class="co">## Class:            matrix optionalDataFrame optionalDataFrame   optionalMapInfo</span></span>
-<span><span class="co">##                         </span></span>
-<span><span class="co">## Name:             obsToY</span></span>
-<span><span class="co">## Class:    optionalMatrix</span></span>
+<span><span class="co">## Name:                  y           obsCovs          siteCovs            obsToY</span></span>
+<span><span class="co">## Class:            matrix optionalDataFrame optionalDataFrame    optionalMatrix</span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## Extends: "unmarkedFrameOrNULL"</span></span>
 <span><span class="co">## </span></span>
@@ -163,6 +199,7 @@
 <span><span class="co">## Class "unmarkedFramePCount", directly</span></span>
 <span><span class="co">## Class "unmarkedFrameMPois", directly</span></span>
 <span><span class="co">## Class "unmarkedFrameOccuCOP", directly</span></span>
+<span><span class="co">## Class "unmarkedFrameOccuComm", directly</span></span>
 <span><span class="co">## Class "unmarkedFrameOccuMS", by class "unmarkedMultFrame", distance 2</span></span>
 <span><span class="co">## Class "unmarkedFrameOccuTTD", by class "unmarkedMultFrame", distance 2</span></span>
 <span><span class="co">## Class "unmarkedFrameG3", by class "unmarkedMultFrame", distance 2</span></span>
@@ -174,38 +211,62 @@
 <span><span class="co">## Class "unmarkedFrameGOccu", by class "unmarkedMultFrame", distance 3</span></span>
 <span><span class="co">## Class "unmarkedFrameMMO", by class "unmarkedMultFrame", distance 4</span></span>
 <span><span class="co">## Class "unmarkedFrameDSO", by class "unmarkedMultFrame", distance 4</span></span></code></pre>
-<p>You can have more information about each <code>unmarkedFrame</code> subclass by looking at the documentation of the function that was written to create the <code>unmarkedFrame</code> object of this subclass, for example with <code><a href="../reference/unmarkedFrameGDR.html">?unmarkedFrameGDR</a></code>, or on the <a href="https://rbchan.github.io/unmarked/reference/unmarkedFrameGDR.html" class="external-link">package’s website</a>.</p>
+<p>You can have more information about each <code>unmarkedFrame</code>
+subclass by looking at the documentation of the function that was
+written to create the <code>unmarkedFrame</code> object of this
+subclass, for example with <code><a href="../reference/unmarkedFrameGDR.html">?unmarkedFrameGDR</a></code>, or on the <a href="https://biodiverse.github.io/unmarked/reference/unmarkedFrameGDR.html" class="external-link">package’s
+website</a>.</p>
 <div class="section level3">
 <h3 id="define-the-unmarkedframe-subclass-for-this-model">Define the <code>unmarkedFrame</code> subclass for this model<a class="anchor" aria-label="anchor" href="#define-the-unmarkedframe-subclass-for-this-model"></a>
 </h3>
 <ul>
-<li>All <code>unmarkedFrame</code> subclasses are children of the <code>umarkedFrame</code> class, defined <a href="https://github.com/rbchan/unmarked/blob/master/R/unmarkedFrame.R#L24-L30" class="external-link">here</a>.</li>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/R/unmarkedFrame.R#L65-L66" class="external-link">Example with <code>occu</code></a></li>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/R/gdistremoval.R#L1-L11" class="external-link">Example with <code>gdistremoval</code></a></li>
-<li>All <code>unmarkedFrame</code> subclasses need to pass the <a href="https://github.com/rbchan/unmarked/blob/master/R/unmarkedFrame.R#L4-L19" class="external-link">validunmarkedFrame</a> validity check. You may want to add complementary validity check, like, for example, the <a href="https://github.com/rbchan/unmarked/blob/master/R/unmarkedFrame.R#L43-L62" class="external-link">`unmarkedFrameDS subclass</a>.</li>
+<li>All <code>unmarkedFrame</code> subclasses are children of the
+<code>umarkedFrame</code> class, defined <a href="https://github.com/biodiverse/unmarked/blob/master/R/unmarkedFrame.R#L24-L30" class="external-link">here</a>.</li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/R/unmarkedFrame.R#L65-L66" class="external-link">Example
+with <code>occu</code></a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/R/gdistremoval.R#L1-L11" class="external-link">Example
+with <code>gdistremoval</code></a></li>
+<li>All <code>unmarkedFrame</code> subclasses need to pass the <a href="https://github.com/biodiverse/unmarked/blob/master/R/unmarkedFrame.R#L4-L19" class="external-link">validunmarkedFrame</a>
+validity check. You may want to add complementary validity check, like,
+for example, the <a href="https://github.com/biodiverse/unmarked/blob/master/R/unmarkedFrame.R#L43-L62" class="external-link">`unmarkedFrameDS
+subclass</a>.</li>
 </ul>
 </div>
 <div class="section level3">
-<h3 id="write-the-function-that-creates-the-unmarkedframe-object">Write the function that creates the <code>unmarkedFrame</code> object<a class="anchor" aria-label="anchor" href="#write-the-function-that-creates-the-unmarkedframe-object"></a>
+<h3 id="write-the-function-that-creates-the-unmarkedframe-object">Write the function that creates the <code>unmarkedFrame</code>
+object<a class="anchor" aria-label="anchor" href="#write-the-function-that-creates-the-unmarkedframe-object"></a>
 </h3>
 <ul>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/R/unmarkedFrame.R#L232-L239" class="external-link">Example with <code>occu</code></a></li>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/R/gdistremoval.R#L13-L50" class="external-link">Example with <code>gdistremoval</code></a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/R/unmarkedFrame.R#L232-L239" class="external-link">Example
+with <code>occu</code></a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/R/gdistremoval.R#L13-L50" class="external-link">Example
+with <code>gdistremoval</code></a></li>
 </ul>
 </div>
 <div class="section level3">
-<h3 id="methods-unmarkedFrame">Write the S4 methods associated with the <code>unmarkedFrame</code> object<a class="anchor" aria-label="anchor" href="#methods-unmarkedFrame"></a>
+<h3 id="methods-unmarkedFrame">Write the S4 methods associated with the <code>unmarkedFrame</code>
+object<a class="anchor" aria-label="anchor" href="#methods-unmarkedFrame"></a>
 </h3>
-<p>Note that you may not have to write all of the S4 methods below. Most of them will work without having to re-write them, but you should test it to verify it. All the methods associated with <code>unmarkedFrame</code> objects are listed in the <a href="https://rbchan.github.io/unmarked/reference/unmarkedFrame-class.html" class="external-link"><code>unmarkedFrame</code> class documentation</a> accessible with <code><a href="../reference/unmarkedFrame-class.html">help("unmarkedFrame-class")</a></code>.</p>
+<p>Note that you may not have to write all of the S4 methods below. Most
+of them will work without having to re-write them, but you should test
+it to verify it. All the methods associated with
+<code>unmarkedFrame</code> objects are listed in the <a href="https://biodiverse.github.io/unmarked/reference/unmarkedFrame-class.html" class="external-link"><code>unmarkedFrame</code>
+class documentation</a> accessible with
+<code><a href="../reference/unmarkedFrame-class.html">help("unmarkedFrame-class")</a></code>.</p>
 <div class="section level4">
 <h4 class="unnumbered" id="specific-methods">Specific methods<a class="anchor" aria-label="anchor" href="#specific-methods"></a>
 </h4>
 <p>Here are methods you probably will have to rewrite.</p>
 <ul>
-<li>Subsetting the <code>unmarkedFrame</code> object: <code>umf[i, ]</code>, <code>umf[, j]</code> and <code>umf[i, j]</code>
+<li>Subsetting the <code>unmarkedFrame</code> object:
+<code>umf[i, ]</code>, <code>umf[, j]</code> and <code>umf[i, j]</code>
 <ul>
-<li>Example with <code>occu</code>: <a href="https://github.com/rbchan/unmarked/blob/master/R/unmarkedFrame.R#L1126-L1235" class="external-link">code for <code>unmarkedFrame</code> mother class</a>, as used to subset an <code>unmarkedFrameOccu</code> object.</li>
-<li>Example with <code>gdistremoval</code>: <a href="https://github.com/rbchan/unmarked/blob/master/R/gdistremoval.R#L67-L120" class="external-link"><code>umf[i, ]</code> when <code>i</code> is numeric</a>, <a href="https://github.com/rbchan/unmarked/blob/master/R/gdistremoval.R#L122-L126" class="external-link"><code>umf[i, ]</code> when <code>i</code> is logical</a>, <a href="https://github.com/rbchan/unmarked/blob/master/R/gdistremoval.R#L128-L174" class="external-link"><code>umf[i, j]</code></a>
+<li>Example with <code>occu</code>: <a href="https://github.com/biodiverse/unmarked/blob/master/R/unmarkedFrame.R#L1126-L1235" class="external-link">code
+for <code>unmarkedFrame</code> mother class</a>, as used to subset an
+<code>unmarkedFrameOccu</code> object.</li>
+<li>Example with <code>gdistremoval</code>: <a href="https://github.com/biodiverse/unmarked/blob/master/R/gdistremoval.R#L67-L120" class="external-link"><code>umf[i, ]</code>
+when <code>i</code> is numeric</a>, <a href="https://github.com/biodiverse/unmarked/blob/master/R/gdistremoval.R#L122-L126" class="external-link"><code>umf[i, ]</code>
+when <code>i</code> is logical</a>, <a href="https://github.com/biodiverse/unmarked/blob/master/R/gdistremoval.R#L128-L174" class="external-link"><code>umf[i, j]</code></a>
 </li>
 </ul>
 </li>
@@ -214,9 +275,10 @@
 <div class="section level4">
 <h4 class="unnumbered" id="generic-methods">Generic methods<a class="anchor" aria-label="anchor" href="#generic-methods"></a>
 </h4>
-<p>Here are methods that you should test but probably will not have to rewrite. They are defined in the <a href="https://github.com/rbchan/unmarked/blob/master/R/unmarkedFrame.R" class="external-link"><code>unmarkedFrame.R</code></a> file, for the <code>unmarkedFrame</code> mother class.</p>
+<p>Here are methods that you should test but probably will not have to
+rewrite. They are defined in the <a href="https://github.com/biodiverse/unmarked/blob/master/R/unmarkedFrame.R" class="external-link"><code>unmarkedFrame.R</code></a>
+file, for the <code>unmarkedFrame</code> mother class.</p>
 <ul>
-<li><code>coordinates</code></li>
 <li><code>getY</code></li>
 <li><code>numSites</code></li>
 <li><code>numY</code></li>
@@ -236,9 +298,11 @@
 <div class="section level4">
 <h4 class="unnumbered" id="methods-to-access-new-attributes">Methods to access new attributes<a class="anchor" aria-label="anchor" href="#methods-to-access-new-attributes"></a>
 </h4>
-<p>You may also need to add specific methods to allow users to access an attribute you added to your <code>unmarkedFrame</code> subclass.</p>
+<p>You may also need to add specific methods to allow users to access an
+attribute you added to your <code>unmarkedFrame</code> subclass.</p>
 <ul>
-<li>For example, <code>getL</code> for <code>unmarkedFrameOccuCOP</code>
+<li>For example, <code>getL</code> for
+<code>unmarkedFrameOccuCOP</code>
 </li>
 </ul>
 </div>
@@ -247,39 +311,60 @@
 <div class="section level2">
 <h2 id="fitting-the-model">Fitting the model<a class="anchor" aria-label="anchor" href="#fitting-the-model"></a>
 </h2>
-<p>The fitting function can be declined into three main steps: reading the <code>unmarkedFrame</code> object, maximising the likelihood, and formatting the outputs.</p>
+<p>The fitting function can be declined into three main steps: reading
+the <code>unmarkedFrame</code> object, maximising the likelihood, and
+formatting the outputs.</p>
 <ul>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/R/occu.R#L4-L161" class="external-link">Example: the <code>occu()</code> function</a></li>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/R/gdistremoval.R#L257-L472" class="external-link">Example: the <code>gdistremoval()</code> function</a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/R/occu.R#L4-L161" class="external-link">Example:
+the <code>occu()</code> function</a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/R/gdistremoval.R#L257-L472" class="external-link">Example:
+the <code>gdistremoval()</code> function</a></li>
 </ul>
 <div class="section level3">
 <h3 id="inputs-of-the-fitting-function">Inputs of the fitting function<a class="anchor" aria-label="anchor" href="#inputs-of-the-fitting-function"></a>
 </h3>
 <ul>
-<li>R formulas for each submodel (e.g. state, detection). We have found over time it is better to have separate arguments per formula (<em>e.g.</em> the way <code>gdistremoval</code> does it) instead of a combined formula (<em>e.g.</em> the way <code>occu</code> does it).</li>
+<li>R formulas for each submodel (e.g. state, detection). We have found
+over time it is better to have separate arguments per formula
+(<em>e.g.</em> the way <code>gdistremoval</code> does it) instead of a
+combined formula (<em>e.g.</em> the way <code>occu</code> does it).</li>
 <li>
 <code>data</code> for the <code>unmarkedFrame</code>
 </li>
-<li>Parameters for <code>optim</code>: optimisation algorithm (<code>method</code>), initial parameters, and other parameters (<code>...</code>)</li>
+<li>Parameters for <code>optim</code>: optimisation algorithm
+(<code>method</code>), initial parameters, and other parameters
+(<code>...</code>)</li>
 <li>
-<code>engine</code> parameter to call one of the implemented likelihood functions</li>
-<li>Other model-specific settings, such as key functions or parameterizations to use</li>
+<code>engine</code> parameter to call one of the implemented
+likelihood functions</li>
+<li>Other model-specific settings, such as key functions or
+parameterizations to use</li>
 </ul>
 </div>
 <div class="section level3">
-<h3 id="read-the-unmarkedframe-object-write-the-getdesign-method">Read the <code>unmarkedFrame</code> object: write the <code>getDesign</code> method<a class="anchor" aria-label="anchor" href="#read-the-unmarkedframe-object-write-the-getdesign-method"></a>
+<h3 id="read-the-unmarkedframe-object-write-the-getdesign-method">Read the <code>unmarkedFrame</code> object: write the
+<code>getDesign</code> method<a class="anchor" aria-label="anchor" href="#read-the-unmarkedframe-object-write-the-getdesign-method"></a>
 </h3>
-<p>Most models have their own <code>getDesign</code> function, an S4 method. The purpose of this method is to convert the information in the <code>unmarkedFrame</code> into a format usable by the likelihood function.</p>
+<p>Most models have their own <code>getDesign</code> function, an S4
+method. The purpose of this method is to convert the information in the
+<code>unmarkedFrame</code> into a format usable by the likelihood
+function.</p>
 <ul>
-<li>It generates <strong>design matrices</strong> from formulas and components of the <code>unmarkedFrame</code>.</li>
-<li>It often also has code to handle <strong>missing values</strong>, such as by dropping sites that don’t have measurements, or giving the user warnings if covariates are missing, etc.</li>
+<li>It generates <strong>design matrices</strong> from formulas and
+components of the <code>unmarkedFrame</code>.</li>
+<li>It often also has code to handle <strong>missing values</strong>,
+such as by dropping sites that don’t have measurements, or giving the
+user warnings if covariates are missing, etc.</li>
 </ul>
-<p>Writing the <code>getDesign</code> method is frequently the most tedious and difficult part of the work adding a new function.</p>
+<p>Writing the <code>getDesign</code> method is frequently the most
+tedious and difficult part of the work adding a new function.</p>
 <ul>
 <li>
-<a href="https://github.com/rbchan/unmarked/blob/master/R/getDesign.R#L10-L153" class="external-link">Example for <code>occu</code></a>, as used for <code>occu</code>
+<a href="https://github.com/biodiverse/unmarked/blob/master/R/getDesign.R#L10-L153" class="external-link">Example
+for <code>occu</code></a>, as used for <code>occu</code>
 </li>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/R/gdistremoval.R#L177-L253" class="external-link">Example for <code>gdistremoval</code></a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/R/gdistremoval.R#L177-L253" class="external-link">Example
+for <code>gdistremoval</code></a></li>
 </ul>
 </div>
 <div class="section level3">
@@ -287,30 +372,58 @@
 </h3>
 <ul>
 <li>
-<strong>Inputs</strong>: a vector of parameter values, the response variable, design matrices, and other settings/required data</li>
+<strong>Inputs</strong>: a vector of parameter values, the response
+variable, design matrices, and other settings/required data</li>
 <li>
-<strong>Outputs</strong>: a numeric, the negative log-likelihood</li>
-<li>Should be written so it can be used with the <code><a href="https://rdrr.io/r/stats/optim.html" class="external-link">optim()</a></code> function</li>
-<li>Models can have three likelihood functions : coded in R, in C++ and with TMB (<em>which is technically in C++ too</em>). Users can specify which likelihood function to use in the <code>engine</code> argument of the fitting function.</li>
+<strong>Outputs</strong>: a numeric, the negative
+log-likelihood</li>
+<li>Should be written so it can be used with the <code><a href="https://rdrr.io/r/stats/optim.html" class="external-link">optim()</a></code>
+function</li>
+<li>Models can have three likelihood functions : coded in R, in C++ and
+with TMB (<em>which is technically in C++ too</em>). Users can specify
+which likelihood function to use in the <code>engine</code> argument of
+the fitting function.</li>
 </ul>
 <div class="section level4">
 <h4 id="the-r-likelihood-function-easily-understandable">The R likelihood function: easily understandable<a class="anchor" aria-label="anchor" href="#the-r-likelihood-function-easily-understandable"></a>
 </h4>
-<p>If you are mainly used to coding in R, you should probably start here. If users want to dig deeper into the likelihood of a model, it may be useful for them to be able to read the R code to calculate likelihood, as they may not be familiar with other languages. This likelihood function can be used only for <strong>fixed-effects models</strong>.</p>
+<p>If you are mainly used to coding in R, you should probably start
+here. If users want to dig deeper into the likelihood of a model, it may
+be useful for them to be able to read the R code to calculate
+likelihood, as they may not be familiar with other languages. This
+likelihood function can be used only for <strong>fixed-effects
+models</strong>.</p>
 <ul>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/R/occu.R#L65-L74" class="external-link">Example for <code>occu</code></a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/R/occu.R#L65-L74" class="external-link">Example
+for <code>occu</code></a></li>
 <li>
-<code>gdistremoval</code> doesn’t have an R version of the likelihood function</li>
+<code>gdistremoval</code> doesn’t have an R version of the
+likelihood function</li>
 </ul>
 </div>
 <div class="section level4">
 <h4 id="the-c-likelihood-function-faster">The C++ likelihood function: faster<a class="anchor" aria-label="anchor" href="#the-c-likelihood-function-faster"></a>
 </h4>
-<p>The C++ likelihood function is essentially a C++ version of the R likelihood function, also designed exclusively for <strong>fixed-effects models</strong>. This function uses the <code>RcppArmadillo</code> R package, <a href="https://github.com/RcppCore/RcppArmadillo" class="external-link">presented here</a>. In the C++ code, you can use functions of the <code>Armadillo</code> C++ library, <a href="https://arma.sourceforge.net/docs.html" class="external-link">documented here</a>.</p>
-<p>Your C++ function should be in a <code>.cpp</code> file in the <code>./src/</code> folder of the package. You do not need to write a header file (<code>.hpp</code>), nor do you need to compile the code by yourself as it is all handled by the <code>RcppArmadillo</code> package. To test if your C++ function runs and gives you the expected result, you can compile and load the function with <code>Rcpp::sourceCpp(./src/nll_yourmodel.cpp)</code>, and then use it like you would use a R function: <code>nll_yourmodel(params=params, arg1=arg1)</code>.</p>
+<p>The C++ likelihood function is essentially a C++ version of the R
+likelihood function, also designed exclusively for <strong>fixed-effects
+models</strong>. This function uses the <code>RcppArmadillo</code> R
+package, <a href="https://github.com/RcppCore/RcppArmadillo" class="external-link">presented
+here</a>. In the C++ code, you can use functions of the
+<code>Armadillo</code> C++ library, <a href="https://arma.sourceforge.net/docs.html" class="external-link">documented here</a>.</p>
+<p>Your C++ function should be in a <code>.cpp</code> file in the
+<code>./src/</code> folder of the package. You do not need to write a
+header file (<code>.hpp</code>), nor do you need to compile the code by
+yourself as it is all handled by the <code>RcppArmadillo</code> package.
+To test if your C++ function runs and gives you the expected result, you
+can compile and load the function with
+<code>Rcpp::sourceCpp(./src/nll_yourmodel.cpp)</code>, and then use it
+like you would use a R function:
+<code>nll_yourmodel(params=params, arg1=arg1)</code>.</p>
 <ul>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/src/nll_occu.cpp" class="external-link">Example for <code>occu</code></a></li>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/src/nll_gdistremoval.cpp" class="external-link">Example for <code>gdistremoval</code></a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/src/nll_occu.cpp" class="external-link">Example
+for <code>occu</code></a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/src/nll_gdistremoval.cpp" class="external-link">Example
+for <code>gdistremoval</code></a></li>
 </ul>
 </div>
 <div class="section level4">
@@ -320,7 +433,8 @@
 <p>#TODO</p>
 </blockquote>
 <ul>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/src/TMB/tmb_gdistremoval.hpp" class="external-link">Example for <code>gdistremoval</code></a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/src/TMB/tmb_gdistremoval.hpp" class="external-link">Example
+for <code>gdistremoval</code></a></li>
 </ul>
 </div>
 </div>
@@ -331,26 +445,45 @@
 <h4 id="unmarkedestimate-objects-per-submodel">
 <code>unmarkedEstimate</code> objects per submodel<a class="anchor" aria-label="anchor" href="#unmarkedestimate-objects-per-submodel"></a>
 </h4>
-<p>Outputs from <code>optim</code> should be organized unto <code>unmarkedEstimate</code> (S4) objects, with one <code>unmarkedEstimate</code> per submodel (<em>e.g.</em> state, detection). These objects include the parameter estimates and other information about link functions etc.</p>
-<p>The <code>unmarkedEstimate</code> class is defined <a href="https://github.com/rbchan/unmarked/blob/master/R/unmarkedEstimate.R#L5-L26" class="external-link">here</a> in the <code>unmarkedEstimate.R</code> file, and the <code>unmarkedEstimate</code> function is defined <a href="https://github.com/rbchan/unmarked/blob/master/R/unmarkedEstimate.R#L86-L100" class="external-link">here</a>, and is used to create new <code>unmarkedEstimate</code> objects. You normally will not need to create <code>unmarkedEstimate</code> subclass.</p>
+<p>Outputs from <code>optim</code> should be organized unto
+<code>unmarkedEstimate</code> (S4) objects, with one
+<code>unmarkedEstimate</code> per submodel (<em>e.g.</em> state,
+detection). These objects include the parameter estimates and other
+information about link functions etc.</p>
+<p>The <code>unmarkedEstimate</code> class is defined <a href="https://github.com/biodiverse/unmarked/blob/master/R/unmarkedEstimate.R#L5-L26" class="external-link">here</a>
+in the <code>unmarkedEstimate.R</code> file, and the
+<code>unmarkedEstimate</code> function is defined <a href="https://github.com/biodiverse/unmarked/blob/master/R/unmarkedEstimate.R#L86-L100" class="external-link">here</a>,
+and is used to create new <code>unmarkedEstimate</code> objects. You
+normally will not need to create <code>unmarkedEstimate</code>
+subclass.</p>
 <ul>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/R/occu.R#L132-L139" class="external-link">Example for the state estimate for <code>occu</code></a></li>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/R/gdistremoval.R#L429-L431C72" class="external-link">Example for the lambda estimate for <code>gdistremoval</code></a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/R/occu.R#L132-L139" class="external-link">Example
+for the state estimate for <code>occu</code></a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/R/gdistremoval.R#L429-L431C72" class="external-link">Example
+for the lambda estimate for <code>gdistremoval</code></a></li>
 </ul>
 </div>
 <div class="section level4">
 <h4 id="design-the-unmarkedfit-object">Design the <code>unmarkedFit</code> object<a class="anchor" aria-label="anchor" href="#design-the-unmarkedfit-object"></a>
 </h4>
-<p>You’ll need to create a new <code>unmarkedFit</code> subclass for your model. The main component of <code>unmarkedFit</code> objects is a list of the <code>unmarkedEstimates</code> described above.</p>
+<p>You’ll need to create a new <code>unmarkedFit</code> subclass for
+your model. The main component of <code>unmarkedFit</code> objects is a
+list of the <code>unmarkedEstimates</code> described above.</p>
 <ul>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/R/unmarkedFit.R#L1-L14" class="external-link">Definition of the <code>unmarkedFit</code> mother class</a></li>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/R/unmarkedFit.R#L68-L70" class="external-link">Example of the <code>unmarkedFitOccu</code> subclass definition</a></li>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/R/gdistremoval.R#L255" class="external-link">Example of the <code>unmarkedFitGDR</code> subclass definition</a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/R/unmarkedFit.R#L1-L14" class="external-link">Definition
+of the <code>unmarkedFit</code> mother class</a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/R/unmarkedFit.R#L68-L70" class="external-link">Example
+of the <code>unmarkedFitOccu</code> subclass definition</a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/R/gdistremoval.R#L255" class="external-link">Example
+of the <code>unmarkedFitGDR</code> subclass definition</a></li>
 </ul>
-<p>After you defined your <code>unmarkedFit</code> subclass, you can create the object in your fitting function.</p>
+<p>After you defined your <code>unmarkedFit</code> subclass, you can
+create the object in your fitting function.</p>
 <ul>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/R/occu.R#L153-L158" class="external-link">Example of the <code>unmarkedFitOccu</code> object creation</a></li>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/R/gdistremoval.R#L466-L470" class="external-link">Example of the <code>unmarkedFitGDR</code> object creation</a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/R/occu.R#L153-L158" class="external-link">Example
+of the <code>unmarkedFitOccu</code> object creation</a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/R/gdistremoval.R#L466-L470" class="external-link">Example
+of the <code>unmarkedFitGDR</code> object creation</a></li>
 </ul>
 <p>The fitting function return this <code>unmarkedFit</code> object.</p>
 </div>
@@ -362,46 +495,75 @@
 <li>Simulate some data using your model</li>
 <li>Construct the <code>unmarkedFrame</code>
 </li>
-<li>Provide formulas, <code>unmarkedFrame</code>, other options to your draft fitting function</li>
+<li>Provide formulas, <code>unmarkedFrame</code>, other options to your
+draft fitting function</li>
 <li>Process them with <code>getDesign</code>
 </li>
-<li>Pass results from <code>getDesign</code> as inputs to your likelihood function</li>
+<li>Pass results from <code>getDesign</code> as inputs to your
+likelihood function</li>
 <li>Optimize the likelihood function</li>
 <li>Check the resulting parameter estimates for accuracy</li>
 </ul>
 </div>
 </div>
 <div class="section level2">
-<h2 id="write-the-methods-associated-with-the-unmarkedfit-object">Write the methods associated with the <code>unmarkedFit</code> object<a class="anchor" aria-label="anchor" href="#write-the-methods-associated-with-the-unmarkedfit-object"></a>
+<h2 id="write-the-methods-associated-with-the-unmarkedfit-object">Write the methods associated with the <code>unmarkedFit</code>
+object<a class="anchor" aria-label="anchor" href="#write-the-methods-associated-with-the-unmarkedfit-object"></a>
 </h2>
-<p>Develop methods specific to your <code>unmarkedFit</code> type for operating on the output of your model. Like for the methods associated with an <code>unmarkedFrame</code> object <a href="#methods-unmarkedFrame">above</a>, you probably will not have to re-write all of them, but you should test them to see if they work. All the methods associated with <code>unmarkedFit</code> objects are listed in the <a href="https://rbchan.github.io/unmarked/reference/unmarkedFit-class.html" class="external-link"><code>unmarkedFit</code> class documentation</a> accessible with <code><a href="../reference/unmarkedFit-class.html">help("unmarkedFit-class")</a></code>.</p>
+<p>Develop methods specific to your <code>unmarkedFit</code> type for
+operating on the output of your model. Like for the methods associated
+with an <code>unmarkedFrame</code> object <a href="#methods-unmarkedFrame">above</a>, you probably will not have to
+re-write all of them, but you should test them to see if they work. All
+the methods associated with <code>unmarkedFit</code> objects are listed
+in the <a href="https://biodiverse.github.io/unmarked/reference/unmarkedFit-class.html" class="external-link"><code>unmarkedFit</code>
+class documentation</a> accessible with
+<code><a href="../reference/unmarkedFit-class.html">help("unmarkedFit-class")</a></code>.</p>
 <div class="section level4">
 <h4 class="unnumbered" id="specific-methods-1">Specific methods<a class="anchor" aria-label="anchor" href="#specific-methods-1"></a>
 </h4>
-<p>Those are methods you will want to rewrite, adjusting them for your model.</p>
+<p>Those are methods you will want to rewrite, adjusting them for your
+model.</p>
 <div class="section level5">
 <h5 class="unnumbered" id="getp">
 <code>getP</code><a class="anchor" aria-label="anchor" href="#getp"></a>
 </h5>
-<p>The <code>getP</code> method (<a href="https://github.com/rbchan/unmarked/blob/master/R/unmarkedFit.R#L1475-L1492" class="external-link">defined here</a>) “back-transforms” the detection parameter (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math> the detection probability or <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>λ</mi><annotation encoding="application/x-tex">\lambda</annotation></semantics></math> the detection rate, depending on the model). It returns a matrix of the estimated detection parameters. It is called by several other methods that are useful to extract information from the <code>unmarkedFit</code> object.</p>
+<p>The <code>getP</code> method (<a href="https://github.com/biodiverse/unmarked/blob/master/R/unmarkedFit.R#L1475-L1492" class="external-link">defined
+here</a>) “back-transforms” the detection parameter
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>
+the detection probability or
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>λ</mi><annotation encoding="application/x-tex">\lambda</annotation></semantics></math>
+the detection rate, depending on the model). It returns a matrix of the
+estimated detection parameters. It is called by several other methods
+that are useful to extract information from the <code>unmarkedFit</code>
+object.</p>
 <ul>
-<li>For <code>occu</code>, the generic method for <code>unmarkedFit</code> objects is called.</li>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/R/gdistremoval.R#L476-L537" class="external-link">Example for <code>gdistremoval</code></a></li>
+<li>For <code>occu</code>, the generic method for
+<code>unmarkedFit</code> objects is called.</li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/R/gdistremoval.R#L476-L537" class="external-link">Example
+for <code>gdistremoval</code></a></li>
 </ul>
 </div>
 <div class="section level5">
 <h5 class="unnumbered" id="simulate">
 <code>simulate</code><a class="anchor" aria-label="anchor" href="#simulate"></a>
 </h5>
-<p>The generic <code>simulate</code> method (<a href="https://github.com/rbchan/unmarked/blob/master/R/simulate.R#L62C33-L86" class="external-link">defined here</a>) calls the <code>simulate_fit</code> method that depends on the class of the <code>unmarkedFit</code> object, which depends on the model.</p>
+<p>The generic <code>simulate</code> method (<a href="https://github.com/biodiverse/unmarked/blob/master/R/simulate.R#L62C33-L86" class="external-link">defined
+here</a>) calls the <code>simulate_fit</code> method that depends on the
+class of the <code>unmarkedFit</code> object, which depends on the
+model.</p>
 <ul>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/R/simulate.R#L158-L165" class="external-link">Example of <code>simulate_fit</code> method for <code>occu</code></a></li>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/R/simulate.R#L536-L558" class="external-link">Example of <code>simulate_fit</code> method for <code>gdistremoval</code></a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/R/simulate.R#L158-L165" class="external-link">Example
+of <code>simulate_fit</code> method for <code>occu</code></a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/R/simulate.R#L536-L558" class="external-link">Example
+of <code>simulate_fit</code> method for
+<code>gdistremoval</code></a></li>
 </ul>
 <p>The <code>simulate</code> method can be used in two ways:</p>
 <ul>
-<li>to generate datasets from scratch (<a href="https://rbchan.github.io/unmarked/articles/simulate.html" class="external-link">see the “Simulating datasets” vignette</a>)</li>
-<li>to generate datasets from a fitted model (with <code>simulate(object = my_unmarkedFit_object)</code>).</li>
+<li>to generate datasets from scratch (<a href="https://biodiverse.github.io/unmarked/articles/simulate.html" class="external-link">see
+the “Simulating datasets” vignette</a>)</li>
+<li>to generate datasets from a fitted model (with
+<code>simulate(object = my_unmarkedFit_object)</code>).</li>
 </ul>
 <p>You should test both ways with your model.</p>
 </div>
@@ -409,17 +571,23 @@
 <h5 class="unnumbered" id="plot">
 <code>plot</code><a class="anchor" aria-label="anchor" href="#plot"></a>
 </h5>
-<p>This method plots the results of your model. The generic <code>plot</code> method for <code>unmarkedFit</code> (<a href="https://github.com/rbchan/unmarked/blob/master/R/unmarkedFit.R#L1346-L1352" class="external-link">defined here</a>) plot the residuals of the model.</p>
+<p>This method plots the results of your model. The generic
+<code>plot</code> method for <code>unmarkedFit</code> (<a href="https://github.com/biodiverse/unmarked/blob/master/R/unmarkedFit.R#L1346-L1352" class="external-link">defined
+here</a>) plot the residuals of the model.</p>
 <ul>
-<li>For <code>occu</code>, the generic method for <code>unmarkedFit</code> objects is called.</li>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/R/gdistremoval.R#L837-L853" class="external-link">Example for <code>gdistremoval</code></a></li>
+<li>For <code>occu</code>, the generic method for
+<code>unmarkedFit</code> objects is called.</li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/R/gdistremoval.R#L837-L853" class="external-link">Example
+for <code>gdistremoval</code></a></li>
 </ul>
 </div>
 </div>
 <div class="section level4">
 <h4 class="unnumbered" id="generic-methods-1">Generic methods<a class="anchor" aria-label="anchor" href="#generic-methods-1"></a>
 </h4>
-<p>Here are methods that you should test but probably will not have to rewrite. They are defined in the <a href="https://github.com/rbchan/unmarked/blob/master/R/unmarkedFit.R" class="external-link"><code>unmarkedFit.R</code></a> file, for the <code>unmarkedFit</code> mother class.</p>
+<p>Here are methods that you should test but probably will not have to
+rewrite. They are defined in the <a href="https://github.com/biodiverse/unmarked/blob/master/R/unmarkedFit.R" class="external-link"><code>unmarkedFit.R</code></a>
+file, for the <code>unmarkedFit</code> mother class.</p>
 <ul>
 <li><code>[</code></li>
 <li><code>backTransform</code></li>
@@ -427,36 +595,35 @@
 <li><code>confint</code></li>
 <li><code>fitted</code></li>
 <li><code>getData</code></li>
-<li><code>hessian</code></li>
 <li><code>linearComb</code></li>
-<li><code>mle</code></li>
 <li><code>names</code></li>
-<li><code>nllFun</code></li>
 <li><code>parboot</code></li>
 <li><code>nonparboot</code></li>
 <li><code>predict</code></li>
 <li><code>profile</code></li>
 <li><code>residuals</code></li>
-<li><code>sampleSize</code></li>
 <li><code>SE</code></li>
 <li><code>show</code></li>
 <li><code>summary</code></li>
 <li><code>update</code></li>
 <li><code>vcov</code></li>
 <li><code>logLik</code></li>
-<li><code>LRT</code></li>
 </ul>
 </div>
 <div class="section level4">
 <h4 class="unnumbered" id="methods-to-access-new-attributes-1">Methods to access new attributes<a class="anchor" aria-label="anchor" href="#methods-to-access-new-attributes-1"></a>
 </h4>
-<p>You may also need to add specific methods to allow users to access an attribute you added to your <code>unmarkedFit</code> subclass.</p>
-<p>For example, some methods are relevant for some type of models only:</p>
+<p>You may also need to add specific methods to allow users to access an
+attribute you added to your <code>unmarkedFit</code> subclass.</p>
+<p>For example, some methods are relevant for some type of models
+only:</p>
 <ul>
 <li>
-<code>getFP</code> for occupancy models that account for false positives</li>
+<code>getFP</code> for occupancy models that account for false
+positives</li>
 <li>
-<code>getB</code> for occupancy models that account for false positives</li>
+<code>getB</code> for occupancy models that account for false
+positives</li>
 <li>
 <code>smoothed</code> for colonization-extinction models</li>
 <li>
@@ -468,56 +635,78 @@
 <h2 id="update-the-namespace-file">Update the <code>NAMESPACE</code> file<a class="anchor" aria-label="anchor" href="#update-the-namespace-file"></a>
 </h2>
 <ul>
-<li>Add your fitting function to the functions export <a href="https://github.com/rbchan/unmarked/blob/master/NAMESPACE#L23-L27" class="external-link">here</a>
+<li>Add your fitting function to the functions export <a href="https://github.com/biodiverse/unmarked/blob/master/NAMESPACE#L23-L27" class="external-link">here</a>
 </li>
-<li>Add the new subclasses (<code>unmarkedFrame</code>, <code>unmarkedFit</code>) to the classes export <a href="https://github.com/rbchan/unmarked/blob/master/NAMESPACE#L31-L43" class="external-link">here</a>
+<li>Add the new subclasses (<code>unmarkedFrame</code>,
+<code>unmarkedFit</code>) to the classes export <a href="https://github.com/biodiverse/unmarked/blob/master/NAMESPACE#L31-L43" class="external-link">here</a>
 </li>
-<li>Add the function you wrote to create your <code>unmarkedFrame</code> object to the functions export <a href="https://github.com/rbchan/unmarked/blob/master/NAMESPACE#L58-L64" class="external-link">here</a>
+<li>Add the function you wrote to create your <code>unmarkedFrame</code>
+object to the functions export <a href="https://github.com/biodiverse/unmarked/blob/master/NAMESPACE#L58-L64" class="external-link">here</a>
 </li>
-<li>If you wrote new methods, for example to <a href="#Methods-to-access-new-attributes">access new attributes for objects of a subclass</a>, add them to the methods export <a href="https://github.com/rbchan/unmarked/blob/master/NAMESPACE#L45-L54" class="external-link">here</a>
+<li>If you wrote new methods, for example to <a href="#Methods-to-access-new-attributes">access new attributes for
+objects of a subclass</a>, add them to the methods export <a href="https://github.com/biodiverse/unmarked/blob/master/NAMESPACE#L45-L54" class="external-link">here</a>
 </li>
-<li>If required, export other functions you created that may be called by users of the package</li>
+<li>If required, export other functions you created that may be called
+by users of the package</li>
 </ul>
 </div>
 <div class="section level2">
 <h2 id="write-tests">Write tests<a class="anchor" aria-label="anchor" href="#write-tests"></a>
 </h2>
-<p>Using <code>testthat</code> package, you need to write tests for your <code>unmarkedFrame</code> function, your fitting function, and methods described above. The tests should be fast, but cover all the key configurations.</p>
-<p>Write your tests in the <code>./tests/testthat/</code> folder, creating a R file for your model. If you are using RStudio, you can run the tests of your file easily by clicking on the “Run tests” button. You can run all the tests by clicking on the “Test” button in the Build pane.</p>
+<p>Using <code>testthat</code> package, you need to write tests for your
+<code>unmarkedFrame</code> function, your fitting function, and methods
+described above. The tests should be fast, but cover all the key
+configurations.</p>
+<p>Write your tests in the <code>./tests/testthat/</code> folder,
+creating a R file for your model. If you are using RStudio, you can run
+the tests of your file easily by clicking on the “Run tests” button. You
+can run all the tests by clicking on the “Test” button in the Build
+pane.</p>
 <ul>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/tests/testthat/test_occu.R" class="external-link">Example for <code>occu</code></a></li>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/tests/testthat/test_gdistremoval.R" class="external-link">Example for <code>gdistremoval</code></a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/tests/testthat/test_occu.R" class="external-link">Example
+for <code>occu</code></a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/tests/testthat/test_gdistremoval.R" class="external-link">Example
+for <code>gdistremoval</code></a></li>
 </ul>
 </div>
 <div class="section level2">
 <h2 id="write-documentation">Write documentation<a class="anchor" aria-label="anchor" href="#write-documentation"></a>
 </h2>
-<p>You need to write the documentation files for the new classes and functions you added. Documentation <code>.Rd</code> files are stored in the <code>man</code> folder. <a href="https://r-pkgs.org/man.html" class="external-link">Here</a> is a documentation on how to format your documentation.</p>
+<p>You need to write the documentation files for the new classes and
+functions you added. Documentation <code>.Rd</code> files are stored in
+the <code>man</code> folder. <a href="https://r-pkgs.org/man.html" class="external-link">Here</a> is a documentation on how to
+format your documentation.</p>
 <ul>
 <li>The most important, your fitting function!
 <ul>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/man/occu.Rd" class="external-link">Example for <code>occu</code></a></li>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/man/gdistremoval.Rd" class="external-link">Example for <code>gdistremoval</code></a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/man/occu.Rd" class="external-link">Example
+for <code>occu</code></a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/man/gdistremoval.Rd" class="external-link">Example
+for <code>gdistremoval</code></a></li>
 </ul>
 </li>
 <li>Your <code>unmarkedFrame</code> constructor function
 <ul>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/man/occu.Rd" class="external-link">Example for <code>occu</code></a></li>
-<li><a href="https://github.com/rbchan/unmarked/blob/master/man/gdistremoval.Rd" class="external-link">Example for <code>gdistremoval</code></a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/man/occu.Rd" class="external-link">Example
+for <code>occu</code></a></li>
+<li><a href="https://github.com/biodiverse/unmarked/blob/master/man/gdistremoval.Rd" class="external-link">Example
+for <code>gdistremoval</code></a></li>
 </ul>
 </li>
-<li>Add your fitting function to the reference of all functions to <a href="https://github.com/rbchan/unmarked/blob/master/_pkgdown.yml" class="external-link">_pkgdown.yml</a>
+<li>Add your fitting function to the reference of all functions to <a href="https://github.com/biodiverse/unmarked/blob/master/_pkgdown.yml" class="external-link">_pkgdown.yml</a>
 </li>
-<li>Add the specific “type” for the predict methods of your <code>unmarkedFit</code> class to <a href="https://github.com/rbchan/unmarked/blob/master/man/predict-methods.Rd" class="external-link">predict-methods.Rd</a>
-</li>
-<li>Add your <code>getP</code> method for the signature of you <code>unmarkedFitList</code> object in <a href="https://github.com/rbchan/unmarked/blob/master/man/getP-methods.Rd" class="external-link">getP-methods.Rd</a>.</li>
 </ul>
-<p>Depending on how much you had to add, you may also need to update existing files:</p>
+<p>Depending on how much you had to add, you may also need to update
+existing files:</p>
 <ul>
-<li>If you added specific methods for your new <code>unmarkedFrame</code> class: add them to <a href="https://github.com/rbchan/unmarked/blob/master/man/unmarkedFrame-class.Rd" class="external-link">unmarkedFrame-class.Rd</a>
+<li>If you added specific methods for your new
+<code>unmarkedFrame</code> class: add them to <a href="https://github.com/biodiverse/unmarked/blob/master/man/unmarkedFrame-class.Rd" class="external-link">unmarkedFrame-class.Rd</a>
 </li>
-<li>If you added specific methods for your new <code>unmarkedFit</code> class: add them to <a href="https://github.com/rbchan/unmarked/blob/master/man/unmarkedFit-class.Rd" class="external-link">unmarkedFit-class.Rd</a>. The same goes for your new <code>unmarkedFitList</code> class in <a href="https://github.com/rbchan/unmarked/blob/master/man/unmarkedFitList-class.rd" class="external-link">unmarkedFitList-class.Rd</a>.</li>
-<li>Add any specific function, method or class you created. For example, specific distance-sampling functions are documented in <a href="https://github.com/rbchan/unmarked/blob/master/man/detFuns.Rd" class="external-link">detFuns.Rd</a>.</li>
+<li>If you added specific methods for your new <code>unmarkedFit</code>
+class: add them to <a href="https://github.com/biodiverse/unmarked/blob/master/man/unmarkedFit-class.Rd" class="external-link">unmarkedFit-class.Rd</a>.
+The same goes for your new <code>unmarkedFitList</code> class in <a href="https://github.com/biodiverse/unmarked/blob/master/man/unmarkedFitList-class.rd" class="external-link">unmarkedFitList-class.Rd</a>.</li>
+<li>Add any specific function, method or class you created. For example,
+specific distance-sampling functions are documented in <a href="https://github.com/biodiverse/unmarked/blob/master/man/detFuns.Rd" class="external-link">detFuns.Rd</a>.</li>
 </ul>
 </div>
 <div class="section level2">
@@ -546,7 +735,7 @@
 
 <div class="pkgdown">
   <p></p>
-<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.0.</p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
 </div>
 
       </footer>
