@@ -3,13 +3,17 @@
 
 occu <- function(formula, data, knownOcc = numeric(0),
                  linkPsi = c("logit", "cloglog"), starts, method = "BFGS",
-                 se = TRUE, engine = c("C", "R", "TMB"), threads=1, ...) {
+                 se = TRUE, engine = c("C", "R", "TMB", "spOccupancy"), 
+                 threads=1, ...) {
 
   # Check arguments------------------------------------------------------------
   if(!is(data, "unmarkedFrameOccu"))
     stop("Data is not an unmarkedFrameOccu object.")
 
-  engine <- match.arg(engine, c("C", "R", "TMB"))
+  engine <- match.arg(engine, c("C", "R", "TMB", "spOccupancy"))
+  
+  if(engine == "spOccupancy") return(fit_spOcc(data, formula, ...))
+
   if(any(sapply(split_formula(formula), has_random))) engine <- "TMB"
   if(length(knownOcc)>0 & engine == "TMB"){
     stop("TMB engine does not support knownOcc argument", call.=FALSE)
