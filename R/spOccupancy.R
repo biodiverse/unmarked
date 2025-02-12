@@ -22,6 +22,12 @@ setMethod("fit_spOcc", "unmarkedFrameOccu",
   data <- list(y = getY(umf), occ.covs = siteCovs(umf),
                det.covs = oc)
 
+  func <- quote(PGOcc)
+  if(!is.null(umf@coordinates)){
+    func <- quote(spPGOcc)
+    data$coords <- umf@coordinates
+  }
+
   forms <- split_formula(formula)
   
   #PGOcc(occ.formula = forms[[2]], det.formula = forms[[1]],
@@ -29,9 +35,9 @@ setMethod("fit_spOcc", "unmarkedFrameOccu",
 
   # Substitute version results in cleaner printed call
   cl <- substitute(
-    spOccupancy::PGOcc(occ.formula = OCCFORM, det.formula = DETFORM,
+    spOccupancy::FUNC(occ.formula = OCCFORM, det.formula = DETFORM,
         data = data, ...),
-    list(OCCFORM = forms[[2]], DETFORM = forms[[1]]))
+    list(FUNC = func, OCCFORM = forms[[2]], DETFORM = forms[[1]]))
   
   # TODO: Allow outputing call and data instead of running?
   eval(cl)

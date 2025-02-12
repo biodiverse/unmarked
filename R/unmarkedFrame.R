@@ -25,7 +25,8 @@ setClass("unmarkedFrame",
     representation(y = "matrix",
         obsCovs = "optionalDataFrame",
         siteCovs = "optionalDataFrame",
-        obsToY = "optionalMatrix"),
+        obsToY = "optionalMatrix",
+        coordinates = "optionalMatrix"),
     validity = validunmarkedFrame)
 
 ## a class for multi-season data
@@ -181,7 +182,7 @@ covsToDF <- function(covs, name, obsNum, numSites){
 }
 
 # Constructor for unmarkedFrames.
-unmarkedFrame <- function(y, siteCovs = NULL, obsCovs = NULL, obsToY) {
+unmarkedFrame <- function(y, siteCovs = NULL, obsCovs = NULL, obsToY, coordinates = NULL) {
     if(!missing(obsToY)){
         obsNum <- nrow(obsToY)
     } else {
@@ -197,8 +198,17 @@ unmarkedFrame <- function(y, siteCovs = NULL, obsCovs = NULL, obsToY) {
         y <- as.matrix(y)
     if(missing(obsToY)) obsToY <- NULL
 
+    if(!is.null(coordinates)){
+      if(nrow(coordinates) != nrow(y)){
+        stop("Coordinates should have same number of rows as y", call.=FALSE)
+      }
+      if(ncol(coordinates) != 2){
+        stop("Coordinates should have two columns, easting and northing", call.=FALSE)
+      }
+    }
+
     umf <- new("unmarkedFrame", y = y, obsCovs = obsCovs, siteCovs = siteCovs,
-        obsToY = obsToY)
+        obsToY = obsToY, coordinates = coordinates)
     umf <- umf_to_factor(umf)
     return(umf)
 }
@@ -226,10 +236,10 @@ unmarkedFrameDS <- function(y, siteCovs = NULL, dist.breaks, tlength,
 
 
 
-unmarkedFrameOccu <- function(y, siteCovs = NULL, obsCovs = NULL)
+unmarkedFrameOccu <- function(y, siteCovs = NULL, obsCovs = NULL, coordinates = NULL)
 {
     J <- ncol(y)
-    umf <- unmarkedFrame(y, siteCovs, obsCovs, obsToY = diag(J))
+    umf <- unmarkedFrame(y, siteCovs, obsCovs, obsToY = diag(J), coordinates = coordinates)
     umf <- as(umf, "unmarkedFrameOccu")
     umf
 }
