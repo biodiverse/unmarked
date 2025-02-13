@@ -354,9 +354,14 @@ safeDeparse <- function(inp) {
   paste(sapply(out, trimws), collapse=" ")
 }
 
-occuComm <- function(formula, data, starts, method="BFGS", se=TRUE, ...){
+occuComm <- function(formula, data, starts, method="BFGS", se=TRUE, 
+                     engine=c("TMB", "spOccupancy"), ...){
   newform <- multispeciesFormula(formula, data@speciesCovs)
   newumf <- process_multispecies_umf(data, newform$covs)
+
+  engine <- match.arg(engine)
+  if(engine == "spOccupancy") return(fit_spOcc(data, formula, ...))
+
   if(missing(starts)) starts <- NULL
   out <- occu(newform$formula, data=newumf, starts = starts, method = method, se = se, ...)
   out@call <- match.call()
