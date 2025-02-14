@@ -60,7 +60,7 @@ export(csvToUMF, formatLong, formatWide, formatMult, formatDistData)
 # Misc
 export(imputeMissing, gxhn, gxexp, gxhaz, dxhn, dxexp, dxhaz, drhn, drexp,
     drhaz, grhn, grexp, grhaz, sight2perpdist, lambda2psi, SSE, vif, powerAnalysis,
-    shinyPower)
+    shinyPower, openmp)
 
 useDynLib("unmarked", .registration=TRUE)
 useDynLib(unmarked_TMBExports)

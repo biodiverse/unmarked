@@ -6,7 +6,8 @@ if(file.exists(paste0(tmb_name, ".cpp"))) {
   TMB::compile(file = paste0(tmb_name, ".cpp"),
                #PKG_CXXFLAGS = tmb_flags,
                #openmp = TRUE,
-               openmp = FALSE,
+               openmp = TRUE,
+               framework = "TMBad",
                safebounds = FALSE, safeunload = FALSE)
   file.copy(from = paste0(tmb_name, .Platform$dynlib.ext),
             to = "..", overwrite = TRUE)

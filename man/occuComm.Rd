@@ -111,6 +111,11 @@ umf <- unmarkedFrameOccuComm(ylist, siteCovs=sc)
 # Fit model with one covariate on occupancy
 (fit <- occuComm(~1~x, umf))
 
+# If you have openMP and multiple cores available on your computer, you can significantly
+# speed this up
+# openmp(threads = 4)
+# (fit <- occuComm(~1~x, umf))
+
 # Look at species-specific random intercepts and slopes
 rt <- randomTerms(fit, addMean = TRUE)
 head(rt)
