@@ -75,10 +75,10 @@ setMethod("fit_spOcc", "unmarkedFrameOccuComm",
                det.covs = oc)
 
   func <- quote(msPGOcc)
-  #if(!is.null(umf@coordinates)){
-  #  func <- quote(spPGOcc)
-  #  data$coords <- umf@coordinates
-  #}
+  if(!is.null(umf@coordinates)){
+    func <- quote(spMsPGOcc)
+    data$coords <- umf@coordinates
+  }
 
   vars <- all.vars(formula)
   if(any(vars %in% names(umf@speciesCovs))){
