@@ -822,7 +822,6 @@ get_dist_prob <- function(object){
   matrix(cp, nrow=M)
 }
 
-
 # Get area for converting density to abundance in distance sampling models
 get_ds_area <- function(umf, unitsOut){
   db <- umf@dist.breaks
@@ -1039,4 +1038,8 @@ check_K_multinomial <- function(K, K_adjust = 0, y, T = 1){
     Kout <- K
   }
   Kout
+}
+
+openmp <- function(threads = 1){
+  TMB::openmp(n = threads, autopar = TRUE)
 }
