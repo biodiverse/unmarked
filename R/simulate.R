@@ -4,10 +4,12 @@ setMethod("simulate", "unmarkedFrame",
   object <- y_to_zeros(object)
   fit <- get_fit(object, model, ...)
   coefs <- check_coefs(coefs, fit, quiet = quiet)
-  coefs <- generate_random_effects(coefs, fit)
-  fit <- replace_estimates(fit, coefs)
-  sims <- simulate(fit, nsim)
-  lapply(sims, function(x) replaceY(object, x))
+  lapply(1:nsim, function(i){
+    coefs <- generate_random_effects(coefs, fit)
+    fit <- replace_estimates(fit, coefs)
+    sim <- simulate(fit, nsim = 1)[[1]]
+    replaceY(object, sim)
+  })
 })
 
 setGeneric("y_to_zeros", function(object, ...){
@@ -41,8 +43,10 @@ setMethod("get_fitting_function", "unmarkedFrameOccu",
 })
 
 check_coefs <- function(coefs, fit, name = "coefs", quiet = FALSE){
-  required_subs <- names(fit@estimates@estimates)
-  required_coefs <- lapply(fit@estimates@estimates, function(x) names(x@estimates))
+  required_subs <- names(fit)
+  #required_coefs <- lapply(fit@estimates@estimates, function(x) names(x@estimates))
+  required_coefs <- lapply(names(fit), function(x) names(coef(fit[x], altNames=FALSE)))
+  names(required_coefs) <- names(fit)
 
   formulas <- sapply(names(fit), function(x) get_formula(fit, x))
 
@@ -104,7 +108,7 @@ check_coefs <- function(coefs, fit, name = "coefs", quiet = FALSE){
 }
 
 generate_random_effects <- function(coefs, fit){
-  required_subs <- names(fit@estimates@estimates)
+  required_subs <- names(fit)
   formulas <- sapply(names(fit), function(x) get_formula(fit, x))
   rand <- lapply(formulas, reformulas::findbars)
   if(!all(sapply(rand, is.null))){
@@ -144,11 +148,41 @@ generate_random_effects <- function(coefs, fit){
   coefs
 }
 
+setGeneric("coef<-", function(object, value) standardGeneric("coef<-"))
+
+setMethod("coef<-", "unmarkedEstimate", function(object, value){
+  stopifnot(length(object@estimates) == length(value))
+  object@estimates <- value
+  object
+})
+
+setMethod("coef<-", "unmarkedSubmodel", function(object, value){
+  nfix <- ntotal <- length(object@par_fixed)
+  if(has_random(object)) ntotal <- nfix + nrow(object@par_random)
+  stopifnot(length(value) == ntotal)
+  object@par_fixed[1:nfix] <- value[1:nfix]
+  if(has_random(object)){
+    object@par_random$Estimate <- value[(nfix+1):ntotal]
+  }
+  object
+})
+
+setMethod("[<-", "unmarkedFit2", function(x, i, value){
+  x@components@submodels@submodels[[i]] <- value
+  x
+})
+
+setMethod("[<-", "unmarkedFit", function(x, i, value){
+  x@estimates@estimates[[i]] <- value
+  x
+})
+
 replace_estimates <- function(object, new_ests){
-  for (i in 1:length(new_ests)){
-    est <- object@estimates@estimates[[names(new_ests)[i]]]@estimates
-    stopifnot(length(est) == length(new_ests[[i]]))
-    object@estimates@estimates[[names(new_ests)[i]]]@estimates <- new_ests[[i]]
+  for (i in names(new_ests)){
+    #est <- object@estimates@estimates[[names(new_ests)[i]]]@estimates
+    #stopifnot(length(est) == length(new_ests[[i]]))
+    #object@estimates@estimates[[names(new_ests)[i]]]@estimates <- new_ests[[i]]
+    coef(object[i]) <- new_ests[[i]]
   }
   object
 }
@@ -567,24 +601,6 @@ setMethod("simulate_internal", "unmarkedFitNmixTTD",
     simlist[[s]] <- ttd
   }
   simlist
-})
-
-
-setMethod("simulate_internal", "unmarkedFitOccu",
-  function(object, nsim){
-  p <- getP(object, na.rm = FALSE)
-  M <- nrow(p)
-  J <- ncol(p)
-  p <- as.vector(t(p))
-  psi <- predict(object, type = "state", level = NULL, na.rm = FALSE)$Predicted
-  
-  lapply(1:nsim, function(i){
-    z <- stats::rbinom(M, 1, psi)
-    z[object@knownOcc] <- 1
-    z <- rep(z, each = J)
-    yvec <- z * stats::rbinom(M*J, 1, p)
-    matrix(yvec, M, J, byrow = TRUE)
-  })
 })
 
 

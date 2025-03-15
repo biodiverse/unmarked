@@ -156,6 +156,10 @@ setMethod("get_formula", "unmarkedFit", function(object, type, ...){
   NULL
 })
 
+setMethod("get_formula", "unmarkedFit2", function(object, type, ...){
+  object[type]@formula
+})
+
 # When newdata is data.frame/raster, get original dataset
 # For use in building correct model frame
 setGeneric("get_orig_data", function(object, type, ...){

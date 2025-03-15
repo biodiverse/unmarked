@@ -16,6 +16,66 @@ setGeneric("nonparboot_internal", function(object, B, keepOldSamples){
   standardGeneric("nonparboot_internal")
 })
 
+# Select/insert bootstrap samples
+setGeneric("bootstrapSamples", function(object) standardGeneric("bootstrapSamples"))
+
+setMethod("bootstrapSamples", "unmarkedFit", function(object){
+  object@bootstrapSamples
+})
+
+setMethod("bootstrapSamples", "unmarkedFit2", function(object){
+  object@auxiliary$bootstrapSamples
+})
+
+setGeneric("bootstrapSamples<-", function(object, value){
+  standardGeneric("bootstrapSamples<-")
+})
+
+setMethod("bootstrapSamples<-", "unmarkedFit", function(object, value){
+  object@bootstrapSamples <- value
+  object
+})
+
+setMethod("bootstrapSamples<-", "unmarkedFit2", function(object, value){
+  object@auxiliary$bootstrapSamples <- value
+  object
+})
+
+# Select/insert bootstrap varcov matrix
+setGeneric("covMatBS", function(object) standardGeneric("covMatBS"))
+
+setMethod("covMatBS", "unmarkedFit", function(object){
+  object@covMatBS
+})
+
+setMethod("covMatBS", "unmarkedFit2", function(object){
+  object@auxiliary$covMatBS
+})
+
+setGeneric("covMatBS<-", function(object, value){
+  standardGeneric("covMatBS<-")
+})
+
+setMethod("covMatBS<-", "unmarkedFit", function(object, value){
+  object@covMatBS <- value
+
+  short_names <- regmatches(colnames(value), regexpr("^[^\\(]+", colnames(value)))
+  
+  for (i in 1:length(object@estimates@estimates)){
+    match_name <- object@estimates@estimates[[i]]@short.name
+    inds <- short_names == match_name
+    new_v <- value[inds, inds, drop=FALSE]
+    object@estimates@estimates[[i]]@covMatBS <- new_v
+  }
+
+  object
+})
+
+setMethod("covMatBS<-", "unmarkedFit2", function(object, value){
+  object@auxiliary$covMatBS <- value
+  object
+})
+
 setMethod("nonparboot_internal", "unmarkedFit", 
           function(object, B, keepOldSamples){
 
@@ -27,7 +87,7 @@ setMethod("nonparboot_internal", "unmarkedFit",
     finish <- FALSE
     while(!finish){
       sites <- sort(sample(1:M, M, replace=TRUE))
-      new_data <- object@data[sites,]
+      new_data <- getData(object)[sites,]
       ran <- TRUE
       tryCatch(fit <- nonparboot_update(object, data = new_data),
                error = function(e) ran <<- FALSE)
@@ -37,21 +97,12 @@ setMethod("nonparboot_internal", "unmarkedFit",
     fit
   })
 
-  if(!keepOldSamples) object@bootstrapSamples <- NULL
-  object@bootstrapSamples <- c(object@bootstrapSamples, boot_iter)
+  if(!keepOldSamples) bootstrapSamples(object) <- NULL
+  bootstrapSamples(object) <- c(bootstrapSamples(object), boot_iter)
    
-  coefs <- t(sapply(object@bootstrapSamples, coef))
+  coefs <- t(sapply(bootstrapSamples(object), coef, fixedOnly = FALSE))
   v <- stats::cov(coefs)
-  object@covMatBS <- v
-
-  short_names <- regmatches(colnames(v), regexpr("^[^\\(]+", colnames(v)))
-  
-  for (i in 1:length(object@estimates@estimates)){
-    match_name <- object@estimates@estimates[[i]]@short.name
-    inds <- short_names == match_name
-    new_v <- v[inds, inds, drop=FALSE]
-    object@estimates@estimates[[i]]@covMatBS <- new_v
-  }
+  covMatBS(object) <- v
 
   object
 })

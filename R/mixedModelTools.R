@@ -50,14 +50,10 @@ get_nrandom <- function(formula, data){
 
   col_nms <- rep(names(re$cnms), sapply(re$cnms, length))
   out <- sapply(col_nms, function(x){
-    length(unique(data[[x]]))
+    length(unique(stats::na.omit(data[[x]])))
   })
 
   as.array(out)
-}
-
-has_random <- function(formula){
-  length(reformulas::findbars(formula)) > 0
 }
 
 sigma_names <- function(formula, data){

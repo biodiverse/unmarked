@@ -273,31 +273,6 @@ setMethod("ranef_internal", "unmarkedFitDS", function(object, ...){
 })
 
 
-setMethod("ranef_internal", "unmarkedFitOccu", function(object, ...){
-    psi <- predict(object, type="state", level=NULL, na.rm=FALSE)$Predicted
-    R <- length(psi)
-    p <- getP(object)
-    z <- 0:1
-    y <- getY(getData(object))
-    y[y>1] <- 1
-    post <- array(NA, c(R,2,1))
-    colnames(post) <- z
-    for(i in 1:R) {
-        if(all(is.na(y[i,]))) next
-        f <- dbinom(z, 1, psi[i])
-        g <- rep(1, 2)
-        for(j in 1:ncol(y)) {
-            if(is.na(y[i,j]) | is.na(p[i,j]))
-                next
-            g <- g * dbinom(y[i,j], 1, z*p[i,j])
-        }
-        fudge <- f*g
-        post[i,,1] <- fudge / sum(fudge)
-    }
-    new("unmarkedRanef", post=post)
-})
-
-
 setMethod("ranef_internal", "unmarkedFitMPois", function(object, ...){
     y <- getY(getData(object))
     cp <- getP(object)

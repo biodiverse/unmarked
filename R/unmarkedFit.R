@@ -1,17 +1,20 @@
 setClass("unmarkedFit",
+  slots = c(call = "call", data = "unmarkedFrame", AIC = "numeric")
+)
+  
+
+setClass("unmarkedFitOld",
    representation(fitType = "character",
-        call = "call",
         formula = "formula",
-        data = "unmarkedFrame",
         sitesRemoved = "numeric",  # vector of indices of removed sites
         estimates = "unmarkedEstimateList",
-        AIC = "numeric",
         opt = "list",
         negLogLike = "numeric",
         nllFun = "function",
         bootstrapSamples = "optionalList",
         covMatBS = "optionalMatrix", # list of bootstrap sample fits
-        TMB = "optionalList")) #TMB output object
+        TMB = "optionalList"),
+    contains = "unmarkedFit")
 
 # ---------------------------- CHILD CLASSES ----------------------------
 
@@ -21,7 +24,7 @@ setClass("unmarkedFitDS",
         keyfun = "character",
         unitsOut = "character",
         output = "character"),
-        contains = "unmarkedFit")
+        contains = "unmarkedFitOld")
 
 
 
@@ -29,7 +32,7 @@ setClass("unmarkedFitPCount",
     representation(
         K = "numeric",
         mixture = "character"),
-    contains = "unmarkedFit")
+    contains = "unmarkedFitOld")
 
 # This class is not used directly, just used as a base for for PCO, MMO, DSO
 setClass("unmarkedFitDailMadsen",
@@ -40,7 +43,7 @@ setClass("unmarkedFitDailMadsen",
             dynamics = "character",
             immigration = "logical",
             fix = "character"),
-         contains = "unmarkedFit")
+         contains = "unmarkedFitOld")
 
 setClass("unmarkedFitPCO", contains = "unmarkedFitDailMadsen")
 
@@ -55,14 +58,14 @@ setClass("unmarkedFitDSO",
 
 setClass("unmarkedFitOccu",
     representation(knownOcc = "logical"),
-    contains = "unmarkedFit")
+    contains = "unmarkedFitOld")
 
 setClass("unmarkedFitOccuPEN",
     representation(
 	knownOcc = "logical",
 	pen.type = "character",
 	lambda = "numeric"),
-    contains = "unmarkedFit")
+    contains = "unmarkedFitOld")
 
 setClass("unmarkedFitOccuPEN_CV",
     representation(
@@ -73,7 +76,7 @@ setClass("unmarkedFitOccuPEN_CV",
 	foldAssignments = "numeric",
 	lambdaScores = "numeric",
 	chosenLambda = "numeric"),
-    contains = "unmarkedFit")
+    contains = "unmarkedFitOld")
 
 setClass("unmarkedFitOccuFP",
          representation(knownOcc = "logical",
@@ -82,13 +85,13 @@ setClass("unmarkedFitOccuFP",
             Bformula = "formula",
             stateformula = "formula",
             type = "numeric"),
-         contains = "unmarkedFit")
+         contains = "unmarkedFitOld")
 
 setClass("unmarkedFitOccuMulti",
          representation(
             detformulas = "character",
             stateformulas = "character"),
-         contains = "unmarkedFit")
+         contains = "unmarkedFitOld")
 
 setClass("unmarkedFitOccuMS",
          representation(
@@ -96,7 +99,7 @@ setClass("unmarkedFitOccuMS",
             psiformulas = "character",
             phiformulas = "character",
             parameterization = "character"),
-         contains = "unmarkedFit")
+         contains = "unmarkedFitOld")
 
 setClass("unmarkedFitOccuTTD",
     representation(
@@ -104,23 +107,23 @@ setClass("unmarkedFitOccuTTD",
         gamformula = "formula",
         epsformula = "formula",
         detformula = "formula"),
-    contains = "unmarkedFit")
+    contains = "unmarkedFitOld")
 
 setClass("unmarkedFitNmixTTD",
          representation(
            stateformula = "formula",
            detformula = "formula",
            K = "numeric"),
-         contains = "unmarkedFit")
+         contains = "unmarkedFitOld")
 
 setClass("unmarkedFitMPois",
-    contains = "unmarkedFit")
+    contains = "unmarkedFitOld")
 
 
 setClass("unmarkedFitOccuRN",
     representation(
       K = "numeric"),
-    contains = "unmarkedFit")
+    contains = "unmarkedFitOld")
 
 setClass("unmarkedFitColExt",
     representation(
@@ -135,7 +138,7 @@ setClass("unmarkedFitColExt",
         smoothed.mean = "matrix",
         projected.mean.bsse = "optionalMatrix",
         smoothed.mean.bsse = "optionalMatrix"),
-    contains = "unmarkedFit")
+    contains = "unmarkedFitOld")
 
 
 setClass("unmarkedFitGMM",
@@ -143,7 +146,7 @@ setClass("unmarkedFitGMM",
         formlist = "list",
         mixture = "character",
         K = "numeric"),
-    contains = "unmarkedFit")
+    contains = "unmarkedFitOld")
 
 
 setClass("unmarkedFitGDS",

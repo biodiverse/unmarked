@@ -267,8 +267,9 @@ setMethod("coef", "unmarkedEstimate",
       if(methods::.hasSlot(object, "fixed")) fixed <- object@fixed
       coefs <- coefs[fixed]
     }
-    names(coefs)[names(coefs) == "(Intercept)"] <- "Int"
+
     if(altNames) {
+        names(coefs)[names(coefs) == "(Intercept)"] <- "Int"
         names(coefs) <- paste(object@short.name, "(", names(coefs), ")",
                               sep="")
     }

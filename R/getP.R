@@ -149,3 +149,14 @@ setMethod("getP_internal", "unmarkedFitPCO", function(object){
   p <- matrix(p, M, J*T, byrow = TRUE)
   p
 })
+
+
+
+
+setMethod("getP_internal", "unmarkedFit2", function(object){
+  M <- numSites(object@data)
+  J <- obsNum(object@data)
+  p <- predict(object, type="det", level=NULL, na.rm=FALSE)$Predicted
+  p <- matrix(p, M, J, byrow = TRUE)
+  p
+})

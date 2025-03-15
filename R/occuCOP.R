@@ -53,7 +53,7 @@ setClass(
 setClass("unmarkedFitOccuCOP",
          representation(removed_obs = "matrix",
                         formlist = "list"),
-         contains = "unmarkedFit")
+         contains = "unmarkedFitOld")
 
 
 # Methods ----------------------------------------------------------------------
