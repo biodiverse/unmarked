@@ -10,7 +10,7 @@ setClass("unmarkedFitIDS",
         maxDist = "list",
         surveyDurations = "list",
         unitsOut = "character"),
-        contains = "unmarkedFitOld")
+        contains = "unmarkedFit1")
 
 get_ds_info <- function(db){
   J <- length(db) - 1

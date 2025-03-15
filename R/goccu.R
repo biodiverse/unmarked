@@ -1,7 +1,7 @@
 setClass("unmarkedFitGOccu",
     representation(
         formlist = "list"),
-    contains = "unmarkedFitOld")
+    contains = "unmarkedFit1")
 
 setClass("unmarkedFrameGOccu", contains = "unmarkedFrameG3")
 

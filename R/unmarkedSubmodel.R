@@ -140,7 +140,7 @@ setMethod("add_fixed_estimates", "unmarkedSubmodel", function(object, tmb, sdr){
   pars <- tmb$env$last.par.best
   par_fixed_idx <- names(pars) == paste0("beta_", object@type)
   par_fixed <- pars[par_fixed_idx]
-  fixed_names <- colnames(unmarked:::model.matrix(object))
+  fixed_names <- colnames(model.matrix(object))
   names(par_fixed) <- fixed_names
   object@par_fixed <- par_fixed
 
@@ -175,7 +175,7 @@ setMethod("add_random_estimates", "unmarkedSubmodel", function(object, tmb, sdr)
   if(!has_random(object)) return(object)
 
   # Random effects info
-  re_info <- unmarked:::get_reTrms(object@formula, object@data)
+  re_info <- get_reTrms(object@formula, object@data)
 
   # Random effect variances (sigmas)
   pars <- tmb$env$last.par.best
@@ -365,23 +365,27 @@ setMethod("predict", "unmarkedSubmodel",
   
   #if(is.null(newdata)) newdata <- object@data
   X <- model.matrix(object, newdata = newdata)
-  coefs <- object@par_fixed
+  #coefs <- object@par_fixed
+  coefs <- coef(object)
   off <- get_offset(object)
-  cov_mat <- object@vcov_fixed
+  cov_mat <- vcov(object)
+  #cov_mat <- object@vcov_fixed
   
   if(has_random(object) & is.null(re.form)){
     X <- cbind(X, Z_matrix(object, newdata = newdata))
-    coefs <- c(coefs, object@par_random$Estimate)
-    cov_mat <- object@vcov_full
+    #coefs <- c(coefs, object@par_random$Estimate)
+    coefs <- coef(object, fixedOnly = FALSE)
+    cov_mat <- vcov(object, fixedOnly = FALSE)
+    #cov_mat <- object@vcov_full
   }
   est <- as.vector(X %*% coefs)
   
-  ind <- rep(1:ceiling(nrow(X)/chunk_size), each=chunk_size, length.out=nrow(X)) 
-  t_method <- base::t
-  if(inherits(X, "Matrix")) t_method <- Matrix::t
-
   se <- lower <- upper <- rep(NA, length(est))
   if(!is.null(level)){
+    ind <- rep(1:ceiling(nrow(X)/chunk_size), each=chunk_size, length.out=nrow(X)) 
+    t_method <- base::t
+    if(inherits(X, "Matrix")) t_method <- Matrix::t
+
     vars <- lapply(1:max(ind), function(i){
       x <- X[ind == i, , drop = FALSE]
       v <- as.matrix(x %*% cov_mat %*% t_method(x))
@@ -396,7 +400,7 @@ setMethod("predict", "unmarkedSubmodel",
   out <- data.frame(Predicted = est, SE = se, lower = lower, upper = upper)
 
   if(backTransform){
-    invlink <- get_invlink(object@link)
+    invlink <- get_invlink(object)
     out$Predicted <- invlink(out$Predicted)
     out$SE <- NA
     out$lower <- invlink(out$lower)
@@ -410,8 +414,8 @@ setMethod("predict", "unmarkedSubmodel",
   out
 })
 
-get_invlink <- function(link){
-  switch(link, 
+get_invlink <- function(object){
+  switch(object@link, 
          logit = plogis,
          log = exp,
          cloglog = function(x) 1-exp(-exp(x))
