@@ -1,5 +1,5 @@
 setClass("unmarkedFit",
-  slots = c(call = "call", data = "unmarkedFrame", AIC = "numeric")
+  slots = c(call = "call", data = "unmarkedFrame")
 )
   
 
@@ -8,6 +8,7 @@ setClass("unmarkedFit1",
         formula = "formula",
         sitesRemoved = "numeric",  # vector of indices of removed sites
         estimates = "unmarkedEstimateList",
+        AIC = "numeric",
         opt = "list",
         negLogLike = "numeric",
         nllFun = "function",
@@ -360,10 +361,7 @@ setMethod("logLik", "unmarkedFit", function(object, ...)
 {
     if(length(list(...)))
         warning("extra arguments discarded")
-    ll <- -object@negLogLike
-    #attr(ll, "df") <- length(coef(object))
-    #class(ll) <- "logLik"
-    return(ll)
+    -object@opt$value
 })
 
 

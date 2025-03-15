@@ -22,7 +22,8 @@ setMethod("show",
     cat("Linear combination(s) of", object@parentEstimate@name, "estimate(s)\n\n")
 
     df.coefs <- as.data.frame(object@coefficients)
-    colnames(df.coefs) <- names(object@parentEstimate@estimates)
+    df.names <- names(object@parentEstimate@estimates)[object@parentEstimate@fixed]
+    colnames(df.coefs) <- df.names
     lcTable <- data.frame(Estimate = object@estimate, SE = SE(object))
     lcTable <- cbind(lcTable, df.coefs)
     if(nrow(lcTable) > 1) {
@@ -43,8 +44,9 @@ setMethod("show",
     lcTable <- data.frame(LinComb = object@parentLinComb@estimate)
 
     df.coefs <- as.data.frame(object@parentLinComb@coefficients)
-    colnames(df.coefs) <-
-        names(object@parentLinComb@parentEstimate@estimates)
+    df.names <- names(object@parentLinComb@parentEstimate@estimates)
+    df.names <- df.names[object@parentLinComb@parentEstimate@fixed]
+    colnames(df.coefs) <- df.names
 
     lcTable <- cbind(lcTable, df.coefs)
 

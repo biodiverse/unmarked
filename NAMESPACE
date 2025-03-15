@@ -44,6 +44,7 @@ exportMethods(backTransform, coef, confint, fitted, getData,
               getL, richness)
 
 S3method("print", "unmarkedPostSamples")
+S3method("logLik", "unmarkedFit2")
 
 # Constructors
 export(fitList,

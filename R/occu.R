@@ -11,15 +11,13 @@ occu <- function(formula, data, knownOcc = numeric(0),
     stop("Data is not an unmarkedFrameOccu object.")
 
   engine <- match.arg(engine)
-  forms <- unmarked:::split_formula(formula)
-  if(engine == "R" & any(sapply(forms, unmarked:::has_random))){
-    warning("Switching to TMB engine to fit random effects", call.=FALSE)
+  if(engine == "C") engine <- "TMB"
+  forms <- split_formula(formula)
+  if(engine == "R" & any(sapply(forms, has_random))){
+    message("Switching to TMB engine to fit random effects")
     engine <- "TMB"
   }
-  if(engine == "C") engine <- "TMB"
-  if(length(knownOcc)>0 & engine == "TMB"){
-    stop("TMB engine does not support knownOcc argument", call.=FALSE)
-  }
+
   known_occ <- rep(0, numSites(data))
   known_occ[knownOcc] <- 1
 
@@ -40,12 +38,11 @@ occu <- function(formula, data, knownOcc = numeric(0),
 
   comps <- unmarkedModelComponents(resp, submods, auxiliary = list())
 
-  fit <- fit_TMB2("tmb_occu", components = comps, starts = starts,
-                  se = se, method = method, ...)
+  fit <- fit_TMB2("tmb_occu", components = comps, starts = starts, se = se, 
+                  method = method, ...)
   
   out <- new("unmarkedFit2Occu", call = match.call(),  data = data,
-             components = fit$components, AIC = fit$AIC, opt = fit$opt,
-             TMB = fit$TMB)
+             components = fit$components, opt = fit$opt, TMB = fit$TMB)
 
   out
 }

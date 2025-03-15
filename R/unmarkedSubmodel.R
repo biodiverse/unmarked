@@ -189,16 +189,43 @@ setMethod("add_random_estimates", "unmarkedSubmodel", function(object, tmb, sdr)
     log_sigma_var <- NA
   }
 
+  rand_names <- random_effect_names(object)
+
   sigma_ests <- data.frame(Model = object@short_name,
-                           Groups = names(re_info$cnms), 
-                           Name = unlist(re_info$cnms),
+                           rand_names$sigma,
                            log_sigma = log_sigma,
-                           log_sigma_var = log_sigma_var) 
+                           log_sigma_var = log_sigma_var)
+
   object@sigma <- sigma_ests 
 
   # Random effects
   ranef_idx <- names(pars) == paste0("b_", object@type)
   ranef_est <- pars[ranef_idx]
+
+  ranef_est <- data.frame(Model = object@short_name,
+                          rand_names$random_effects,
+                          Estimate = ranef_est)
+
+  object@par_random <- ranef_est
+
+  # vcov matrix
+  if(!is.null(sdr)){
+    vcov_full <- solve(sdr$jointPrecision)
+  } else {
+    vcov_full <- matrix(NA, length(pars), length(pars)) 
+  }  
+  nms <- rownames(vcov_full)
+  type_match <- grepl(paste0("_", object@type), nms, fixed=TRUE)
+  not_sigma <- !grepl("lsigma_", nms, fixed = TRUE)
+  idx <- type_match & not_sigma
+  object@vcov_full <- vcov_full[idx, idx, drop = FALSE]
+
+  object
+})
+
+random_effect_names <- function(object){
+
+  re_info <- get_reTrms(object@formula, object@data)[c("cnms", "flist")]
 
   Groups <- lapply(1:length(re_info$cnms), function(x){
                   gn <- names(re_info$cnms)[x]
@@ -219,28 +246,12 @@ setMethod("add_random_estimates", "unmarkedSubmodel", function(object, tmb, sdr)
             })
   Levels <- do.call(c, Levels)
 
-  ranef_est <- data.frame(Model = object@short_name,
-                          Groups = Groups,
-                          Name = Name,
-                          Levels = Levels,
-                          Estimate = ranef_est)
+  re <- data.frame(Groups = Groups, Name = Name, Levels = Levels)
+ 
+  list(sigma = unique(re[,c("Groups", "Name")]),
+       random_effects = re)
+}
 
-  object@par_random <- ranef_est
-
-  # vcov matrix
-  if(!is.null(sdr)){
-    vcov_full <- solve(sdr$jointPrecision)
-  } else {
-    vcov_full <- matrix(NA, length(pars), length(pars)) 
-  }  
-  nms <- rownames(vcov_full)
-  type_match <- grepl(paste0("_", object@type), nms, fixed=TRUE)
-  not_sigma <- !grepl("lsigma_", nms, fixed = TRUE)
-  idx <- type_match & not_sigma
-  object@vcov_full <- vcov_full[idx, idx, drop = FALSE]
-
-  object
-})
 
 setMethod("summary", "unmarkedSubmodel",
   function(object){
@@ -288,27 +299,52 @@ setMethod("Z_matrix", "unmarkedSubmodel",
   get_Z(object@formula, object@data, newdata)
 })
 
-setGeneric("get_TMB_pars", function(object){
+setGeneric("get_TMB_pars", function(object, starts){
   standardGeneric("get_TMB_pars")
 })
 
-setMethod("get_TMB_pars", "unmarkedSubmodel",
-  function(object){
+setMethod("get_TMB_pars", "unmarkedSubmodel", function(object, starts){
 
   out <- list()
 
-  nfixed <- ncol(model.matrix(object))
-  out$beta <- rep(0, nfixed)
-  
-  #if(has_random(object@formula)){
-    n_grouplevels <- unmarked:::get_nrandom(object@formula, object@data)
-    out$b <- rep(0, sum(n_grouplevels))
+  # Fixed pars
+  fixed <- colnames(model.matrix(object))
+  out$beta <- setNames(rep(0, length(fixed)), fixed)
 
-    n_group_vars <- length(n_grouplevels[n_grouplevels > 0])
-    out$lsigma <- rep(0, n_group_vars)
-  #}
+  # Random effect names
+  if(has_random(object)){
+    re_info <- random_effect_names(object)
+
+    # Sigma pars
+    sig_names <- re_info$sigma
+    sig_names <- apply(sig_names, 1, paste, collapse = "_")
+    sig_names <- gsub("(Intercept)", "Int", sig_names, fixed = TRUE)
+    out$lsigma <- setNames(rep(0, length(sig_names)), sig_names)
+
+    # Random effect pars
+    b_names <- apply(re_info$random_effects, 1, paste, collapse = "_")
+    b_names <- gsub("(Intercept)", "Int", b_names, fixed = TRUE)
+    out$b <- setNames(rep(0, length(b_names)), b_names)
+  } else {
+    out$lsigma <- numeric(0)
+    out$b <- numeric(0)
+  }
   
   names(out) <- paste0(names(out), "_", object@type)
+  
+  # Update start values
+  if(!is.null(starts)){
+    for (i in length(starts)){
+      match_starts <- which(names(starts)[i] == names(out))
+      if(length(match_starts) == 0) next
+      if(length(starts[[i]]) != length(out[[match_starts]])){
+        stop("starts element ", names(starts)[i], " should be length ",
+             length(out[[match_starts]]), call.=FALSE)
+      }
+      out[[match_starts]] <- starts[[i]]
+    }
+  }
+
   out
 })
 
@@ -363,20 +399,15 @@ setMethod("predict", "unmarkedSubmodel",
   function(object, newdata = NULL, backTransform = TRUE, appendData = FALSE,
            level = 0.95, re.form = NULL, chunk_size = 70, ...){
   
-  #if(is.null(newdata)) newdata <- object@data
   X <- model.matrix(object, newdata = newdata)
-  #coefs <- object@par_fixed
   coefs <- coef(object)
   off <- get_offset(object)
   cov_mat <- vcov(object)
-  #cov_mat <- object@vcov_fixed
   
   if(has_random(object) & is.null(re.form)){
     X <- cbind(X, Z_matrix(object, newdata = newdata))
-    #coefs <- c(coefs, object@par_random$Estimate)
     coefs <- coef(object, fixedOnly = FALSE)
     cov_mat <- vcov(object, fixedOnly = FALSE)
-    #cov_mat <- object@vcov_full
   }
   est <- as.vector(X %*% coefs)
   
@@ -397,7 +428,8 @@ setMethod("predict", "unmarkedSubmodel",
     lower <- est - z*se
     upper <- est + z*se
   }
-  out <- data.frame(Predicted = est, SE = se, lower = lower, upper = upper)
+  out <- data.frame(Predicted = est, SE = se, lower = lower, upper = upper,
+                    row.names = NULL)
 
   if(backTransform){
     invlink <- get_invlink(object)
@@ -471,25 +503,6 @@ setMethod("confint", "unmarkedSubmodel", function(object, parm, level = 0.95,
   ci[parm,,drop=FALSE]
 })
 
-#setMethod("linearComb", c("unmarkedSubmodel", "matrixOrVector"),
-#  function(obj, coefficients, offset = NULL, re.form = NULL){
-#  
-#  if(!is(coefficients, "matrix")) coefficients <- t(as.matrix(coefficients))
-#  
-#  est <- coef(obj, fixedOnly = !is.null(re.form))
-#  stopifnot(ncol(coefficients) == length(est))
-#  cov_mat <- vcov(obj, fixedOnly = !is.null(re.form))
-#    
-#  if (is.null(offset)) offset <- rep(0, nrow(coefficients))
-#
-#  e <- as.vector(coefficients %*% est) + offset
-#  v <- coefficients %*% cov_mat %*% t(coefficients)
-#
-#  new("unmarkedLinComb", parentEstimate = obj,
-#      estimate = e, covMat = v, covMatBS = NULL,
-#      coefficients = coefficients)
-#})
-
 setMethod("sigma", "unmarkedSubmodel", function(object, level = 0.95, ...){
   if(!has_random(object)) stop("No random effects", call.=FALSE) 
   out <- object@sigma[,c("Model", "Groups", "Name")]
@@ -548,17 +561,8 @@ add_estimates <- function(object, tmb, se){
   object
 }
 
-#setMethod("summary", "unmarkedSubmodelList", function(object){
-#  lapply(submodels(object), summary)  
-#})
-
-#setMethod("show", "unmarkedSubmodelList", function(object){
-#  lapply(submodels(object), show)  
-#})
-
-setMethod("get_TMB_pars", "unmarkedSubmodelList",
-  function(object){
-  unlist(lapply(unname(submodels(object)), get_TMB_pars), 
+setMethod("get_TMB_pars", "unmarkedSubmodelList", function(object, starts){
+  unlist(lapply(unname(submodels(object)), get_TMB_pars, starts = starts), 
          recursive = FALSE)
 })
 
@@ -567,48 +571,58 @@ setMethod("get_TMB_data", "unmarkedSubmodelList", function(object){
   do.call(c, unname(out))
 })
 
-
+setGeneric("get_starts", function(object) standardGeneric("get_starts"))
+setMethod("get_starts", "unmarkedSubmodelList", function(object){
+  out <- lapply(submodels(object), get_TMB_pars, starts = NULL)
+  rand <- sapply(submodels(object), get_TMB_random)
+  out <- do.call(c, unname(out))
+  out <- out[!names(out) %in% rand]
+  out[sapply(out, length) > 0]
+})
 
 
 
 fit_TMB2 <- function(model, components, starts, se, method, ...){
 
   data <- get_TMB_data(components)
-  params <- get_TMB_pars(submodelList(components))
+  params <- get_TMB_pars(submodelList(components), starts = starts)
   random <- get_TMB_random(submodelList(components))
-
-  fixed_sub <- names(params)[!names(params) %in% random]
-  nfixed <- length(unlist(params[fixed_sub]))
-  list_fixed_only <- params[fixed_sub]
-  plengths <- sapply(list_fixed_only, length)
-  starts_order <- rep(fixed_sub, plengths)
-
-  if(!is.null(starts)){
-    if(length(starts) != nfixed){
-      stop(paste("The number of starting values should be", nfixed))
-    }
-    list_fixed_only <- params[fixed_sub]
-    list_fixed_only <- utils::relist(starts, list_fixed_only)
-    params <- replace(params, names(list_fixed_only), list_fixed_only)
-  }
 
   tmb_mod <- TMB::MakeADFun(data = c(model = model, data),
                             parameters = params,
                             random = random,
                             silent=TRUE,
                             DLL = "unmarked_TMBExports")
-  tmb_mod$starts_order <- starts_order
 
-  opt <- optim(tmb_mod$par, fn=tmb_mod$fn, #gr=tmb_mod$gr, 
-               method=method, ...)
+  opt <- optim(tmb_mod$par, fn=tmb_mod$fn, gr=tmb_mod$gr, method=method, ...)
 
   submodelList(components) <- add_estimates(submodelList(components), tmb_mod, se)
   
-  #sdr$par <- tmb_mod$par
-
-  AIC = 2 * opt$value + 2 * nfixed
-
-  list(opt=opt, TMB=tmb_mod, components = components, AIC=AIC)
+  list(opt=opt, TMB=tmb_mod, components = components)
 }
 
+setAs("unmarkedSubmodel", "unmarkedEstimate", function(from){
 
+  invlink <- switch(from@link, 
+                    logit = "logistic", log = "exp", cloglog = "cloglog")
+
+  grad <- switch(from@link, 
+                 logit = "logistic.grad", log = "exp", cloglog = "cloglog.grad")
+
+  new("unmarkedEstimate", name = from@long_name, short.name = from@short_name,
+      estimates = coef(from, fixedOnly = FALSE),
+      covMat = vcov(from, fixedOnly = FALSE),
+      fixed = 1:length(coef(from)),
+      invlink = invlink, invlinkGrad = grad, randomVarInfo = list())
+})
+
+setMethod("linearComb", c("unmarkedSubmodel", "matrixOrVector"),
+  function(obj, coefficients, offset = NULL, re.form = NULL){
+  est <- as(obj, "unmarkedEstimate")
+  linearComb(est, coefficients = coefficients, offset = offset, re.form = re.form)
+})
+
+setMethod("backTransform", "unmarkedSubmodel", function(obj){
+  est <- as(obj, "unmarkedEstimate")
+  backTransform(est)
+})
