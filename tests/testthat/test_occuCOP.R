@@ -369,56 +369,31 @@ test_that("We can simulate COP data", {
   # From scratch ----
   
   # With no covariates
-  expect_no_error(expect_warning(simulate(
-    "occuCOP",
-    formulas = list(psi =  ~ 1, lambda =  ~ 1),
-    coefs = list(
-      psi = c(intercept = 0),
-      lambda = c(intercept = 0)
-    ),
-    design = list(M = 100, J = 100)
-  )))
-  
+  umf_temp <- unmarkedFrameOccuCOP(y = matrix(0, 100, 3), 
+                                   L = matrix(1, 100, 3))
+
+  s <- expect_warning(simulate(umf_temp, psiformula=~1, lambdaformula=~1, 
+                coefs = list(psi = 0, lambda = 0)))
+  expect_is(s[[1]], "unmarkedFrameOccuCOP")
+
   # With quantitative covariates
-  expect_no_error(expect_warning(simulate(
-    "occuCOP",
-    formulas = list(psi =  ~ elev, lambda =  ~ rain),
-    coefs = list(
-      psi = c(intercept = qlogis(.5), elev = -0.5),
-      lambda = c(intercept = log(3), rain = -1)
-    ),
-    design = list(M = 100, J = 5)
-  )))
-  
-  # With guides
-  expect_no_error(expect_warning(simulate(
-    "occuCOP",
-    formulas = list(psi =  ~ elev, lambda =  ~ rain),
-    coefs = list(
-      psi = c(intercept = qlogis(.5), elev = -0.5),
-      lambda = c(intercept = log(3), rain = -1)
-    ),
-    design = list(M = 100, J = 5),
-    guide = list(elev=list(dist=rnorm, mean=12, sd=0.5))
-  )))
-  
+  siteCovs(umf_temp) <- data.frame(elev = rnorm(100))
+  obsCovs(umf_temp) <- data.frame(rain = rnorm(100*3))
+  s <- expect_warning(
+    simulate(umf_temp, psiformula=~elev, lambdaformula=~rain, 
+             coefs = list(psi = c(qlogis(0.5), -0.5), lambda = c(log(3), -1)))
+  )
+  expect_is(s[[1]], "unmarkedFrameOccuCOP")
+
   # With qualitative covariates
-  expect_no_error(umf <- expect_warning(simulate(
-    "occuCOP",
-    formulas = list(psi =  ~ elev + habitat, lambda =  ~ 1),
-    coefs = list(
-      psi = c(
-        intercept = qlogis(.2),
-        elev = -0.5,
-        habitatB = .5,
-        habitatC = .8
-      ),
-      lambda = c(intercept = log(3))
-    ),
-    design = list(M = 100, J = 5),
-    guide = list(habitat = factor(levels = c("A", "B", "C")))
-  )))
-  
+  umf_temp@siteCovs$habitat <- factor(sample(c("A","B","C"), 100, replace=TRUE))
+  umf <- expect_warning(
+    simulate(umf_temp, psiformula=~elev+habitat, lambdaformula=~1, 
+             coefs = list(psi = c(qlogis(0.2), -0.5, 0.5, 0.8), 
+                          lambda = c(log(3))))[[1]]
+  )
+  expect_is(umf, "unmarkedFrameOccuCOP")
+
   # From unmarkedFitOccuCOP ----
   expect_no_error(umfit <- occuCOP(
     umf,
@@ -433,21 +408,19 @@ test_that("We can simulate COP data", {
 test_that("occuCOP can fit and predict models with covariates", {
   # Simulate data with covariates ----
   set.seed(123)
-  expect_no_error(umf <- expect_warning(simulate(
-    "occuCOP",
-    formulas = list(psi =  ~ elev + habitat, lambda =  ~ rain),
-    coefs = list(
-      psi = c(
-        intercept = qlogis(.2),
-        elev = -0.5,
-        habitatB = .5,
-        habitatC = .8
-      ),
-      lambda = c(intercept = log(3), rain = -1)
-    ),
-    design = list(M = 100, J = 5),
-    guide = list(habitat = factor(levels = c("A", "B", "C")))
-  )))
+
+  umf_temp <- unmarkedFrameOccuCOP(y = matrix(0, 100, 5), 
+                                   L = matrix(1, 100, 5))
+  siteCovs(umf_temp) <- 
+    data.frame(elev = rnorm(100),
+               habitat = factor(sample(c("A","B","C"), 100, replace=TRUE)))
+  obsCovs(umf_temp) <- data.frame(rain = rnorm(100*5))
+
+  umf <- expect_warning(
+    simulate(umf_temp, psiformula=~elev+habitat, lambdaformula=~rain, 
+             coefs = list(psi = c(qlogis(0.2), -0.5, 0.5, 0.8), 
+                          lambda = c(log(3), -1)))[[1]]
+  )
 
   # Check subsetting with covariates
   expect_error(umf_sub <- umf[c(8,8,9),]) # this should work

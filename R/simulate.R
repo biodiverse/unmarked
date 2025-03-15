@@ -7,7 +7,8 @@ setMethod("simulate", "unmarkedFrame",
   lapply(1:nsim, function(i){
     coefs <- generate_random_effects(coefs, fit)
     fit <- replace_estimates(fit, coefs)
-    sim <- simulate(fit, nsim = 1)[[1]]
+    # Cannot use nsim > 1 below as the sims would use the same set of random effects
+    sim <- simulate(fit, nsim = 1)[[1]] 
     replaceY(object, sim)
   })
 })

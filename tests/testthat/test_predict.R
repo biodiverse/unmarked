@@ -3,13 +3,13 @@ context("predict-related functions")
 skip_on_cran()
 
 set.seed(123)
-cf <- list(state=c(intercept=0, elev=0.4, groupB=-0.5, groupC=0.6),
-           det=c(intercept=0))
-des <- list(M=100, J=5)
-guide <- list(group=factor(levels=c("A","B","C")))
-forms <- list(state=~elev+group, det=~1)
-
-umf <- expect_warning(simulate("occu", design=des, formulas=forms, coefs=cf, guide=guide))
+umf <- unmarkedFrameOccu(
+  y = matrix(NA, 100, 5),
+  siteCovs = data.frame(elev = rnorm(100),
+                        group = factor(sample(c("A","B","C"), 100, replace=TRUE)))
+)
+umf <- simulate(umf, model = occu, formula=~1~elev+group,
+                coefs = list(state = c(0, 0.4, -0.5, 0.6), det = 0))[[1]]
 mod <- occu(~1~elev+group, umf)
 
 test_that("clean_up_covs works with dynamic model data",{
