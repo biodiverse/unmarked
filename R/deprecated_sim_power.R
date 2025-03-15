@@ -70,9 +70,11 @@ setMethod("simulate", "character",
   fit <- suppressWarnings(simulate_fit(model, formulas, guide, design, ...))
   coefs <- check_coefs_old(coefs, fit)
   #fit <- replace_sigma(coefs, fit)
-  coefs <- generate_random_effects(coefs, fit)
-  fit <- replace_estimates(fit, coefs)
-  ysims <- suppressWarnings(simulate(fit, nsim))
+  ysims <- lapply(1:nsim, function(i){
+    coefs <- generate_random_effects(coefs, fit)
+    fit <- replace_estimates(fit, coefs)
+    suppressWarnings(simulate(fit, nsim = 1)[[1]])
+  })
   umf <- fit@data
   # fix this
   umfs <- lapply(ysims, function(x){
@@ -690,8 +692,8 @@ setMethod("powerAnalysis", "unmarkedFit",
 
   submodels <- names(object@estimates@estimates)
   coefs <- check_coefs_old(coefs, object)
-  coefs <- generate_random_effects(coefs, object)
-  fit_temp <- replace_estimates(object, coefs)
+  #coefs <- generate_random_effects(coefs, object)
+  #fit_temp <- replace_estimates(object, coefs)
 
   T <- 1
   bdata <- NULL
@@ -726,25 +728,33 @@ setMethod("powerAnalysis", "unmarkedFit",
     }
     J <- obsNum(bdata[[1]]) / T
   } else if(is.null(design)){
-      sims <- simulate(fit_temp, nsim)
+      #sims <- simulate(fit_temp, nsim)
+      sims <- lapply(1:nsim, function(i){
+        coefs <- generate_random_effects(coefs, object)
+        fit_temp <- replace_estimates(object, coefs)
+        simulate(fit_temp, nsim = 1)[[1]]
+      })
       M <- numSites(object@data)
       if(methods::.hasSlot(object@data, "numPrimary")){
         T <- object@data@numPrimary
       }
       J <- obsNum(object@data) / T
   } else {
-    bdata <- bootstrap_data(fit_temp@data, nsim, design)
+    bdata <- bootstrap_data(object@data, nsim, design)
     sims <- lapply(bdata, function(x){
+      fit_temp <- object
       fit_temp@data <- x
       #temporary workaround
       if(methods::.hasSlot(fit_temp, "knownOcc")){
         fit_temp@knownOcc <- rep(FALSE, design$M)
       }
-      simulate(fit_temp, 1)[[1]]
+      coefs <- generate_random_effects(coefs, fit_temp)
+      fit_temp <- replace_estimates(fit_temp, coefs)
+      simulate(fit_temp, nsim = 1)[[1]]
     })
     M <- design$M
-    if(methods::.hasSlot(fit_temp@data, "numPrimary")){
-      T <- fit_temp@data@numPrimary
+    if(methods::.hasSlot(object@data, "numPrimary")){
+      T <- object@data@numPrimary
     }
     J <- design$J
   }

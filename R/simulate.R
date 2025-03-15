@@ -4,10 +4,13 @@ setMethod("simulate", "unmarkedFrame",
   object <- y_to_zeros(object)
   fit <- get_fit(object, model, ...)
   coefs <- check_coefs(coefs, fit, quiet = quiet)
-  coefs <- generate_random_effects(coefs, fit)
-  fit <- replace_estimates(fit, coefs)
-  sims <- simulate(fit, nsim)
-  lapply(sims, function(x) replaceY(object, x))
+  lapply(1:nsim, function(i){
+    coefs <- generate_random_effects(coefs, fit)
+    fit <- replace_estimates(fit, coefs)
+    # Cannot use nsim > 1 below as the sims would use the same set of random effects
+    sim <- simulate(fit, nsim = 1)[[1]] 
+    replaceY(object, sim)
+  })
 })
 
 setGeneric("y_to_zeros", function(object, ...){
