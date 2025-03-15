@@ -229,3 +229,7 @@ test_that("Random effects are re-generated for each simulated datset", {
   pct <- ecdf(ints)
   expect_equal(pct(0), 0.5, tol=1e-2)
 })
+
+test_that("Error returned for unsupported model-name-based simulation",{
+  expect_error(simulate("occu", formula=~1~1), "no longer supported")
+})
