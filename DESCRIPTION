@@ -44,7 +44,7 @@ Description: Fits hierarchical models of animal abundance and occurrence to data
 License: GPL (>=3)
 LazyLoad: yes
 LazyData: yes
-Collate: 'classes.R' 'unmarkedEstimate.R' 'unmarkedFrame.R'
+Collate: 'classes.R' 'unmarkedEstimate.R' 'unmarkedSubmodel.R' 'unmarkedFrame.R'
     'unmarkedFit.R' 'utils.R' 'getDesign.R'
     'fitted.R' 'residuals.R' 'update.R' 'simulate.R' 'nonparboot.R' 'getP.R'
     'ranef.R' 'posteriorSamples.R'

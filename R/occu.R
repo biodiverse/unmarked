@@ -2,160 +2,83 @@
 #  Fit the occupancy model of MacKenzie et al (2002).
 
 occu <- function(formula, data, knownOcc = numeric(0),
-                 linkPsi = c("logit", "cloglog"), starts, method = "BFGS",
+                 linkPsi = c("logit", "cloglog"), starts = NULL, method = "BFGS",
                  se = TRUE, engine = c("C", "R", "TMB"), threads=1, ...) {
 
   # Check arguments------------------------------------------------------------
   if(!is(data, "unmarkedFrameOccu"))
     stop("Data is not an unmarkedFrameOccu object.")
 
-  engine <- match.arg(engine, c("C", "R", "TMB"))
-  if(any(sapply(split_formula(formula), has_random))) engine <- "TMB"
-  if(length(knownOcc)>0 & engine == "TMB"){
-    stop("TMB engine does not support knownOcc argument", call.=FALSE)
-  }
+  engine <- match.arg(engine)
+  forms <- split_formula(formula)
+  if(any(sapply(forms, has_random))) engine <- "TMB"
 
-  linkPsi <- match.arg(linkPsi, c("logit","cloglog"))
-  psiLinkFunc <- ifelse(linkPsi=="cloglog", cloglog, plogis)
-  psiInvLink <- ifelse(linkPsi=="cloglog", "cloglog", "logistic")
-  psiLinkGrad <- ifelse(linkPsi=="cloglog", "cloglog.grad", "logistic.grad")
+  linkPsi <- match.arg(linkPsi)
 
-  # Format input data----------------------------------------------------------
-  designMats <- getDesign(data, formula)
-  y <- truncateToBinary(designMats$y)
-  X <- designMats$X; V <- designMats$V;
-  Z_state <- designMats$Z_state; Z_det <- designMats$Z_det
-  removed <- designMats$removed.sites
-  X.offset <- designMats$X.offset; V.offset <- designMats$V.offset
+  known_occ <- rep(0, numSites(data))
+  known_occ[knownOcc] <- 1
 
-  # Re-format some variables for C and R engines
-  yvec <- as.numeric(t(y))
-  navec <- is.na(yvec)
-  nd <- ifelse(rowSums(y,na.rm=TRUE) == 0, 1, 0) # no det at site i
+  submods <- unmarkedSubmodelList(
+    state = unmarkedSubmodelState(name = "Occupancy", short_name = "psi", 
+                                  type = "state", formula = forms[[2]], data = data, 
+                                  family = "binomial", link = linkPsi,
+                                  auxiliary = list(known_occ = known_occ)),
 
-  # convert knownOcc to logical so we can correctly to handle NAs.
-  knownOccLog <- rep(FALSE, numSites(data))
-  knownOccLog[knownOcc] <- TRUE
-  if(length(removed)>0) knownOccLog <- knownOccLog[-removed]
+    det = unmarkedSubmodelDet(name = "Detection", short_name = "p", 
+                              type = "det", formula = forms[[1]], data = data, 
+                              family = "binomial", link = "logit")
+  )
 
-  # Set up parameter names and indices-----------------------------------------
-  occParms <- colnames(X)
-  detParms <- colnames(V)
-  nDP <- ncol(V)
-  nOP <- ncol(X)
-  nP <- nDP + nOP
-  psiIdx <- 1:nOP
-  pIdx <- (nOP+1):nP
+  resp <- unmarkedResponse(data)
+  resp <- add_missing(resp, submods)
 
-  # Set up negative log likelihood functions for C++ and R engines-----_-------
-  if(identical(engine, "C")) {
-    nll <- function(params) {
-      beta.psi <- params[1:nOP]
-      beta.p <- params[(nOP+1):nP]
-      nll_occu(
-        yvec, X, V, beta.psi, beta.p, nd, knownOccLog, navec,
-        X.offset, V.offset, linkPsi
-      )
-    }
-  } else if (identical(engine, "R")){
+  if(engine == "TMB"){
+    inputs <- engine_inputs_TMB(resp, submods)
+    stop("Not supported yet")
+  } else {
+    inputs <- engine_inputs_R(resp, submods)
+    nll_fun <- ifelse(engine == "R", nll_occu_R, nll_occu_Cpp)
 
-    J <- ncol(y)
-    M <- nrow(y)
-
-    nll <- function(params) {
-      psi <- psiLinkFunc(X %*% params[1 : nOP] + X.offset)
-      psi[knownOccLog] <- 1
-      pvec <- plogis(V %*% params[(nOP + 1) : nP] + V.offset)
-      cp <- (pvec^yvec) * ((1 - pvec)^(1 - yvec))
-      cp[navec] <- 1 # so that NA's don't modify likelihood
-      cpmat <- matrix(cp, M, J, byrow = TRUE) #
-      loglik <- log(rowProds(cpmat) * psi + nd * (1 - psi))
-      -sum(loglik)
-    }
-  }
-
-  # Fit model with C++ and R engines-------------------------------------------
-  if(engine %in% c("C", "R")){
-    if(missing(starts)) starts <- rep(0, nP)
+    nP <- max(unlist(get_parameter_idx(submods)))
+    if(is.null(starts)) starts <- rep(0, nP)
     if(length(starts) != nP){
       stop(paste("The number of starting values should be", nP))
     }
-    fm <- optim(starts, nll, method = method, hessian = se, ...)
-    covMat <- invertHessian(fm, nP, se)
-    ests <- fm$par
+
+    fit <- fit_optim(nll_fun, inputs, starts, method, se, ...)
     tmb_mod <- NULL
-    fmAIC <- 2 * fm$value + 2 * nP #+ 2*nP*(nP + 1)/(M - nP - 1)
+    submods <- add_estimates(submods, fit)
+  }
 
-    # Organize effect estimates
-    names(ests) <- c(occParms, detParms)
-    state_coef <- list(ests=ests[1:nOP], cov=as.matrix(covMat[1:nOP,1:nOP]))
-    det_coef <- list(ests=ests[(nOP+1):nP],
-                     cov=as.matrix(covMat[(nOP+1):nP, (nOP+1):nP]))
-
-    # No random effects for C++ and R engines
-    state_rand_info <- det_rand_info <- list()
-
-  # Fit model with TMB engine--------------------------------------------------
-  } else if(identical(engine, "TMB")){
-
-    # Set up TMB input data
-    forms <- split_formula(formula)
-    obs_all <- add_covariates(obsCovs(data), siteCovs(data), length(getY(data)))
-    inps <- get_ranef_inputs(forms, list(det=obs_all, state=siteCovs(data)),
-                             list(V, X), designMats[c("Z_det","Z_state")])
-
-    tmb_dat <- c(list(y=y, no_detect=nd, link=ifelse(linkPsi=="cloglog",1,0),
-                      offset_state=X.offset, offset_det=V.offset), inps$data)
-
-    # Fit model with TMB
-    if(missing(starts)) starts <- NULL
-    tmb_out <- fit_TMB("tmb_occu", tmb_dat, inps$pars, inps$rand_ef,
-                        starts=starts, method, ...)
-    tmb_mod <- tmb_out$TMB
-    fm <- tmb_out$opt
-    fmAIC <- tmb_out$AIC
-    nll <- tmb_mod$fn
-
-    # Organize fixed effect estimates
-    state_coef <- get_coef_info(tmb_out$sdr, "state", occParms, 1:nOP)
-    det_coef <- get_coef_info(tmb_out$sdr, "det", detParms, (nOP+1):nP)
-
-    # Organize random effect estimates
-    state_rand_info <- get_randvar_info(tmb_out$sdr, "state", forms[[2]],
-                                        siteCovs(data))
-    det_rand_info <- get_randvar_info(tmb_out$sdr, "det", forms[[1]],
-                                      obs_all)
-
-    }
-
-  # Create unmarkedEstimates---------------------------------------------------
-  state <- unmarkedEstimate(name = "Occupancy", short.name = "psi",
-                            estimates = state_coef$est,
-                            covMat = state_coef$cov,
-                            fixed = 1:nOP,
-                            invlink = psiInvLink,
-                            invlinkGrad = psiLinkGrad,
-                            randomVarInfo=state_rand_info
-                            )
-
-  det <- unmarkedEstimate(name = "Detection", short.name = "p",
-                          estimates =det_coef$est,
-                          covMat = det_coef$cov,
-                          fixed = 1:nDP,
-                          invlink = "logistic",
-                          invlinkGrad = "logistic.grad",
-                          randomVarInfo=det_rand_info
-                          )
-
-  estimateList <- unmarkedEstimateList(list(state=state, det=det))
-
-  # Create unmarkedFit object--------------------------------------------------
   umfit <- new("unmarkedFitOccu", fitType = "occu", call = match.call(),
                  formula = formula, data = data,
-                 sitesRemoved = designMats$removed.sites,
-                 estimates = estimateList, AIC = fmAIC, opt = fm,
-                 negLogLike = fm$value,
-                 nllFun = nll, knownOcc = knownOccLog, TMB=tmb_mod)
+                 sitesRemoved = removed_sites(resp),
+                 estimates = submods, AIC = fit$AIC, opt = fit$opt,
+                 negLogLike = fit$opt$value,
+                 nllFun = nll_fun, knownOcc = as.logical(known_occ), TMB=tmb_mod)
 
   return(umfit)
+}
+
+nll_occu_R <- function(params, inputs){
+  with(inputs, {
+  
+  beta_state <- params[idx_state[1]:idx_state[2]]
+  beta_det <- params[idx_det[1]:idx_det[2]]
+
+  J <- ncol(inputs$y)
+  M <- nrow(inputs$y)
+  y <- as.vector(t(inputs$y))
+  nd <- 1 - Kmin
+
+  invlink <- ifelse(invlink_state == 0, plogis, cloglog)
+  psi <- invlink(X_state %*% beta_state + offset_state)
+  psi[known_occ_state == 1] <- 1
+  pvec <- plogis(X_det %*% beta_det + offset_det)
+  cp <- (pvec^y) * ((1 - pvec)^(1 - y))
+  cpmat <- matrix(cp, M, J, byrow = TRUE)
+  loglik <- log(rowProds(cpmat, na.rm = TRUE) * psi + nd * (1 - psi))
+  -sum(loglik, na.rm = TRUE)
+  
+  })
 }

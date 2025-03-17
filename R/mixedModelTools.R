@@ -56,10 +56,6 @@ get_nrandom <- function(formula, data){
   as.array(out)
 }
 
-has_random <- function(formula){
-  length(reformulas::findbars(formula)) > 0
-}
-
 sigma_names <- function(formula, data){
   if(!has_random(formula)) return(NA_character_)
   nms <- get_reTrms(formula, data)$cnms

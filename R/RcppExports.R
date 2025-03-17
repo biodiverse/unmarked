@@ -45,8 +45,8 @@ nll_nmixTTD <- function(beta, y, delta, W, V, pinds, mixture, tdist, N, J, K, na
     .Call(`_unmarked_nll_nmixTTD`, beta, y, delta, W, V, pinds, mixture, tdist, N, J, K, naflag, threads)
 }
 
-nll_occu <- function(y, X, V, beta_psi, beta_p, nd, knownOcc, navec, X_offset, V_offset, link_psi) {
-    .Call(`_unmarked_nll_occu`, y, X, V, beta_psi, beta_p, nd, knownOcc, navec, X_offset, V_offset, link_psi)
+nll_occu_Cpp <- function(params, inputs) {
+    .Call(`_unmarked_nll_occu_Cpp`, params, inputs)
 }
 
 nll_occuCOP <- function(y, L, Xpsi, Xlambda, beta_psi, beta_lambda, removed) {
