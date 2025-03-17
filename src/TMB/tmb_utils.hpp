@@ -1,5 +1,5 @@
 template<class Type>
-vector<Type> cloglog(vector<Type> inp) {
+vector<Type> invcloglog(vector<Type> inp) {
   int sz = inp.size();
   vector<Type> out(sz);
   for (int i=0; i<sz; i++){
@@ -25,3 +25,33 @@ vector<Type> add_ranef(vector<Type> par, Type& loglik,
   par += Z * b;
   return par;
 }
+
+template<class Type>
+bool is_na(Type x){
+  return R_IsNA(asDouble(x));
+}
+
+template<class Type>
+bool all_na(vector<Type> x){
+  for (int i = 0; i < size(x); i++){
+    if(!is_na(x(i))){
+      return false;
+    }
+  }
+  return true;
+}
+
+// Macro for submodel inputs
+#define SUBMODEL_INPUTS(type) \
+  DATA_INTEGER(family_##type) \
+  DATA_INTEGER(invlink_##type) \
+  DATA_MATRIX(X_##type) \
+  DATA_SPARSE_MATRIX(Z_##type) \
+  DATA_VECTOR(offset_##type) \
+  DATA_INTEGER(n_group_vars_##type) \
+  DATA_IVECTOR(n_grouplevels_##type) \
+  PARAMETER_VECTOR(beta_##type) \
+  PARAMETER_VECTOR(b_##type) \
+  PARAMETER_VECTOR(lsigma_##type)
+
+#define UNUSED(x) (void)(x)

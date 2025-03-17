@@ -32,9 +32,12 @@ occu <- function(formula, data, knownOcc = numeric(0),
   resp <- unmarkedResponse(data)
   resp <- add_missing(resp, submods)
 
-  if(engine == "TMB"){
-    inputs <- engine_inputs_TMB(resp, submods)
-    stop("Not supported yet")
+  if(engine == "TMB"){ 
+    fit <- fit_TMB2("tmb_occu", response = resp, submodels = submods, 
+                    starts = starts, method = method, se = se, ...)
+
+    submods <- fit$submodels
+
   } else {
     inputs <- engine_inputs_R(resp, submods)
     nll_fun <- ifelse(engine == "R", nll_occu_R, nll_occu_Cpp)
@@ -46,7 +49,6 @@ occu <- function(formula, data, knownOcc = numeric(0),
     }
 
     fit <- fit_optim(nll_fun, inputs, starts, method, se, ...)
-    tmb_mod <- NULL
     submods <- add_estimates(submods, fit)
   }
 
@@ -55,7 +57,7 @@ occu <- function(formula, data, knownOcc = numeric(0),
                  sitesRemoved = removed_sites(resp),
                  estimates = submods, AIC = fit$AIC, opt = fit$opt,
                  negLogLike = fit$opt$value,
-                 nllFun = nll_fun, knownOcc = as.logical(known_occ), TMB=tmb_mod)
+                 nllFun = fit$nll, knownOcc = as.logical(known_occ), TMB=fit$TMB)
 
   return(umfit)
 }

@@ -11,7 +11,7 @@ setClass("unmarkedFit",
         nllFun = "function",
         bootstrapSamples = "optionalList",
         covMatBS = "optionalMatrix", # list of bootstrap sample fits
-        TMB = "optionalList")) #TMB output object
+        TMB = "ANY")) #TMB output object
 
 # ---------------------------- CHILD CLASSES ----------------------------
 

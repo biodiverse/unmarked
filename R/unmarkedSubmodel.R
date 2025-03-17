@@ -100,11 +100,15 @@ setMethod("model.matrix", "unmarkedSubmodel",
 setGeneric("has_random", function(object) standardGeneric("has_random"))
 
 setMethod("has_random", "formula", function(object){
-  length(reformulas::findbars(formula)) > 0
+  length(reformulas::findbars(object)) > 0
 })
 
 setMethod("has_random", "unmarkedSubmodel", function(object){
   has_random(object@formula) 
+})
+
+setMethod("has_random", "unmarkedSubmodelList", function(object){
+  sapply(submodels(object), has_random)
 })
 
 setGeneric("Z_matrix", function(object, ...){
@@ -176,6 +180,104 @@ get_family_code <- function(family){
 get_invlink_code <- function(link){
   switch(link, logistic = 0, exp = 1, cloglog = 2)
 }
+
+setGeneric("get_TMB_pars", function(object, starts){
+  standardGeneric("get_TMB_pars")
+})
+
+setMethod("get_TMB_pars", "unmarkedSubmodel", function(object, starts){
+
+  out <- list()
+
+  # Fixed pars
+  fixed <- colnames(model.matrix(object))
+  out$beta <- setNames(rep(0, length(fixed)), fixed)
+
+  # Random effect names
+  if(has_random(object)){
+    re_info <- random_effect_names(object)
+
+    # Sigma pars
+    sig_names <- re_info$sigma
+    sig_names <- apply(sig_names, 1, paste, collapse = "_")
+    sig_names <- gsub("(Intercept)", "Int", sig_names, fixed = TRUE)
+    out$lsigma <- setNames(rep(0, length(sig_names)), sig_names)
+
+    # Random effect pars
+    b_names <- apply(re_info$random_effects, 1, paste, collapse = "_")
+    b_names <- gsub("(Intercept)", "Int", b_names, fixed = TRUE)
+    out$b <- setNames(rep(0, length(b_names)), b_names)
+  } else {
+    out$lsigma <- numeric(0)
+    out$b <- numeric(0)
+  }
+  
+  names(out) <- paste0(names(out), "_", object@type)
+  
+  # Update start values
+  if(!is.null(starts)){
+    for (i in length(starts)){
+      match_starts <- which(names(starts)[i] == names(out))
+      if(length(match_starts) == 0) next
+      if(length(starts[[i]]) != length(out[[match_starts]])){
+        stop("starts element ", names(starts)[i], " should be length ",
+             length(out[[match_starts]]), call.=FALSE)
+      }
+      out[[match_starts]] <- starts[[i]]
+    }
+  }
+
+  out
+})
+
+random_effect_names <- function(object){
+
+  re_info <- get_reTrms(object@formula, object@data)[c("cnms", "flist")]
+
+  Groups <- lapply(1:length(re_info$cnms), function(x){
+                  gn <- names(re_info$cnms)[x]
+                  rep(gn, length(levels(re_info$flist[[gn]])))
+            })
+  Groups <- do.call(c, Groups)
+
+  Name <-  lapply(1:length(re_info$cnms), function(x){
+                  gn <- names(re_info$cnms)[x]
+                  var <- re_info$cnms[[x]]
+                  rep(var, length(levels(re_info$flist[[gn]])))
+            })
+  Name <- do.call(c, Name)
+
+  Levels <- lapply(1:length(re_info$cnms), function(x){
+              gn <- names(re_info$cnms)[x]
+              levels(re_info$flist[[gn]])
+            })
+  Levels <- do.call(c, Levels)
+
+  re <- data.frame(Groups = Groups, Name = Name, Levels = Levels)
+ 
+  list(sigma = unique(re[,c("Groups", "Name")]),
+       random_effects = re)
+}
+
+setGeneric("get_TMB_random", function(object){
+  standardGeneric("get_TMB_random")
+})
+
+setMethod("get_TMB_random", "unmarkedSubmodel", 
+  function(object){
+  if(!has_random(object)) return(NULL)
+  paste0("b_", object@type)
+})
+
+setMethod("get_TMB_random", "unmarkedSubmodelList",
+  function(object){
+  unlist(sapply(submodels(object), get_TMB_random))
+})
+
+setMethod("get_TMB_pars", "unmarkedSubmodelList", function(object, starts){
+  unlist(lapply(unname(submodels(object)), get_TMB_pars, starts = starts), 
+         recursive = FALSE)
+})
 
 # unmarkedSubmodelList---------------------------------------------------------
 
@@ -320,31 +422,37 @@ setMethod("engine_inputs_TMB", c("unmarkedResponse", "unmarkedSubmodelList"),
   c(engine_inputs(object), engine_inputs_TMB(object2))
 })
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 fit_optim <- function(nll_fun, inputs, starts, method, se, ...){
   opt <- optim(starts, nll_fun, method = method, hessian = se, 
               inputs = inputs, ...)            
   cov_mat <- invertHessian(opt, length(opt$par), se)
 
-  list(opt = opt, cov_mat = cov_mat,
+  list(opt = opt, cov_mat = cov_mat, TMB = NULL, nll = nll_fun,
        AIC = 2 * opt$value + 2 * length(starts)) #+ 2*nP*(nP + 1)/(M - nP - 1)
 }
 
 
+fit_TMB2 <- function(model, response, submodels, starts, method, se, ...){
+  data <- engine_inputs_TMB(response, submodels)
+  params <- get_TMB_pars(submodels, starts = starts)
+  random <- get_TMB_random(submodels)
 
+  tmb_mod <- TMB::MakeADFun(data = c(model = model, data),
+                            parameters = params,
+                            random = random,
+                            silent=TRUE,
+                            DLL = "unmarked_TMBExports")
+  class(tmb_mod) <- "TMB"
 
+  opt <- optim(tmb_mod$par, fn=tmb_mod$fn, gr=tmb_mod$gr, method=method, ...)
+
+  submodels <- add_estimates(submodels, tmb_mod, se)
+  
+  AIC = 2 * opt$value + 2 * length(opt$par)
+  
+  list(opt=opt, TMB=tmb_mod, nll = tmb_mod$fn, submodels = submodels,
+       AIC = AIC)
+}
 
 
 
@@ -361,5 +469,84 @@ setMethod("add_estimates", c("unmarkedSubmodelList", "list"),
     v <- fit$cov_mat[idx_rng, idx_rng, drop = FALSE]
     object@estimates[[i]]@covMat <- v
   }
+  object
+})
+
+setOldClass("TMB")
+
+setMethod("add_estimates", c("unmarkedSubmodel", "TMB"), 
+  function(object, fit, sdr, ...){   
+  
+  # Add estimates
+  pars <- fit$env$last.par.best
+  fixed_type <- grepl(paste0("beta_", object@type), names(pars))
+  names(pars)[fixed_type] <- colnames(model.matrix(object))
+
+  rand_type <- grepl(paste0("b_", object@type), names(pars))
+  if(has_random(object)){
+
+    re_names <- random_effect_names(object)
+    b_names <- apply(re_names$random_effects[,c("Name", "Groups", "Levels")],
+                     1, function(x) paste(x, collapse="_"))
+    b_names <- gsub("(Intercept)", "Int",  b_names, fixed=TRUE)
+    names(pars)[rand_type] <- b_names
+  }
+  beta_or_b <- fixed_type | rand_type
+  object@estimates <- pars[beta_or_b]
+
+  # Add variance-covariance matrix
+  # default is blank
+  covMat <- matrix(NA, sum(beta_or_b), sum(beta_or_b))
+  if(!is.null(sdr)){ # If there's an SD report
+    if(!is.null(sdr$cov_all)){
+      # If there's a joint precision, use it
+      covMat <- sdr$cov_all[beta_or_b, beta_or_b, drop = FALSE]
+    } else {
+      # Otherwise we can only get the fixed effects covmat
+      fixed_type <- grepl(paste0("beta_", object@type), colnames(sdr$cov.fixed))
+      covMat <- sdr$cov.fixed[fixed_type, fixed_type, drop = FALSE]
+    }
+  }
+  object@covMat <- covMat
+
+  # Random var info - this should be done more efficiently
+  if(has_random(object)){
+    sig_type <- grepl(paste0("lsigma_", object@type), names(pars))
+    sig_est <- pars[sig_type]
+    
+    sig_cov <- matrix(NA, sum(sig_type), sum(sig_type))
+    if(!is.null(sdr)){
+      sig_type <- grepl(paste0("lsigma_", object@type), colnames(sdr$cov.fixed))
+      sig_cov <- sdr$cov.fixed[sig_type, sig_type, drop = FALSE]
+    }
+    
+    re <- get_reTrms(object@formula, object@data)
+    Z <- get_Z(object@formula, object@data) # inefficient!!
+    
+    rv_info <- list(names=sigma_names(object@formula, object@data), estimates=sig_est, 
+                    covMat=sig_cov, invlink="exp", invlinkGrad="exp",
+                    n_levels=lapply(re$flist, function(x) length(levels(x))), 
+                    cnms=re$cnms, levels=colnames(Z))
+    object@randomVarInfo <- rv_info
+  }
+
+  object
+})
+
+setMethod("add_estimates", c("unmarkedSubmodelList", "TMB"), 
+  function(object, fit, se, ...){   
+  
+  sdr <- NULL
+  if(se){
+    if(any(has_random(object))){
+      sdr <- TMB::sdreport(fit, getJointPrecision = TRUE)
+      sdr$cov_all <- solve(sdr$jointPrecision)
+    } else {
+      sdr <- TMB::sdreport(fit)
+    }
+  }
+
+  object@estimates <- lapply(object@estimates, add_estimates, fit = fit, sdr = sdr)
+
   object
 })
