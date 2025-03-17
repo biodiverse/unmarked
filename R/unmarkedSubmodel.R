@@ -149,6 +149,18 @@ setMethod("find_missing", "unmarkedSubmodel",
   apply(mm, 1, function(x) any(is.na(x)))
 })
 
+setGeneric("default_starts", function(object, ...) standardGeneric("default_starts"))
+
+setMethod("default_starts", "unmarkedSubmodel", function(object, ...){
+  nms <- paste0(object@short.name, "(", colnames(model.matrix(object)), ")")
+  nms <- gsub("(Intercept)", "Int", nms, fixed = TRUE)
+  setNames(rep(0, length(nms)), nms)
+})
+
+setMethod("default_starts", "unmarkedSubmodelList", function(object, ...){
+  unlist(unname(lapply(submodels(object), default_starts)))
+})
+
 setGeneric("engine_inputs", function(object, object2) standardGeneric("engine_inputs"))
 
 setMethod("engine_inputs", c("unmarkedSubmodel", "missing"), function(object, object2){
@@ -407,9 +419,9 @@ setMethod("engine_inputs", c("unmarkedResponse", "unmarkedSubmodelList"),
 })
 
 
-setGeneric("engine_inputs_R", function(object, object2) standardGeneric("engine_inputs_R"))
+setGeneric("engine_inputs_CR", function(object, object2) standardGeneric("engine_inputs_CR"))
 
-setMethod("engine_inputs_R", c("unmarkedResponse", "unmarkedSubmodelList"), 
+setMethod("engine_inputs_CR", c("unmarkedResponse", "unmarkedSubmodelList"), 
   function(object, object2){
   out <- engine_inputs(object, object2)
   idx <- get_parameter_idx(object2)
@@ -422,15 +434,41 @@ setMethod("engine_inputs_TMB", c("unmarkedResponse", "unmarkedSubmodelList"),
   c(engine_inputs(object), engine_inputs_TMB(object2))
 })
 
-fit_optim <- function(nll_fun, inputs, starts, method, se, ...){
+
+# Fitting models---------------------------------------------------------------
+
+fit_model <- function(nll_fun, response, submodels, starts, method, se, ...){
+  # C and R engines
+  if(is.function(nll_fun)){ 
+    fit <- fit_optim(nll_fun, response = response, submodels = submodels,
+                     starts = starts, method = method, se = se, ...) 
+  } else if(grepl("tmb_", nll_fun)){
+    fit <- fit_TMB2(nll_fun, response = response, submodels = submodels, 
+                    starts = starts, method = method, se = se, ...)
+  }
+  fit
+}
+
+fit_optim <- function(nll_fun, response, submodels, starts, method, se, ...){
+  inputs <- engine_inputs_CR(response, submodels)
+
+  npars <- max(unlist(get_parameter_idx(submodels)))
+  if(is.null(starts)) starts <- default_starts(submodels)
+  if(length(starts) != npars){
+    stop(paste("The number of starting values should be", npars))
+  }
+
   opt <- optim(starts, nll_fun, method = method, hessian = se, 
               inputs = inputs, ...)            
   cov_mat <- invertHessian(opt, length(opt$par), se)
 
-  list(opt = opt, cov_mat = cov_mat, TMB = NULL, nll = nll_fun,
-       AIC = 2 * opt$value + 2 * length(starts)) #+ 2*nP*(nP + 1)/(M - nP - 1)
-}
+  fit <- list(opt = opt, cov_mat = cov_mat, TMB = NULL, nll = nll_fun)
+  submodels <- add_estimates(submodels, fit)
 
+  fit$submodels <- submodels
+  fit$AIC <- 2 * opt$value + 2 * length(opt$par)
+  fit
+}
 
 fit_TMB2 <- function(model, response, submodels, starts, method, se, ...){
   data <- engine_inputs_TMB(response, submodels)
@@ -455,7 +493,7 @@ fit_TMB2 <- function(model, response, submodels, starts, method, se, ...){
 }
 
 
-
+# Add estimates to submodels---------------------------------------------------
 
 setGeneric("add_estimates", function(object, fit, ...) standardGeneric("add_estimates"))
 
@@ -486,14 +524,7 @@ setMethod("add_estimates", c("unmarkedSubmodel", "TMB"),
   names(pars)[fixed_type] <- colnames(model.matrix(object))
 
   rand_type <- grepl(paste0("b_", object@type), names(pars))
-  #if(has_random(object)){
 
-    #re_names <- random_effect_names(object)
-    #b_names <- apply(re_names$random_effects[,c("Name", "Groups", "Levels")],
-    #                 1, function(x) paste(x, collapse="_"))
-    #b_names <- gsub("(Intercept)", "Int",  b_names, fixed=TRUE)
-    #names(pars)[rand_type] <- b_names
-  #}
   beta_or_b <- fixed_type | rand_type
   object@estimates <- pars[beta_or_b]
 
@@ -504,12 +535,10 @@ setMethod("add_estimates", c("unmarkedSubmodel", "TMB"),
     if(!is.null(sdr$cov_all)){
       # If there's a joint precision, use it
       covMat <- sdr$cov_all[beta_or_b, beta_or_b, drop = FALSE]
-      #rownames(covMat)[fixed_type] <- colnames(covMat)[fixed_type] <- names(pars)[fixed_type]
     } else {
       # Otherwise we can only get the fixed effects covmat
       fixed_type <- grepl(paste0("beta_", object@type), colnames(sdr$cov.fixed))
       covMat <- sdr$cov.fixed[fixed_type, fixed_type, drop = FALSE]
-      #rownames(covMat) <- colnames(covMat) <- names(pars)[fixed_type]
     }
   }
   object@covMat <- covMat

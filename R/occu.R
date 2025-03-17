@@ -5,9 +5,8 @@ occu <- function(formula, data, knownOcc = numeric(0),
                  linkPsi = c("logit", "cloglog"), starts = NULL, method = "BFGS",
                  se = TRUE, engine = c("C", "R", "TMB"), threads=1, ...) {
 
-  # Check arguments------------------------------------------------------------
-  if(!is(data, "unmarkedFrameOccu"))
-    stop("Data is not an unmarkedFrameOccu object.")
+  # Check arguments
+  if(!is(data, "unmarkedFrameOccu")) stop("Data is not an unmarkedFrameOccu object.")
 
   engine <- match.arg(engine)
   forms <- split_formula(formula)
@@ -18,7 +17,8 @@ occu <- function(formula, data, knownOcc = numeric(0),
   known_occ <- rep(0, numSites(data))
   known_occ[knownOcc] <- 1
 
-  submods <- unmarkedSubmodelList(
+  # Build submodels
+  submodels <- unmarkedSubmodelList(
     state = unmarkedSubmodelState(name = "Occupancy", short_name = "psi", 
                                   type = "state", formula = forms[[2]], data = data, 
                                   family = "binomial", link = linkPsi,
@@ -29,37 +29,22 @@ occu <- function(formula, data, knownOcc = numeric(0),
                               family = "binomial", link = "logit")
   )
 
-  resp <- unmarkedResponse(data)
-  resp <- add_missing(resp, submods)
+  # Build response object
+  response <- unmarkedResponse(data)
+  # Handle missing values in covariates
+  response <- add_missing(response, submodels)
 
-  if(engine == "TMB"){ 
-    fit <- fit_TMB2("tmb_occu", response = resp, submodels = submods, 
-                    starts = starts, method = method, se = se, ...)
+  # Fit model
+  nll_fun <- switch(engine, R = nll_occu_R, C = nll_occu_Cpp, TMB = "tmb_occu")
+  fit <- fit_model(nll_fun, response = response, submodels = submodels,
+                   starts = starts, method = method, se = se, ...)
 
-    submods <- fit$submodels
-
-  } else {
-    inputs <- engine_inputs_R(resp, submods)
-    nll_fun <- ifelse(engine == "R", nll_occu_R, nll_occu_Cpp)
-
-    nP <- max(unlist(get_parameter_idx(submods)))
-    if(is.null(starts)) starts <- rep(0, nP)
-    if(length(starts) != nP){
-      stop(paste("The number of starting values should be", nP))
-    }
-
-    fit <- fit_optim(nll_fun, inputs, starts, method, se, ...)
-    submods <- add_estimates(submods, fit)
-  }
-
-  umfit <- new("unmarkedFitOccu", fitType = "occu", call = match.call(),
-                 formula = formula, data = data,
-                 sitesRemoved = removed_sites(resp),
-                 estimates = submods, AIC = fit$AIC, opt = fit$opt,
-                 negLogLike = fit$opt$value,
-                 nllFun = fit$nll, knownOcc = as.logical(known_occ), TMB=fit$TMB)
-
-  return(umfit)
+  # Create unmarkedFit object
+  new("unmarkedFitOccu", fitType = "occu", call = match.call(),
+      formula = formula, data = data, sitesRemoved = removed_sites(response),
+      estimates = fit$submodels, AIC = fit$AIC, opt = fit$opt,
+      negLogLike = fit$opt$value, nllFun = fit$nll, 
+      knownOcc = as.logical(known_occ), TMB=fit$TMB)
 }
 
 nll_occu_R <- function(params, inputs){
