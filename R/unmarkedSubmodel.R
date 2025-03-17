@@ -316,7 +316,7 @@ setMethod("get_parameter_idx", "unmarkedSubmodelList",
   for (i in 2:length(idx)){
     idx[[i]] <- idx[[i]] + max(idx[[i-1]])
   }
-  idx
+  lapply(idx, range)
 })
 
 setMethod("engine_inputs", c("unmarkedSubmodelList", "missing"), function(object, object2){
@@ -465,8 +465,11 @@ setMethod("add_estimates", c("unmarkedSubmodelList", "list"),
   idx <- get_parameter_idx(object)
   for (i in names(submodels(object))){
     idx_rng <- idx[[i]][1]:idx[[i]][2] 
-    object@estimates[[i]]@estimates <- fit$opt$par[idx_rng]
+    est <- fit$opt$par[idx_rng]
+    names(est) <- colnames(model.matrix(object@estimates[[i]]))
+    object@estimates[[i]]@estimates <- est
     v <- fit$cov_mat[idx_rng, idx_rng, drop = FALSE]
+    rownames(v) <- colnames(v) <- names(est) 
     object@estimates[[i]]@covMat <- v
   }
   object
@@ -483,14 +486,14 @@ setMethod("add_estimates", c("unmarkedSubmodel", "TMB"),
   names(pars)[fixed_type] <- colnames(model.matrix(object))
 
   rand_type <- grepl(paste0("b_", object@type), names(pars))
-  if(has_random(object)){
+  #if(has_random(object)){
 
-    re_names <- random_effect_names(object)
-    b_names <- apply(re_names$random_effects[,c("Name", "Groups", "Levels")],
-                     1, function(x) paste(x, collapse="_"))
-    b_names <- gsub("(Intercept)", "Int",  b_names, fixed=TRUE)
-    names(pars)[rand_type] <- b_names
-  }
+    #re_names <- random_effect_names(object)
+    #b_names <- apply(re_names$random_effects[,c("Name", "Groups", "Levels")],
+    #                 1, function(x) paste(x, collapse="_"))
+    #b_names <- gsub("(Intercept)", "Int",  b_names, fixed=TRUE)
+    #names(pars)[rand_type] <- b_names
+  #}
   beta_or_b <- fixed_type | rand_type
   object@estimates <- pars[beta_or_b]
 
@@ -501,10 +504,12 @@ setMethod("add_estimates", c("unmarkedSubmodel", "TMB"),
     if(!is.null(sdr$cov_all)){
       # If there's a joint precision, use it
       covMat <- sdr$cov_all[beta_or_b, beta_or_b, drop = FALSE]
+      #rownames(covMat)[fixed_type] <- colnames(covMat)[fixed_type] <- names(pars)[fixed_type]
     } else {
       # Otherwise we can only get the fixed effects covmat
       fixed_type <- grepl(paste0("beta_", object@type), colnames(sdr$cov.fixed))
       covMat <- sdr$cov.fixed[fixed_type, fixed_type, drop = FALSE]
+      #rownames(covMat) <- colnames(covMat) <- names(pars)[fixed_type]
     }
   }
   object@covMat <- covMat

@@ -180,13 +180,13 @@ test_that("occu handles NAs",{
   siteCovs[3,1] <- NA
   obsCovs <- data.frame(o1 = 1:10, o2 = exp(-5:4)/10)
   umf <- unmarkedFrameOccu(y = y, siteCovs = siteCovs, obsCovs = obsCovs)
-  expect_warning(fm <- occu(~ o1 + o2 ~ x, data = umf))
+  expect_no_warning(fm <- occu(~ o1 + o2 ~ x, data = umf))
   expect_equal(fm@sitesRemoved, 3)
   expect_equivalent(coef(fm), c(8.70123, 4.58255, 0.66243, -0.22862, 0.58192), tol = 1e-5)
 
   obsCovs[10,2] <- NA
   umf <- unmarkedFrameOccu(y = y, siteCovs = siteCovs, obsCovs = obsCovs)
-  expect_warning(fm <- occu(~ o1 + o2 ~ x, data = umf))
+  expect_no_warning(fm <- occu(~ o1 + o2 ~ x, data = umf))
   expect_equal(fm@sitesRemoved, 3)
   expect_equivalent(coef(fm), c(8.91289, 1.89291, -1.42471, 0.67011, -8.44608), tol = 1e-5)
   
@@ -320,7 +320,7 @@ test_that("occu predict works",{
   x3[3,] <- NA
   umf1 <- unmarkedFrameOccu(y=y, siteCovs=data.frame(x1=x1, x2=x2),
                               obsCovs=list(x3=x3))
-  fm1 <- expect_warning(occu(~x3 ~x1+x2, umf1))
+  fm1 <- expect_no_warning(occu(~x3 ~x1+x2, umf1))
   E1.1 <- expect_warning(predict(fm1, type="state"))
   E1.2 <- expect_warning(predict(fm1, type="det"))
 

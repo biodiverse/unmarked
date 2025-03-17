@@ -27,7 +27,7 @@ double nll_occu_Cpp(arma::colvec params, Rcpp::List inputs) {
 
   //Calculate psi
   colvec psi = X_state * beta_state + offset_state;
-  if(invlink_state == 1){
+  if(invlink_state == 2){ //inverse cloglog
     psi = 1 - exp(-exp(psi));
   } else {
     psi = 1.0/(1.0+exp(-psi));
