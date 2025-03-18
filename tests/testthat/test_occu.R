@@ -99,6 +99,10 @@ test_that("occu can fit models with covariates",{
 
   ci <- confint(occ)
   expect_equal(dim(ci), c(2,2))
+  nul <- capture.output(
+    ci <- expect_warning(confint(fm, type="state", method = "profile"))
+  )
+  expect_equal(dim(ci), c(2,2))
 
   out <- capture.output(occ)
   expect_equal(out[1], "Occupancy:")
@@ -502,4 +506,12 @@ test_that("TMB engine gives correct det estimates when there are lots of NAs", {
   fit <- occu(~x~1, umf)
   fitT <- occu(~x~1, umf, engine="TMB")
   expect_equal(coef(fit), coef(fitT), tol=1e-5)
+})
+
+
+test_that("occu handles non-binary y",{
+  y <- matrix(rep(2,10)[1:10],5,2)
+  umf <- unmarkedFrameOccu(y = y)
+  expect_warning(fm <- occu(~ 1 ~ 1, data = umf),
+                 "truncated")
 })

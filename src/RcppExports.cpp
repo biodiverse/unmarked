@@ -318,14 +318,35 @@ BEGIN_RCPP
 END_RCPP
 }
 // nll_occu_Cpp
-double nll_occu_Cpp(arma::colvec params, Rcpp::List inputs);
+double nll_occu_Cpp(arma::vec params, Rcpp::List inputs);
 RcppExport SEXP _unmarked_nll_occu_Cpp(SEXP paramsSEXP, SEXP inputsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::colvec >::type params(paramsSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type params(paramsSEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type inputs(inputsSEXP);
     rcpp_result_gen = Rcpp::wrap(nll_occu_Cpp(params, inputs));
+    return rcpp_result_gen;
+END_RCPP
+}
+// nll_occu
+double nll_occu(arma::icolvec y, arma::mat X, arma::mat V, arma::colvec beta_psi, arma::colvec beta_p, Rcpp::IntegerVector nd, Rcpp::LogicalVector knownOcc, Rcpp::LogicalVector navec, arma::colvec X_offset, arma::colvec V_offset, std::string link_psi);
+RcppExport SEXP _unmarked_nll_occu(SEXP ySEXP, SEXP XSEXP, SEXP VSEXP, SEXP beta_psiSEXP, SEXP beta_pSEXP, SEXP ndSEXP, SEXP knownOccSEXP, SEXP navecSEXP, SEXP X_offsetSEXP, SEXP V_offsetSEXP, SEXP link_psiSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::icolvec >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type V(VSEXP);
+    Rcpp::traits::input_parameter< arma::colvec >::type beta_psi(beta_psiSEXP);
+    Rcpp::traits::input_parameter< arma::colvec >::type beta_p(beta_pSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type nd(ndSEXP);
+    Rcpp::traits::input_parameter< Rcpp::LogicalVector >::type knownOcc(knownOccSEXP);
+    Rcpp::traits::input_parameter< Rcpp::LogicalVector >::type navec(navecSEXP);
+    Rcpp::traits::input_parameter< arma::colvec >::type X_offset(X_offsetSEXP);
+    Rcpp::traits::input_parameter< arma::colvec >::type V_offset(V_offsetSEXP);
+    Rcpp::traits::input_parameter< std::string >::type link_psi(link_psiSEXP);
+    rcpp_result_gen = Rcpp::wrap(nll_occu(y, X, V, beta_psi, beta_p, nd, knownOcc, navec, X_offset, V_offset, link_psi));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -571,6 +592,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_unmarked_nll_multmixOpen", (DL_FUNC) &_unmarked_nll_multmixOpen, 39},
     {"_unmarked_nll_nmixTTD", (DL_FUNC) &_unmarked_nll_nmixTTD, 13},
     {"_unmarked_nll_occu_Cpp", (DL_FUNC) &_unmarked_nll_occu_Cpp, 2},
+    {"_unmarked_nll_occu", (DL_FUNC) &_unmarked_nll_occu, 11},
     {"_unmarked_nll_occuCOP", (DL_FUNC) &_unmarked_nll_occuCOP, 7},
     {"_unmarked_nll_occuMS", (DL_FUNC) &_unmarked_nll_occuMS, 15},
     {"_unmarked_nll_occuMulti_loglik", (DL_FUNC) &_unmarked_nll_occuMulti_loglik, 14},

@@ -30,7 +30,7 @@ occu <- function(formula, data, knownOcc = numeric(0),
   )
 
   # Build response object
-  response <- unmarkedResponse(data)
+  response <- unmarkedResponseBinary(data)
   # Handle missing values in covariates
   response <- add_missing(response, submodels)
 

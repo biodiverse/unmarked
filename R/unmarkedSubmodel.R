@@ -353,6 +353,11 @@ unmarkedResponse <- function(data, Kmax = 1){
   response
 }
 
+unmarkedResponseBinary <- function(data, Kmax = 1){
+  data@y <- truncateToBinary(data@y)
+  unmarkedResponse(data, Kmax = Kmax)
+}
+
 setGeneric("add_missing", function(object, submodel, ...){
   standardGeneric("add_missing")
 })

@@ -49,6 +49,10 @@ nll_occu_Cpp <- function(params, inputs) {
     .Call(`_unmarked_nll_occu_Cpp`, params, inputs)
 }
 
+nll_occu <- function(y, X, V, beta_psi, beta_p, nd, knownOcc, navec, X_offset, V_offset, link_psi) {
+    .Call(`_unmarked_nll_occu`, y, X, V, beta_psi, beta_p, nd, knownOcc, navec, X_offset, V_offset, link_psi)
+}
+
 nll_occuCOP <- function(y, L, Xpsi, Xlambda, beta_psi, beta_lambda, removed) {
     .Call(`_unmarked_nll_occuCOP`, y, L, Xpsi, Xlambda, beta_psi, beta_lambda, removed)
 }
