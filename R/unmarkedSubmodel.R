@@ -107,10 +107,6 @@ setMethod("has_random", "unmarkedSubmodel", function(object){
   has_random(object@formula) 
 })
 
-setMethod("has_random", "unmarkedSubmodelList", function(object){
-  sapply(submodels(object), has_random)
-})
-
 setGeneric("Z_matrix", function(object, ...){
   standardGeneric("Z_matrix")
 })
@@ -155,10 +151,6 @@ setMethod("default_starts", "unmarkedSubmodel", function(object, ...){
   nms <- paste0(object@short.name, "(", colnames(model.matrix(object)), ")")
   nms <- gsub("(Intercept)", "Int", nms, fixed = TRUE)
   setNames(rep(0, length(nms)), nms)
-})
-
-setMethod("default_starts", "unmarkedSubmodelList", function(object, ...){
-  unlist(unname(lapply(submodels(object), default_starts)))
 })
 
 setGeneric("engine_inputs", function(object, object2) standardGeneric("engine_inputs"))
@@ -268,16 +260,6 @@ setMethod("get_TMB_random", "unmarkedSubmodel",
   paste0("b_", object@type)
 })
 
-setMethod("get_TMB_random", "unmarkedSubmodelList",
-  function(object){
-  unlist(sapply(submodels(object), get_TMB_random))
-})
-
-setMethod("get_TMB_pars", "unmarkedSubmodelList", function(object, starts){
-  unlist(lapply(unname(submodels(object)), get_TMB_pars, starts = starts), 
-         recursive = FALSE)
-})
-
 # unmarkedSubmodelList---------------------------------------------------------
 
 setClass("unmarkedSubmodelList",
@@ -301,6 +283,10 @@ setGeneric("submodels<-", function(object, value) standardGeneric("submodels<-")
 setMethod("submodels<-", "unmarkedSubmodelList", function(object, value){
   object@estimates <- value
   object
+})
+
+setMethod("has_random", "unmarkedSubmodelList", function(object){
+  sapply(submodels(object), has_random)
 })
 
 setGeneric("get_parameter_idx", function(object, ...){
@@ -328,7 +314,19 @@ setMethod("engine_inputs_TMB", c("unmarkedSubmodelList", "missing"), function(ob
   do.call(c, unname(out))
 })
 
+setMethod("default_starts", "unmarkedSubmodelList", function(object, ...){
+  unlist(unname(lapply(submodels(object), default_starts)))
+})
 
+setMethod("get_TMB_random", "unmarkedSubmodelList",
+  function(object){
+  unlist(sapply(submodels(object), get_TMB_random))
+})
+
+setMethod("get_TMB_pars", "unmarkedSubmodelList", function(object, starts){
+  unlist(lapply(unname(submodels(object)), get_TMB_pars, starts = starts), 
+         recursive = FALSE)
+})
 
 # unmarkedResponse-------------------------------------------------------------
 
