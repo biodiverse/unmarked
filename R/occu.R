@@ -34,9 +34,15 @@ occu <- function(formula, data, knownOcc = numeric(0),
   # Handle missing values in covariates
   response <- add_missing(response, submodels)
 
+  if(engine == "TMB"){
+    inputs <- engine_inputs_TMB(response, submodels)
+  } else {
+    inputs <- engine_inputs_CR(response, submodels)
+  }
+
   # Fit model
   nll_fun <- switch(engine, R = nll_occu_R, C = nll_occu_Cpp, TMB = "tmb_occu")
-  fit <- fit_model(nll_fun, response = response, submodels = submodels,
+  fit <- fit_model(nll_fun, inputs = inputs, submodels = submodels,
                    starts = starts, method = method, se = se, ...)
 
   # Create unmarkedFit object

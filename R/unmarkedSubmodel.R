@@ -427,21 +427,19 @@ setMethod("engine_inputs_TMB", c("unmarkedResponse", "unmarkedSubmodelList"),
 
 # Fitting models---------------------------------------------------------------
 
-fit_model <- function(nll_fun, response, submodels, starts, method, se, ...){
+fit_model <- function(nll_fun, inputs, submodels, starts, method, se, ...){
   # C and R engines
   if(is.function(nll_fun)){ 
-    fit <- fit_optim(nll_fun, response = response, submodels = submodels,
+    fit <- fit_optim(nll_fun, inputs = inputs, submodels = submodels,
                      starts = starts, method = method, se = se, ...) 
   } else if(grepl("tmb_", nll_fun)){
-    fit <- fit_TMB2(nll_fun, response = response, submodels = submodels, 
+    fit <- fit_TMB2(nll_fun, inputs = inputs, submodels = submodels, 
                     starts = starts, method = method, se = se, ...)
   }
   fit
 }
 
-fit_optim <- function(nll_fun, response, submodels, starts, method, se, ...){
-  inputs <- engine_inputs_CR(response, submodels)
-
+fit_optim <- function(nll_fun, inputs, submodels, starts, method, se, ...){
   npars <- max(unlist(get_parameter_idx(submodels)))
   if(is.null(starts)) starts <- default_starts(submodels)
   if(length(starts) != npars){
@@ -462,8 +460,7 @@ fit_optim <- function(nll_fun, response, submodels, starts, method, se, ...){
   fit
 }
 
-fit_TMB2 <- function(model, response, submodels, starts, method, se, ...){
-  data <- engine_inputs_TMB(response, submodels)
+fit_TMB2 <- function(model, inputs, submodels, starts, method, se, ...){
   params <- get_TMB_pars(submodels, starts = starts)
   random <- get_TMB_random(submodels)
 
@@ -482,7 +479,7 @@ fit_TMB2 <- function(model, response, submodels, starts, method, se, ...){
     params <- replace(params, names(list_fixed_only), list_fixed_only)
   }
 
-  tmb_mod <- TMB::MakeADFun(data = c(model = model, data),
+  tmb_mod <- TMB::MakeADFun(data = c(model = model, inputs),
                             parameters = params,
                             random = random,
                             silent=TRUE,
