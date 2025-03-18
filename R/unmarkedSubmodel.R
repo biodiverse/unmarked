@@ -226,19 +226,6 @@ setMethod("get_TMB_pars", "unmarkedSubmodel", function(object, starts){
   
   names(out) <- paste0(names(out), "_", object@type)
   
-  # Update start values
-  if(!is.null(starts)){
-    for (i in length(starts)){
-      match_starts <- which(names(starts)[i] == names(out))
-      if(length(match_starts) == 0) next
-      if(length(starts[[i]]) != length(out[[match_starts]])){
-        stop("starts element ", names(starts)[i], " should be length ",
-             length(out[[match_starts]]), call.=FALSE)
-      }
-      out[[match_starts]] <- starts[[i]]
-    }
-  }
-
   out
 })
 
@@ -475,11 +462,27 @@ fit_TMB2 <- function(model, response, submodels, starts, method, se, ...){
   params <- get_TMB_pars(submodels, starts = starts)
   random <- get_TMB_random(submodels)
 
+  fixed_sub <- names(params)[!names(params) %in% random]
+  nfixed <- length(unlist(params[fixed_sub]))
+  list_fixed_only <- params[fixed_sub]
+  plengths <- sapply(list_fixed_only, length)
+  starts_order <- rep(fixed_sub, plengths)
+
+  if(!is.null(starts)){
+    if(length(starts) != nfixed){
+      stop(paste("The number of starting values should be", nfixed))
+    }
+    list_fixed_only <- params[fixed_sub]
+    list_fixed_only <- utils::relist(starts, list_fixed_only)
+    params <- replace(params, names(list_fixed_only), list_fixed_only)
+  }
+
   tmb_mod <- TMB::MakeADFun(data = c(model = model, data),
                             parameters = params,
                             random = random,
                             silent=TRUE,
                             DLL = "unmarked_TMBExports")
+  tmb_mod$starts_order <- starts_order
   class(tmb_mod) <- "TMB"
 
   opt <- optim(tmb_mod$par, fn=tmb_mod$fn, gr=tmb_mod$gr, method=method, ...)
