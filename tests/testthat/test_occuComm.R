@@ -124,7 +124,7 @@ test_that("occuComm can fit models and methods work", {
   umf <- unmarkedFrameOccuComm(ylist_na, sc, speciesCovs = spc)
  
   # quick fit
-  fit <- expect_warning(occuComm(~1~x, umf[1:20,]))
+  fit <- expect_no_warning(occuComm(~1~x, umf[1:20,]))
   expect_equivalent(coef(fit),
                c(0.1262, 1.3458, -0.00887), tol=1e-4)
 
@@ -201,9 +201,9 @@ test_that("occuComm can fit models and methods work", {
   expect_equivalent(sse, 460.1721, tol=1e-4)
 
   # update
-  upd <- expect_warning(update(fit, formula=~1~1))
+  upd <- expect_no_warning(update(fit, formula=~1~1))
   expect_equal(length(coef(upd)), 2)
-  upd <- expect_warning(update(fit, data=umf[1:10,]))
+  upd <- expect_no_warning(update(fit, data=umf[1:10,]))
   expect_equal(numSites(upd@data), 10)
 
   # plotEffects
@@ -221,7 +221,7 @@ test_that("occuComm can fit models and methods work", {
   pb <- expect_warning(parboot(fit, nsim=2))
 
   # nonparboot
-  npb <- expect_warning(nonparboot(fit, B=2))
+  npb <- expect_no_warning(nonparboot(fit, B=2))
   expect_equal(length(npb@bootstrapSamples), 2)
 })
 

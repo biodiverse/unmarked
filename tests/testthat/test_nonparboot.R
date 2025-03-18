@@ -17,9 +17,9 @@ test_that("nonparboot works with occu",{
     umf <- unmarkedFrameOccu(y=y, siteCovs=data.frame(x1=x1),
                              obsCovs=list(x2=x2))
     fm1 <- occu(~1 ~1, umf)
-    fm2 <- expect_warning(occu(~x2 ~x1, umf))
+    fm2 <- expect_no_warning(occu(~x2 ~x1, umf))
     fm1 <- nonparboot(fm1, B=2)
-    fm2 <- expect_warning(nonparboot(fm2, B=2))
+    fm2 <- expect_no_warning(nonparboot(fm2, B=2))
 
     expect_equivalent(diag(vcov(fm2, method="nonparboot")),
                       c(0.0007859209, 0.4338456,0.0019053,0.0383658),

@@ -1,109 +1,76 @@
 
 # Fit the Occupancy model of Royle and Nichols
 
-occuRN <- function(formula, data, K = 25, starts, method = "BFGS",
-    se = TRUE, engine=c("C","R"), threads = 1, ...)
-{
-    check_no_support(split_formula(formula))
+occuRN <- function(formula, data, K = 25, starts = NULL, method = "BFGS",
+                   se = TRUE, engine=c("C","R"), threads = 1, ...){
 
-    if(!is(data, "unmarkedFrameOccu"))
-        stop("Data is not an unmarkedFrameOccu object.")
+  # Check arguments
+  if(!is(data, "unmarkedFrameOccu")) stop("Data is not an unmarkedFrameOccu object.")
+  engine <- match.arg(engine)
+  forms <- split_formula(formula)
+  check_no_support(forms)
+    
+  # Build submodels
+  submodels <- unmarkedSubmodelList(
+    state = unmarkedSubmodelState(name = "Abundance", short_name = "lam", 
+                                  type = "state", formula = forms[[2]], 
+                                  data = data, family = "poisson", link = "log"),
 
-    engine <- match.arg(engine, c("C", "R"))
-    designMats <- getDesign(data, formula)
-    X <- designMats$X; V <- designMats$V; y <- designMats$y
-    X.offset <- designMats$X.offset; V.offset <- designMats$V.offset
-    if(is.null(X.offset))
-        X.offset <- rep(0, nrow(X))
-    if (is.null(V.offset))
-        V.offset <- rep(0, nrow(V))
+    det = unmarkedSubmodelDet(name = "Detection", short_name = "p", 
+                              type = "det", formula = forms[[1]], data = data, 
+                              family = "binomial", link = "logit")
+  )
 
-  y <- truncateToBinary(y)
+  # Build response object
+  response <- unmarkedResponseBinary(data, Kmax = K)
+  # Handle missing values in covariates
+  response <- add_missing(response, submodels)
 
-  J <- ncol(y)
-  M <- nrow(y)
+  inputs <- engine_inputs_CR(response, submodels)
+  inputs$threads <- threads
 
-  occParms <- colnames(X)
-  detParms <- colnames(V)
-  nDP <- ncol(V)
-  nOP <- ncol(X)
+  # Fit model
+  nll_fun <- switch(engine, R = nll_occuRN_R, C = nll_occuRN_Cpp)
+  fit <- fit_model(nll_fun, inputs = inputs, submodels = submodels,
+                   starts = starts, method = method, se = se, ...)
 
-  nP <- nDP + nOP
-  if(!missing(starts) && length(starts) != nP)
-	   stop(paste("The number of starting values should be", nP))
-
-  y.ji <- as.vector(y)
-  navec <- is.na(y.ji)
-  n <- 0:K
-
-  nll_R <- function(parms, f = "Poisson")
-  {
-
-    ## compute individual level detection probabilities
-    r.ij <- matrix(plogis(V %*% parms[(nOP + 1) : nP] + V.offset), M, J,
-      byrow = TRUE)
-
-    ## compute list of detection probabilities along N
-    p.ij.list <- lapply(n, function(k) 1 - (1 - r.ij)^k)
-
-    ## compute P(y_{ij} | N) (cell probabilities) along N
-    cp.ij.list <- lapply(p.ij.list, function(pmat) pmat^y * (1-pmat)^(1-y))
-
-    ## replace NA cell probabilities with 1.
-    cp.ij.list <- lapply(cp.ij.list, function(cpmat) {
-      cpmat[navec] <- 1
-      cpmat
-    })
-
-    ## multiply across J to get P(y_i | N) along N
-    cp.in <- sapply(cp.ij.list, rowProds)
-
-    ## compute P(N = n | lambda_i) along i
-    lambda.i <- exp(X %*% parms[1 : nOP] + X.offset)
-    lambda.in <- sapply(n, function(x) dpois(x, lambda.i))
-
-    ## integrate over P(y_i | N = n) * P(N = n | lambda_i) wrt n
-    like.i <- rowSums(cp.in * lambda.in)
-
-    -sum(log(like.i))
-  }
-
-  if(engine=="R"){
-    nll <- nll_R
-  } else{
-    n_param <- c(nOP, nDP)
-    Kmin <- apply(y, 1, function(x) max(x, na.rm=TRUE))
-    nll <- function(params){
-      nll_occuRN(params, n_param, y, X, V, X.offset, V.offset,
-                 K, Kmin, threads)
-    }
-  }
-
-	if(missing(starts)) starts <- rep(0, nP)
-  fm <- optim(starts, nll, method = method, hessian = se, ...)
-  covMat <- invertHessian(fm, nP, se)
-  ests <- fm$par
-  fmAIC <- 2 * fm$value + 2 * nP # + 2 * nP * (nP + 1) / (M - nP - 1)
-  names(ests) <- c(occParms, detParms)
-
-  stateEstimates <- unmarkedEstimate(name = "Abundance",
-      short.name = "lam",
-      estimates = ests[1:nOP],
-      covMat = as.matrix(covMat[1:nOP,1:nOP]), invlink = "exp",
-      invlinkGrad = "exp")
-
-  detEstimates <- unmarkedEstimate(name = "Detection", short.name = "p",
-      estimates = ests[(nOP + 1) : nP],
-      covMat = as.matrix(covMat[(nOP + 1) : nP, (nOP + 1) : nP]),
-      invlink = "logistic", invlinkGrad = "logistic.grad")
-
-  estimateList <- unmarkedEstimateList(list(state=stateEstimates,
-          det=detEstimates))
-
-  umfit <- new("unmarkedFitOccuRN", fitType = "occuRN",
+  new("unmarkedFitOccuRN", fitType = "occuRN",
       call = match.call(), formula = formula, data = data,
-      sitesRemoved = designMats$removed.sites, estimates = estimateList,
-      AIC = fmAIC, opt = fm, negLogLike = fm$value, nllFun = nll, K = K)
+      sitesRemoved = removed_sites(response), estimates = fit$submodels,
+      AIC = fit$AIC, opt = fit$opt, negLogLike = fit$opt$value, 
+      nllFun = fit$nll, K = response@Kmax)
+}
 
-  return(umfit)
+
+nll_occuRN_R <- function(params, inputs){
+  with(inputs, {
+
+  beta_state <- params[idx_state[1]:idx_state[2]]
+  beta_det <- params[idx_det[1]:idx_det[2]]
+  
+  M <- nrow(inputs$y)
+  J <- ncol(inputs$y)
+  
+  # compute individual level detection probabilities
+  r_ij <- matrix(plogis(X_det %*% beta_det + offset_det), M, J,
+                 byrow = TRUE)
+  
+  # compute list of detection probabilities along N
+  n <- 0:Kmax
+  p_ij_list <- lapply(n, function(k) 1 - (1 - r_ij)^k)
+
+  # compute P(y_{ij} | N) (cell probabilities) along N
+  cp_ij_list <- lapply(p_ij_list, function(pmat) pmat^y * (1-pmat)^(1-y))
+
+  # multiply across J to get P(y_i | N) along N
+  cp_in <- sapply(cp_ij_list, rowProds, na.rm = TRUE)
+
+  # compute P(N = n | lambda_i) along i
+  lambda_i <- exp(X_state %*% beta_state + offset_state)
+  lambda_in <- sapply(n, function(x) dpois(x, lambda_i))
+
+  # integrate over P(y_i | N = n) * P(N = n | lambda_i) wrt n
+  like_i <- rowSums(cp_in * lambda_in)
+  -sum(log(like_i), na.rm = TRUE)
+  })
 }

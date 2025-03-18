@@ -92,7 +92,7 @@ test_that("occuRN can handle NAs",{
   woodthrush.bin_na[1,] <- NA
   woodthrushUMF <- unmarkedFrameOccu(woodthrush.bin_na)
 
-  expect_warning(fm_C <- occuRN(~ obsNum ~ 1, woodthrushUMF, engine="C", K=10))
+  expect_no_warning(fm_C <- occuRN(~ obsNum ~ 1, woodthrushUMF, engine="C", K=10))
   #fm_R <- occuRN(~ obsNum ~ 1, woodthrushUMF, engine="R")
 
   # check that site was removed
@@ -114,7 +114,7 @@ test_that("occuRN can handle NAs",{
   siteCovs(woodthrushUMF) <- sc
   obsCovs(woodthrushUMF) <- oc
   
-  fm_na <- expect_warning( occuRN(~x2~x, woodthrushUMF, K=10))
+  fm_na <- expect_no_warning( occuRN(~x2~x, woodthrushUMF, K=10))
 
   ft <- fitted(fm_na)
   expect_equal(dim(ft), dim(fm_na@data@y))

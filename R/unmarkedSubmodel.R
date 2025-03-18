@@ -23,8 +23,17 @@ setClass("unmarkedSubmodelDet",
   contains = "unmarkedSubmodel")
 
 unmarkedSubmodelDet <- function(name, short_name, type, formula, data, 
-                                family, link, auxiliary = list()){
+                                family, link, auxiliary = list(), obsNum = TRUE){
+  
+  R <- obsNum(data)
+  M <- numSites(data)
   data <- clean_up_covs(data, drop_final = FALSE)$obs_covs
+
+  # For backwards compatibility
+  if(obsNum & !("obsNum" %in% names(data))) {
+    data <- cbind(data, obsNum = as.factor(rep(1:R, M)))
+  }
+
   data <- subset_covs(data, formula)
   out <- new("unmarkedSubmodelDet",
     name = name, short.name = short_name, type = type,
@@ -227,20 +236,21 @@ random_effect_names <- function(object){
 
   Groups <- lapply(1:length(re_info$cnms), function(x){
                   gn <- names(re_info$cnms)[x]
-                  rep(gn, length(levels(re_info$flist[[gn]])))
+                  rep(rep(gn, length(re_info$cnms[[x]])), 
+                      each = length(levels(re_info$flist[[gn]])))
             })
   Groups <- do.call(c, Groups)
 
   Name <-  lapply(1:length(re_info$cnms), function(x){
                   gn <- names(re_info$cnms)[x]
                   var <- re_info$cnms[[x]]
-                  rep(var, length(levels(re_info$flist[[gn]])))
+                  rep(var, each = length(levels(re_info$flist[[gn]])))
             })
   Name <- do.call(c, Name)
 
   Levels <- lapply(1:length(re_info$cnms), function(x){
               gn <- names(re_info$cnms)[x]
-              levels(re_info$flist[[gn]])
+              rep(levels(re_info$flist[[gn]]), length(re_info$cnms[[x]]))
             })
   Levels <- do.call(c, Levels)
 

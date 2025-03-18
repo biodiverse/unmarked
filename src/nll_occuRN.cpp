@@ -30,16 +30,22 @@ double lp_site_occuRN(const rowvec y, double lam, const vec q, int K, int Kmin){
 }
 
 // [[Rcpp::export]]
-double nll_occuRN(const arma::vec beta, const arma::uvec n_param, const arma::mat y,
-                  const arma::mat X, const arma::mat V, const arma::vec X_offset,
-                  const arma::vec V_offset, int K, const arma::uvec Kmin,
-                  int threads){
+double nll_occuRN_Cpp(arma::vec params, Rcpp::List inputs){
+
+  mat y = as<mat>(inputs["y"]);
+  uvec Kmin = as<uvec>(inputs["Kmin"]);
+  int Kmax = inputs["Kmax"];
+
+  SUBMODEL_INPUTS(state);
+  SUBMODEL_INPUTS(det);
+
+  int threads = inputs["threads"];
 
   int M = y.n_rows;
   int J = y.n_cols;
 
-  const vec lam = exp(X*beta_sub(beta, n_param, 0) + X_offset);
-  const vec q = 1 - inv_logit(V*beta_sub(beta, n_param, 1) + V_offset);
+  const vec lam = exp(X_state * beta_state + offset_state);
+  const vec q = 1 - inv_logit(X_det * beta_det + offset_det);
 
   #ifdef _OPENMP
     omp_set_num_threads(threads);
@@ -52,7 +58,7 @@ double nll_occuRN(const arma::vec beta, const arma::uvec n_param, const arma::ma
     int pstart = i * J;
     int pstop = i * J + J - 1;
     loglik += lp_site_occuRN(y.row(i), lam(i), q.subvec(pstart, pstop),
-                             K, Kmin(i));
+                             Kmax, Kmin(i));
   }
 
   return -loglik;

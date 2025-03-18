@@ -73,8 +73,8 @@ nll_occuPEN <- function(y, X, V, beta_psi, beta_p, nd, knownOcc, navec, X_offset
     .Call(`_unmarked_nll_occuPEN`, y, X, V, beta_psi, beta_p, nd, knownOcc, navec, X_offset, V_offset, penalty)
 }
 
-nll_occuRN <- function(beta, n_param, y, X, V, X_offset, V_offset, K, Kmin, threads) {
-    .Call(`_unmarked_nll_occuRN`, beta, n_param, y, X, V, X_offset, V_offset, K, Kmin, threads)
+nll_occuRN_Cpp <- function(params, inputs) {
+    .Call(`_unmarked_nll_occuRN_Cpp`, params, inputs)
 }
 
 nll_occuTTD <- function(beta, y, delta, W, V, Xgam, Xeps, pind, dind, cind, eind, lpsi, tdist, N, T, J, naflag) {
