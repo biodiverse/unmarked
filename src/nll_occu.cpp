@@ -5,6 +5,10 @@
 using namespace Rcpp;
 using namespace arma;
 
+arma::vec inv_logit( arma::vec inp ){
+  return(1 / (1 + exp(-1 * inp)));
+}
+
 // [[Rcpp::export]]
 double nll_occu_Cpp(arma::vec params, Rcpp::List inputs) {
 

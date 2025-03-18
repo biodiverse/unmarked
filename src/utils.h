@@ -5,7 +5,7 @@
 
 arma::mat inv_logit( arma::mat inp );
 
-arma::vec inv_logit( arma::vec inp );
+//arma::vec inv_logit( arma::vec inp );
 
 double inv_logit(double x);
 

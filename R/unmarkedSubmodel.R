@@ -80,7 +80,7 @@ get_grad <- function(link){
 setMethod("model.matrix", "unmarkedSubmodel",
   function(object, newdata = NULL, ...){
   form <- reformulas::nobars(object@formula)
-  mf <- model.frame(form, object@data, na.action = na.pass)
+  mf <- model.frame(form, object@data, na.action = stats::na.pass)
   
   if(!is.null(newdata)){
     X_terms <- stats::terms(mf)
@@ -125,7 +125,7 @@ setGeneric("get_offset", function(object, ...){
 
 setMethod("get_offset", "unmarkedSubmodel",
   function(object, newdata = NULL, ...){
-  mf <- model.frame(reformulas::nobars(object@formula), object@data, na.action=na.pass)
+  mf <- model.frame(reformulas::nobars(object@formula), object@data, na.action=stats::na.pass)
   if(!is.null(newdata)){
     X_terms <- stats::terms(mf)
     mf <- model.frame(X_terms, newdata, na.action=stats::na.pass)
@@ -150,7 +150,7 @@ setGeneric("default_starts", function(object, ...) standardGeneric("default_star
 setMethod("default_starts", "unmarkedSubmodel", function(object, ...){
   nms <- paste0(object@short.name, "(", colnames(model.matrix(object)), ")")
   nms <- gsub("(Intercept)", "Int", nms, fixed = TRUE)
-  setNames(rep(0, length(nms)), nms)
+  stats::setNames(rep(0, length(nms)), nms)
 })
 
 setGeneric("engine_inputs", function(object, object2) standardGeneric("engine_inputs"))
@@ -195,7 +195,7 @@ setMethod("get_TMB_pars", "unmarkedSubmodel", function(object, starts){
 
   # Fixed pars
   fixed <- colnames(model.matrix(object))
-  out$beta <- setNames(rep(0, length(fixed)), fixed)
+  out$beta <- stats::setNames(rep(0, length(fixed)), fixed)
 
   # Random effect names
   if(has_random(object)){
@@ -205,12 +205,12 @@ setMethod("get_TMB_pars", "unmarkedSubmodel", function(object, starts){
     sig_names <- re_info$sigma
     sig_names <- apply(sig_names, 1, paste, collapse = "_")
     sig_names <- gsub("(Intercept)", "Int", sig_names, fixed = TRUE)
-    out$lsigma <- setNames(rep(0, length(sig_names)), sig_names)
+    out$lsigma <- stats::setNames(rep(0, length(sig_names)), sig_names)
 
     # Random effect pars
     b_names <- apply(re_info$random_effects, 1, paste, collapse = "_")
     b_names <- gsub("(Intercept)", "Int", b_names, fixed = TRUE)
-    out$b <- setNames(rep(0, length(b_names)), b_names)
+    out$b <- stats::setNames(rep(0, length(b_names)), b_names)
   } else {
     out$lsigma <- numeric(0)
     out$b <- numeric(0)
@@ -443,11 +443,13 @@ fit_optim <- function(nll_fun, response, submodels, starts, method, se, ...){
     stop(paste("The number of starting values should be", npars))
   }
 
-  opt <- optim(starts, nll_fun, method = method, hessian = se, 
-              inputs = inputs, ...)            
+  # Capture the environment for profile likelihood
+  nll <- function(params) nll_fun(params, inputs)
+
+  opt <- optim(starts, nll, method = method, hessian = se, ...)            
   cov_mat <- invertHessian(opt, length(opt$par), se)
 
-  fit <- list(opt = opt, cov_mat = cov_mat, TMB = NULL, nll = nll_fun)
+  fit <- list(opt = opt, cov_mat = cov_mat, TMB = NULL, nll = nll)
   submodels <- add_estimates(submodels, fit)
 
   fit$submodels <- submodels
