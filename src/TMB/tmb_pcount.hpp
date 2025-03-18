@@ -12,6 +12,9 @@ Type lp_site_pcount(vector<Type> y, int mixture, Type lam, vector<Type> p,
   } else if(mixture == 3){
     alpha = invlogit(log_alpha);
   }
+ 
+  //Check if all datapoints are NA
+  if(all_na(y)) return(0);
   
   for (int k=Kmin; k<(K+1); k++){
     if(mixture == 2){
@@ -36,34 +39,24 @@ template <class Type>
 Type tmb_pcount(objective_function<Type>* obj) {
   //Describe input data
   DATA_MATRIX(y); //observations
-  DATA_INTEGER(K); //Max value of abundance for marginalization
+  DATA_INTEGER(Kmax); //Max value of abundance for marginalization
   DATA_IVECTOR(Kmin); //Minimum obs at each site
 
-  DATA_INTEGER(mixture); //Abundance distribution
+  SUBMODEL_INPUTS(state);
+  UNUSED(invlink_state);
 
-  DATA_MATRIX(X_state); //lambda fixed effect design mat
-  DATA_SPARSE_MATRIX(Z_state); //psi random effect design mat
-  DATA_VECTOR(offset_state);
-  DATA_INTEGER(n_group_vars_state); //# of grouping variables for lambda
-  DATA_IVECTOR(n_grouplevels_state); //# of levels of each grouping variable
+  SUBMODEL_INPUTS(det);
+  UNUSED(family_det);
+  UNUSED(invlink_det);
 
-  DATA_MATRIX(X_det); //same thing but for p
-  DATA_SPARSE_MATRIX(Z_det);
-  DATA_VECTOR(offset_det);
-  DATA_INTEGER(n_group_vars_det);
-  DATA_IVECTOR(n_grouplevels_det);
-
-  PARAMETER_VECTOR(beta_state); //Fixed effect params for lamda
-  PARAMETER_VECTOR(b_state); //Random intercepts and/or slopes for lambda
-  PARAMETER_VECTOR(lsigma_state); //Random effect variance(s) for lambda
-
-  PARAMETER_VECTOR(beta_det); //Same thing but for det
-  PARAMETER_VECTOR(b_det);
-  PARAMETER_VECTOR(lsigma_det);
-
-  PARAMETER_VECTOR(beta_scale);
-  Type scale = 0;
-  if(mixture > 1) scale = beta_scale(0);
+  Type par2 = 0;
+  if(family_state == 2){
+    PARAMETER_VECTOR(beta_alpha);
+    par2 = beta_alpha(0);
+  } else if(family_state == 3){
+    PARAMETER_VECTOR(beta_psi);
+    par2 = beta_psi(0);
+  }
 
   Type loglik = 0.0;
   int M = y.rows(); //# of sites
@@ -86,8 +79,8 @@ Type tmb_pcount(objective_function<Type>* obj) {
     int pstart = i * J;
     vector<Type> ysub = y.row(i);
     vector<Type> psub = p.segment(pstart, J);
-    loglik -= lp_site_pcount(ysub, mixture, lam(i), psub,
-                             scale, K, Kmin(i));
+    loglik -= lp_site_pcount(ysub, family_state, lam(i), psub,
+                             par2, Kmax, Kmin(i));
   }
 
   return loglik;

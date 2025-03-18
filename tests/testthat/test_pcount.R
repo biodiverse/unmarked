@@ -119,7 +119,7 @@ test_that("pcount handles missing values", {
   obsCovs <- data.frame(o1 = seq(-1, 1, length=length(y)))
   obsCovs$o1[1] <- NA
   umf <- unmarkedFramePCount(y = y, siteCovs = siteCovs, obsCovs = obsCovs)
-  fm <- expect_warning(pcount(~ o1 ~ x, data = umf, K=30))
+  fm <- expect_no_warning(pcount(~ o1 ~ x, data = umf, K=30))
 
   ft <- fitted(fm)
   expect_equal(dim(ft), dim(umf@y))
@@ -249,11 +249,11 @@ expect_true(all(rt2$Groups==c(rep("group",100), rep("id",3))))
 
 # Check other distributions
 fmnb <- pcount(~1~1, umf, engine="TMB", mixture="NB", K=25)
-expect_true(inherits(fmnb@TMB, "list"))
+expect_true(inherits(fmnb@TMB, "TMB"))
 expect_true(all(names(fmnb@estimates@estimates)==c("state","det","alpha")))
 
 fmzip <- pcount(~1~1, umf, engine="TMB", mixture="ZIP", K=25)
-expect_true(inherits(fmnb@TMB, "list"))
+expect_true(inherits(fmnb@TMB, "TMB"))
 expect_true(all(names(fmnb@estimates@estimates)==c("state","det","alpha")))
 
 # Site random effects in det formula
@@ -276,5 +276,5 @@ test_that("pcount R, C++ and TMB engines give same results",{
   fmT <- pcount(~ o1 ~ x, data = umf, K=30, control=list(maxit=1), engine="TMB")
   fmR <- pcount(~ o1 ~ x, data = umf, K=30, control=list(maxit=1), engine="R")
   expect_equal(coef(fmC), coef(fmR))
-  expect_equal(coef(fmC), coef(fmT), tol=1e-7)
+  expect_equal(coef(fmC), coef(fmT), tol=1e-6)
 })

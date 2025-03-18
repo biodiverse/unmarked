@@ -14,7 +14,7 @@ test_that("ranef predict method works",{
   K <- 15
 
   umf <- unmarkedFramePCount(y=y)
-  fm <- expect_warning(pcount(~1 ~1, umf, K=K))
+  fm <- expect_no_warning(pcount(~1 ~1, umf, K=K))
 
   re <- ranef(fm)
   expect_equal(nrow(re@post), numSites(fm@data))

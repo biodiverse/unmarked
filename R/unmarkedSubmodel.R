@@ -22,6 +22,9 @@ setClass("unmarkedSubmodelState",
 setClass("unmarkedSubmodelDet",
   contains = "unmarkedSubmodel")
 
+setClass("unmarkedSubmodelScalar",
+  contains = "unmarkedSubmodel")
+
 unmarkedSubmodelDet <- function(name, short_name, type, formula, data, 
                                 family, link, auxiliary = list(), obsNum = TRUE){
   
@@ -57,6 +60,12 @@ unmarkedSubmodelState <- function(name, short_name, type, formula, data,
   out
 }
 
+unmarkedSubmodelScalar <- function(name, short_name, type, link){
+  new("unmarkedSubmodelScalar",
+    name = name, short.name = short_name, type = type,
+    formula = ~1, data = data.frame(), invlink = get_invlink(link),
+    invlinkGrad = get_grad(link), fixed = 1)
+}
 
 subset_covs <- function(covs, formula){
   vars <- all.vars(formula)
@@ -174,6 +183,12 @@ setMethod("engine_inputs", c("unmarkedSubmodel", "missing"), function(object, ob
   out 
 })
 
+setMethod("engine_inputs", c("unmarkedSubmodelScalar", "missing"), function(object, object2){
+  out <- list(invlink = get_invlink_code(object@invlink))
+  names(out) <- paste0(names(out), "_", object@type)
+  out
+})
+
 setGeneric("engine_inputs_TMB", function(object, object2) standardGeneric("engine_inputs_TMB"))
 
 setMethod("engine_inputs_TMB", c("unmarkedSubmodel", "missing"), function(object, object2){
@@ -186,8 +201,12 @@ setMethod("engine_inputs_TMB", c("unmarkedSubmodel", "missing"), function(object
   c(out, tmb)
 })
 
+setMethod("engine_inputs_TMB", c("unmarkedSubmodelScalar", "missing"), function(object, object2){
+  engine_inputs(object)
+})
+
 get_family_code <- function(family){
-  switch(family, binomial = 0, poisson = 1)
+  switch(family, binomial = 0, poisson = 1, negative_binomial = 2, ZIP = 3)
 }
 
 get_invlink_code <- function(link){
@@ -295,6 +314,15 @@ setMethod("submodels<-", "unmarkedSubmodelList", function(object, value){
   object
 })
 
+setMethod("[", "unmarkedSubmodelList", function(x, i, j, drop) {
+  submodels(x)[[i]]
+})
+
+setMethod("[<-", "unmarkedSubmodelList", function(x, i, value){
+  submodels(x)[[i]] <- value
+  x
+})
+
 setMethod("has_random", "unmarkedSubmodelList", function(object){
   sapply(submodels(object), has_random)
 })
@@ -353,9 +381,11 @@ setClass("unmarkedResponse",
   )
 )
 
-unmarkedResponse <- function(data, Kmax = 1){
+unmarkedResponse <- function(data, Kmax){
+  if(is.null(Kmax)){
+    Kmax <- max(data@y, na.rm = TRUE) + 100
+  }
   response <- new("unmarkedResponse", y = data@y, Kmax = Kmax)
-  #response <- add_missing(response, submodels)
   Kmin <- apply(data@y, 1, function(x){
     ifelse(all(is.na(x)), NA, max(x, na.rm=TRUE))
   })
@@ -389,6 +419,11 @@ setMethod("add_missing", c("unmarkedResponse", "unmarkedSubmodelDet"),
   })
   object@Kmin <- Kmin
   object
+})
+
+setMethod("add_missing", c("unmarkedResponse", "unmarkedSubmodelScalar"),
+  function(object, submodel, ...){
+  object # do nothing
 })
 
 setMethod("add_missing", c("unmarkedResponse", "unmarkedSubmodelList"),

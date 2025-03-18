@@ -501,24 +501,15 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// nll_pcount
-double nll_pcount(const arma::vec beta, const arma::uvec n_param, const arma::mat y, const arma::mat X, const arma::mat V, const arma::vec X_offset, const arma::vec V_offset, int K, const arma::uvec Kmin, int mixture, int threads);
-RcppExport SEXP _unmarked_nll_pcount(SEXP betaSEXP, SEXP n_paramSEXP, SEXP ySEXP, SEXP XSEXP, SEXP VSEXP, SEXP X_offsetSEXP, SEXP V_offsetSEXP, SEXP KSEXP, SEXP KminSEXP, SEXP mixtureSEXP, SEXP threadsSEXP) {
+// nll_pcount_Cpp
+double nll_pcount_Cpp(arma::vec params, Rcpp::List inputs);
+RcppExport SEXP _unmarked_nll_pcount_Cpp(SEXP paramsSEXP, SEXP inputsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::vec >::type beta(betaSEXP);
-    Rcpp::traits::input_parameter< const arma::uvec >::type n_param(n_paramSEXP);
-    Rcpp::traits::input_parameter< const arma::mat >::type y(ySEXP);
-    Rcpp::traits::input_parameter< const arma::mat >::type X(XSEXP);
-    Rcpp::traits::input_parameter< const arma::mat >::type V(VSEXP);
-    Rcpp::traits::input_parameter< const arma::vec >::type X_offset(X_offsetSEXP);
-    Rcpp::traits::input_parameter< const arma::vec >::type V_offset(V_offsetSEXP);
-    Rcpp::traits::input_parameter< int >::type K(KSEXP);
-    Rcpp::traits::input_parameter< const arma::uvec >::type Kmin(KminSEXP);
-    Rcpp::traits::input_parameter< int >::type mixture(mixtureSEXP);
-    Rcpp::traits::input_parameter< int >::type threads(threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(nll_pcount(beta, n_param, y, X, V, X_offset, V_offset, K, Kmin, mixture, threads));
+    Rcpp::traits::input_parameter< arma::vec >::type params(paramsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type inputs(inputsSEXP);
+    rcpp_result_gen = Rcpp::wrap(nll_pcount_Cpp(params, inputs));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -592,7 +583,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_unmarked_nll_occuPEN", (DL_FUNC) &_unmarked_nll_occuPEN, 11},
     {"_unmarked_nll_occuRN_Cpp", (DL_FUNC) &_unmarked_nll_occuRN_Cpp, 2},
     {"_unmarked_nll_occuTTD", (DL_FUNC) &_unmarked_nll_occuTTD, 17},
-    {"_unmarked_nll_pcount", (DL_FUNC) &_unmarked_nll_pcount, 11},
+    {"_unmarked_nll_pcount_Cpp", (DL_FUNC) &_unmarked_nll_pcount_Cpp, 2},
     {"_unmarked_nll_pcountOpen", (DL_FUNC) &_unmarked_nll_pcountOpen, 35},
     {"getDetVecs",      (DL_FUNC) &getDetVecs,      5},
     {"getSingleDetVec", (DL_FUNC) &getSingleDetVec, 3},

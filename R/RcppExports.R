@@ -81,8 +81,8 @@ nll_occuTTD <- function(beta, y, delta, W, V, Xgam, Xeps, pind, dind, cind, eind
     .Call(`_unmarked_nll_occuTTD`, beta, y, delta, W, V, Xgam, Xeps, pind, dind, cind, eind, lpsi, tdist, N, T, J, naflag)
 }
 
-nll_pcount <- function(beta, n_param, y, X, V, X_offset, V_offset, K, Kmin, mixture, threads) {
-    .Call(`_unmarked_nll_pcount`, beta, n_param, y, X, V, X_offset, V_offset, K, Kmin, mixture, threads)
+nll_pcount_Cpp <- function(params, inputs) {
+    .Call(`_unmarked_nll_pcount_Cpp`, params, inputs)
 }
 
 nll_pcountOpen <- function(ym, Xlam, Xgam, Xom, Xp, Xiota, beta_lam, beta_gam, beta_om, beta_p, beta_iota, log_alpha, Xlam_offset, Xgam_offset, Xom_offset, Xp_offset, Xiota_offset, ytna, ynam, lk, mixture, first, last, M, J, T, delta, dynamics, fix, go_dims, immigration, I, I1, Ib, Ip) {

@@ -31,17 +31,32 @@ double lp_site_pcount(const rowvec y, int mixture, double lam, double log_alpha,
 
 
 // [[Rcpp::export]]
-double nll_pcount(const arma::vec beta, const arma::uvec n_param, const arma::mat y,
-                  const arma::mat X, const arma::mat V, const arma::vec X_offset,
-                  const arma::vec V_offset, int K, const arma::uvec Kmin,
-                  int mixture, int threads){
+double nll_pcount_Cpp(arma::vec params, Rcpp::List inputs){
+
+  mat y = as<mat>(inputs["y"]);
+  uvec Kmin = as<uvec>(inputs["Kmin"]);
+  int Kmax = inputs["Kmax"];
+
+  SUBMODEL_INPUTS(state);
+  int family_state = inputs["family_state"];
+  SUBMODEL_INPUTS(det);
+
+  int threads = inputs["threads"];
 
   int M = y.n_rows;
   int J = y.n_cols;
 
-  vec lam = exp(X*beta_sub(beta, n_param, 0) + X_offset);
-  vec p = inv_logit(V*beta_sub(beta, n_param, 1) + V_offset);
-  double log_alpha = beta_sub(beta, n_param, 2)(0);
+  vec lam = exp(X_state * beta_state + offset_state);
+  vec p = inv_logit(X_det * beta_det + offset_det);
+
+  double par2 = 0;
+  if(family_state == 2){
+    ivec idx = as<ivec>(inputs["idx_alpha"]) - 1;
+    par2 = params(idx(0));
+  } else if(family_state == 3){
+    ivec idx = as<ivec>(inputs["idx_psi"]) - 1;
+    par2 = params(idx(0));
+  }
 
   #ifdef _OPENMP
     omp_set_num_threads(threads);
@@ -54,8 +69,8 @@ double nll_pcount(const arma::vec beta, const arma::uvec n_param, const arma::ma
   for (int i=0; i<M; i++){
     int pstart = i * J;
     int pstop = i * J + J - 1;
-    loglik += lp_site_pcount(y.row(i), mixture, lam(i), log_alpha,
-                             p.subvec(pstart, pstop), K, Kmin(i));
+    loglik += lp_site_pcount(y.row(i), family_state, lam(i), par2,
+                             p.subvec(pstart, pstop), Kmax, Kmin(i));
   }
 
   return -loglik;

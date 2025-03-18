@@ -33,7 +33,7 @@ bool is_na(Type x){
 
 template<class Type>
 bool all_na(vector<Type> x){
-  for (int i = 0; i < size(x); i++){
+  for (int i = 0; i < x.size(); i++){
     if(!is_na(x(i))){
       return false;
     }
