@@ -4,9 +4,9 @@ arma::mat inv_logit( arma::mat inp ){
   return(1 / (1 + exp(-1 * inp)));
 }
 
-//arma::vec inv_logit( arma::vec inp ){
-//  return(1 / (1 + exp(-1 * inp)));
-//}
+arma::vec inv_logit( arma::vec inp ){
+  return(1 / (1 + exp(-1 * inp)));
+}
 
 double inv_logit(double x){
   return 1 / (1 + exp(-1 * x));

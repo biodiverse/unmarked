@@ -1,41 +1,36 @@
 #include <RcppArmadillo.h>
 #include <float.h>
+#include "utils.h"
 
 using namespace Rcpp;
 using namespace arma;
 
 // [[Rcpp::export]]
-double nll_occu_Cpp(arma::colvec params, Rcpp::List inputs) {
+double nll_occu_Cpp(arma::vec params, Rcpp::List inputs) {
 
   mat y = as<mat>(inputs["y"]);
-  icolvec no_detect = 1 - as<icolvec>(inputs["Kmin"]);
+  ivec no_detect = 1 - as<ivec>(inputs["Kmin"]);
 
-  colvec idx_state = as<colvec>(inputs["idx_state"]) - 1;
-  colvec beta_state = params.subvec(idx_state(0), idx_state(1));
-  mat X_state = as<mat>(inputs["X_state"]);
-  colvec offset_state = as<colvec>(inputs["offset_state"]);
+  SUBMODEL_INPUTS(state);
   int invlink_state = inputs["invlink_state"];
-  icolvec known_occ = as<icolvec>(inputs["known_occ_state"]);
+  ivec known_occ = as<ivec>(inputs["known_occ_state"]);
 
-  colvec idx_det = as<colvec>(inputs["idx_det"]) - 1;
-  colvec beta_det = params.subvec(idx_det(0), idx_det(1));
-  mat X_det = as<mat>(inputs["X_det"]);
-  colvec offset_det = as<colvec>(inputs["offset_det"]);
+  SUBMODEL_INPUTS(det);
 
   int M = y.n_rows;
   int J = y.n_cols;
 
   //Calculate psi
-  colvec psi = X_state * beta_state + offset_state;
+  vec psi = X_state * beta_state + offset_state;
   if(invlink_state == 2){ //inverse cloglog
     psi = 1 - exp(-exp(psi));
   } else {
-    psi = 1.0/(1.0+exp(-psi));
+    psi = inv_logit(psi);
   }
 
   //Calculate p
-  colvec p = X_det * beta_det + offset_det;
-  p = 1.0/(1.0+exp(-p));
+  vec p = X_det * beta_det + offset_det;
+  p = inv_logit(p);
 
   double nll = 0;
   //colvec nll = zeros(M);
