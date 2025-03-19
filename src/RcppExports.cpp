@@ -38,23 +38,15 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// nll_distsamp
-double nll_distsamp(Rcpp::IntegerMatrix y, Rcpp::NumericVector lam, Rcpp::NumericVector sig, double scale, Rcpp::NumericMatrix a, Rcpp::NumericMatrix u, Rcpp::NumericVector w, Rcpp::NumericVector db, std::string keyfun, std::string survey);
-RcppExport SEXP _unmarked_nll_distsamp(SEXP ySEXP, SEXP lamSEXP, SEXP sigSEXP, SEXP scaleSEXP, SEXP aSEXP, SEXP uSEXP, SEXP wSEXP, SEXP dbSEXP, SEXP keyfunSEXP, SEXP surveySEXP) {
+// nll_distsamp_Cpp
+double nll_distsamp_Cpp(arma::vec params, Rcpp::List inputs);
+RcppExport SEXP _unmarked_nll_distsamp_Cpp(SEXP paramsSEXP, SEXP inputsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type y(ySEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type lam(lamSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type sig(sigSEXP);
-    Rcpp::traits::input_parameter< double >::type scale(scaleSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type a(aSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type u(uSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type w(wSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type db(dbSEXP);
-    Rcpp::traits::input_parameter< std::string >::type keyfun(keyfunSEXP);
-    Rcpp::traits::input_parameter< std::string >::type survey(surveySEXP);
-    rcpp_result_gen = Rcpp::wrap(nll_distsamp(y, lam, sig, scale, a, u, w, db, keyfun, survey));
+    Rcpp::traits::input_parameter< arma::vec >::type params(paramsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type inputs(inputsSEXP);
+    rcpp_result_gen = Rcpp::wrap(nll_distsamp_Cpp(params, inputs));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -565,7 +557,7 @@ RcppExport SEXP getSingleDetVec(SEXP, SEXP, SEXP);
 static const R_CallMethodDef CallEntries[] = {
     {"_unmarked_get_lik_trans", (DL_FUNC) &_unmarked_get_lik_trans, 2},
     {"_unmarked_get_mlogit", (DL_FUNC) &_unmarked_get_mlogit, 4},
-    {"_unmarked_nll_distsamp", (DL_FUNC) &_unmarked_nll_distsamp, 10},
+    {"_unmarked_nll_distsamp_Cpp", (DL_FUNC) &_unmarked_nll_distsamp_Cpp, 2},
     {"_unmarked_nll_distsampOpen", (DL_FUNC) &_unmarked_nll_distsampOpen, 42},
     {"_unmarked_nll_gdistremoval", (DL_FUNC) &_unmarked_nll_gdistremoval, 20},
     {"_unmarked_nll_gdistsamp", (DL_FUNC) &_unmarked_nll_gdistsamp, 23},

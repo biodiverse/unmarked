@@ -9,8 +9,8 @@ get_mlogit <- function(lp_mat, type, S, guide) {
     .Call(`_unmarked_get_mlogit`, lp_mat, type, S, guide)
 }
 
-nll_distsamp <- function(y, lam, sig, scale, a, u, w, db, keyfun, survey) {
-    .Call(`_unmarked_nll_distsamp`, y, lam, sig, scale, a, u, w, db, keyfun, survey)
+nll_distsamp_Cpp <- function(params, inputs) {
+    .Call(`_unmarked_nll_distsamp_Cpp`, params, inputs)
 }
 
 nll_distsampOpen <- function(y, yt, Xlam, Xgam, Xom, Xsig, Xiota, beta, bi, Xlam_offset, Xgam_offset, Xom_offset, Xsig_offset, Xiota_offset, ytna, lk, mixture, first, last, first1, M, T, delta, dynamics, survey, fix, go_dims, immigration, I, I1, Ib, Ip, a, u, w, db, keyfun, lfac_k, kmyt, lfac_kmyt, fin, A) {

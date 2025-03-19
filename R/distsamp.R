@@ -18,7 +18,10 @@ distsamp <- function(formula, data,
 
   # Build submodels
   state_name <- switch(output, abund = "Abundance", density = "Density")
-  A <- get_ds_area(data, unitsOut)  
+  A <- rep(1, numSites(data))
+  if(output == "density"){
+    A <- rep(get_ds_area(data, unitsOut), numSites(data))
+  }
   submodels <- unmarkedSubmodelList(
     state = unmarkedSubmodelState(name = state_name, short_name = "lam", 
               type = "state", formula = forms[[2]], data = data, 
@@ -59,7 +62,9 @@ distsamp <- function(formula, data,
   # There's no submodel for a uniform key function, but we still need this info
   if(keyfun == "uniform"){
     ua <- getUA(data)
-    inputs <- c(inputs, list(u_det=ua$u, a_det=ua$a, keyfun_det = "uniform"))
+    inputs <- c(inputs, list(keyfun_det = "uniform", survey_det = data@survey,
+                             db_det = data@dist.breaks, w_det = diff(data@dist.breaks),
+                             u_det=ua$u, a_det=ua$a))
   }
 
   # Fit model
@@ -83,10 +88,7 @@ nll_distsamp_R <- function(params, inputs){
   J <- ncol(y)
   
   beta_state <- params[idx_state[1]:idx_state[2]]
-  lambda <- drop(exp(X_state %*% beta_state + offset_state))
-  if(output_state == "density"){
-    lambda <- lambda * A_state
-  }
+  lambda <- drop(exp(X_state %*% beta_state + offset_state)) * A_state
 
   sigma <- rep(NA, M)
   if(keyfun_det != "uniform"){
@@ -94,14 +96,14 @@ nll_distsamp_R <- function(params, inputs){
     sigma <- exp(X_det %*% beta_det + offset_det)
   }
 
-  par2 <- NA
+  scale <- NA
   if(keyfun_det == "hazard"){
-    par2 <- exp(params[idx_scale[1]])
+    scale <- exp(params[idx_scale[1]])
   }
 
   cp <- matrix(NA, M, J) 
   for (i in 1:M){
-    cp[i,] <- getDistCP(keyfun_det, sigma[i], par2, survey_det, db_det,
+    cp[i,] <- getDistCP(keyfun_det, sigma[i], scale, survey_det, db_det,
                         w_det, a_det[i,], u_det[i,])
   }
 
