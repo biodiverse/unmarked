@@ -860,9 +860,8 @@ pHalfnorm <- function(sigma, survey, db, w, a){
     },
     point = {
       for(j in 1:J) {
-        cp[j] <- integrate(grhn, db[j], db[j+1],
-                           sigma=sigma, rel.tol=1e-4)$value *
-                           2 * pi / a[j]
+        int <- integrate(grhn, db[j], db[j+1], sigma=sigma, stop.on.error=FALSE)
+        cp[j] <- ifelse(int$mess == "OK", int$value * 2 * pi / a[j], NA)
       }
     }
   )
@@ -875,15 +874,14 @@ pExp <- function(rate, survey, db, w, a){
   switch(survey,
     line = {
       for(j in 1:J) {
-        cp[j] <- integrate(gxexp, db[j], db[j+1],
-                           rate=rate, rel.tol=1e-4)$value / w[j]
+        cp[j] <- integrate(gxexp, db[j], db[j+1], rate=rate, stop.on.error=FALSE)
+        cp[j] <- ifelse(int$mess == "OK", int$value / w[j], NA)
       }
     },
     point = {
       for(j in 1:J) {
-        cp[j] <- integrate(grexp, db[j], db[j+1],
-                            rate=rate, rel.tol=1e-4)$value *
-                            2 * pi / a[j]
+        int <- integrate(grexp, db[j], db[j+1], rate=rate, stop.on.error=FALSE)
+        cp[j] <- ifelse(int$mess == "OK", int$value * 2 * pi / a[j], NA)
       }
     }
   )
@@ -896,16 +894,16 @@ pHazard <- function(shape, scale, survey, db, w, a){
   switch(survey,
     line = {
       for(j in 1:J) {
-        cp[j] <- integrate(gxhaz, db[j], db[j+1],
-                           shape=shape, scale=scale,
-                           rel.tol=1e-4)$value / w[j]
+        int <- integrate(gxhaz, db[j], db[j+1], shape=shape, scale=scale,
+                         stop.on.error=FALSE)
+        cp[j] <- ifelse(int$mess == "OK", int$value / w[j], NA)
       }
     },
     point = {
       for(j in 1:J) {
-        cp[j] <- integrate(grhaz, db[j], db[j+1],
-                           shape = shape, scale=scale,
-                           rel.tol=1e-4)$value * 2 * pi / a[j]
+        int <- integrate(grhaz, db[j], db[j+1], shape = shape, scale=scale,
+                         stop.on.error=FALSE)
+        cp[j] <- ifelse(int$mess == "OK", int$value * 2 * pi / a[j], NA)
       }
     })
     cp

@@ -25,6 +25,9 @@ setClass("unmarkedSubmodelDet",
 setClass("unmarkedSubmodelScalar",
   contains = "unmarkedSubmodel")
 
+setClass("unmarkedSubmodelDistance",
+  contains = "unmarkedSubmodelState")
+
 unmarkedSubmodelDet <- function(name, short_name, type, formula, data, 
                                 family, link, auxiliary = list(), obsNum = TRUE){
   
@@ -65,6 +68,25 @@ unmarkedSubmodelScalar <- function(name, short_name, type, link){
     name = name, short.name = short_name, type = type,
     formula = ~1, data = data.frame(), invlink = get_invlink(link),
     invlinkGrad = get_grad(link), fixed = 1)
+}
+
+unmarkedSubmodelDistance <- function(name, short_name, type, formula, data, 
+                                        keyfun, link, auxiliary = list()){
+  ua <- getUA(data) # in utils
+  aux <- list(auxiliary, survey = data@survey, keyfun = keyfun, 
+              db = data@dist.breaks, w = diff(data@dist.breaks), 
+              a = ua$a, u = ua$u, unitsIn = data@unitsIn)
+
+  data <- clean_up_covs(data, drop_final = FALSE)$site_covs
+  data <- subset_covs(data, formula)
+
+  out <- new("unmarkedSubmodelDistance",
+    name = name, short.name = short_name, type = type,
+    formula = formula, data = data, family = NA_character_,
+    invlink = get_invlink(link), invlinkGrad = get_grad(link),
+    auxiliary = aux)
+  out@fixed <- 1:ncol(model.matrix(out))
+  out
 }
 
 subset_covs <- function(covs, formula){
@@ -169,6 +191,14 @@ setMethod("default_starts", "unmarkedSubmodel", function(object, ...){
   nms <- paste0(object@short.name, "(", colnames(model.matrix(object)), ")")
   nms <- gsub("(Intercept)", "Int", nms, fixed = TRUE)
   stats::setNames(rep(0, length(nms)), nms)
+})
+
+setMethod("default_starts", "unmarkedSubmodelDistance", function(object, ...){
+  nms <- paste0(object@short.name, "(", colnames(model.matrix(object)), ")")
+  nms <- gsub("(Intercept)", "Int", nms, fixed = TRUE)
+  out <- stats::setNames(rep(0, length(nms)), nms)
+  out[1] <- log(median(object@auxiliary$db))
+  out
 })
 
 setGeneric("engine_inputs", function(object, object2) standardGeneric("engine_inputs"))
@@ -336,8 +366,10 @@ setMethod("get_parameter_idx", "unmarkedSubmodelList",
   idx <- lapply(submodels(object), function(x){
     1:ncol(model.matrix(x))
   })
-  for (i in 2:length(idx)){
-    idx[[i]] <- idx[[i]] + max(idx[[i-1]])
+  if(length(idx) > 1){
+    for (i in 2:length(idx)){
+      idx[[i]] <- idx[[i]] + max(idx[[i-1]])
+    }
   }
   lapply(idx, range)
 })
