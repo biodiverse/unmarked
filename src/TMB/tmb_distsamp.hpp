@@ -4,79 +4,69 @@
 // name of function below **MUST** match filename
 template <class Type>
 Type tmb_distsamp(objective_function<Type>* obj) {
-  //Describe input data
+
   DATA_MATRIX(y); //observations
-
-  DATA_MATRIX(X_state); //lambda fixed effect design mat
-  DATA_SPARSE_MATRIX(Z_state); //psi random effect design mat
-  DATA_VECTOR(offset_state);
-  DATA_INTEGER(n_group_vars_state); //# of grouping variables for lambda
-  DATA_IVECTOR(n_grouplevels_state); //# of levels of each grouping variable
-
-  DATA_MATRIX(X_det); //same thing but for p
-  DATA_SPARSE_MATRIX(Z_det);
-  DATA_VECTOR(offset_det);
-  DATA_INTEGER(n_group_vars_det);
-  DATA_IVECTOR(n_grouplevels_det);
-  
-  DATA_INTEGER(survey_type);
-  DATA_INTEGER(keyfun_type);
-
-  DATA_VECTOR(A); // Area
-  DATA_VECTOR(db); // distance breaks
-  DATA_MATRIX(a);
-  DATA_VECTOR(w);
-  DATA_MATRIX(u);
-
-  PARAMETER_VECTOR(beta_state); //Fixed effect params for lambda
-  PARAMETER_VECTOR(b_state); //Random intercepts and/or slopes for lambda
-  PARAMETER_VECTOR(lsigma_state); //Random effect variance(s) for lambda
-
-  PARAMETER_VECTOR(beta_det); //Same thing but for det
-  PARAMETER_VECTOR(b_det);
-  PARAMETER_VECTOR(lsigma_det);
- 
-  PARAMETER_VECTOR(beta_scale); //Trick here: this is 0-length array if keyfun != hazard
-  Type scale = 0; // If not hazard  this is ignored later 
-  if(keyfun_type == 3) scale = exp(beta_scale(0)); // If hazard
-
-  Type loglik = 0.0;
-
   int M = y.rows(); // # of sites
   int J = y.cols(); // # of distance categories per site
 
-  //Construct lambda vector
-  vector<Type> lam = X_state * beta_state + offset_state;
-  lam = add_ranef(lam, loglik, b_state, Z_state, lsigma_state, 
-                  n_group_vars_state, n_grouplevels_state);
-  lam = exp(lam);
-  lam = lam.array() * A.array();
+  SUBMODEL_INPUTS(state);
+  UNUSED(invlink_state);
+  UNUSED(family_state);
+  DATA_VECTOR(A_state); // Area
 
-  //Construct distance parameter (sigma, rate, etc.) vector
-  vector<Type> dp(M);
-  if(keyfun_type > 0){ // If keyfun is not uniform
-    dp = X_det * beta_det + offset_det;
-    dp = add_ranef(dp, loglik, b_det, Z_det, lsigma_det, 
-                   n_group_vars_det, n_grouplevels_det);
-    dp = exp(dp);
+  // Distance sampling info
+  DATA_INTEGER(keyfun_det);
+  DATA_INTEGER(survey_det);
+  DATA_VECTOR(db_det);
+  DATA_VECTOR(w_det);
+  DATA_MATRIX(a_det);
+  DATA_MATRIX(u_det);
+
+  Type loglik = 0;
+
+  //Construct lambda vector
+  vector<Type> lambda = X_state * beta_state + offset_state;
+  lambda = add_ranef(lambda, loglik, b_state, Z_state, lsigma_state, 
+                     n_group_vars_state, n_grouplevels_state);
+  lambda = exp(lambda);
+  lambda = lambda.array() * A_state.array();
+
+  //Construct sigma vector if needed
+  vector<Type> sigma(M);
+  if(keyfun_det != 0){ // If not uniform
+    SUBMODEL_INPUTS(det);
+    UNUSED(family_det);
+    UNUSED(invlink_det);
+    sigma = X_det * beta_det + offset_det;
+    sigma = add_ranef(sigma, loglik, b_det, Z_det, lsigma_det, 
+                      n_group_vars_det, n_grouplevels_det);
+    sigma = exp(sigma);
+  }
+
+  Type scale; 
+  if(keyfun_det == 3){ // If hazard
+    PARAMETER_VECTOR(beta_scale);
+    scale = exp(beta_scale(0));
   }
 
   //Likelihood
-  for (int i=0; i<M; i++){
+  for (int m=0; m<M; m++){
+    vector<Type> ysub = y.row(m);
+    if(all_na(ysub)) continue;
+    
     //Not sure if defining this inside loop is necessary for parallel
-    vector<Type> asub = a.row(i);
-    vector<Type> usub = u.row(i);
-    vector<Type> cp = distance_prob(keyfun_type, dp(i), scale, survey_type, db, 
-                                    w, asub, usub); 
-    vector<Type> ysub = y.row(i);
+    vector<Type> asub = a_det.row(m);
+    vector<Type> usub = u_det.row(m);
+    vector<Type> cp = distance_prob(keyfun_det, sigma(m), scale, survey_det,
+                                    db_det, w_det, asub, usub); 
+
     Type site_lp = 0;
     
     for (int j=0; j<J; j++){
-      if(R_IsNA(asDouble(ysub(j)))) goto endsite; //If any NAs found skip site
-      site_lp += dpois(ysub(j), lam(i) * cp(j), true);
+      if(is_na(ysub(j))) continue; //If NA found skip
+      site_lp += dpois(ysub(j), lambda(m) * cp(j), true);
     }
     loglik -= site_lp;
-    endsite: ;
   }
 
   return loglik;

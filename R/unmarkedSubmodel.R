@@ -82,7 +82,7 @@ unmarkedSubmodelDistance <- function(name, short_name, type, formula, data,
 
   out <- new("unmarkedSubmodelDistance",
     name = name, short.name = short_name, type = type,
-    formula = formula, data = data, family = NA_character_,
+    formula = formula, data = data, family = "binomial", # family is just a placeholder
     invlink = get_invlink(link), invlinkGrad = get_grad(link),
     auxiliary = aux)
   out@fixed <- 1:ncol(model.matrix(out))
@@ -231,6 +231,19 @@ setMethod("engine_inputs_TMB", c("unmarkedSubmodel", "missing"), function(object
   c(out, tmb)
 })
 
+setMethod("engine_inputs_TMB", c("unmarkedSubmodelDistance", "missing"), function(object, object2){
+  out <- methods::callNextMethod(object)
+  # TMB requires keyfun and survey to be integers
+  key_id <- paste0("keyfun_", object@type)
+  out[[key_id]] <- switch(out[[key_id]], 
+                          uniform={0}, halfnorm={1}, exp={2}, hazard={3})
+  surv_id <- paste0("survey_", object@type)
+  out[[surv_id]] <- switch(out[[surv_id]], line={0}, point={1})
+  # Also must remove some character entries
+  out[sapply(out, is.character)] <- NULL
+  out
+})
+
 setMethod("engine_inputs_TMB", c("unmarkedSubmodelScalar", "missing"), function(object, object2){
   engine_inputs(object)
 })
@@ -276,6 +289,18 @@ setMethod("get_TMB_pars", "unmarkedSubmodel", function(object, starts){
   
   names(out) <- paste0(names(out), "_", object@type)
   
+  out
+})
+
+setMethod("get_TMB_pars", "unmarkedSubmodelDistance", function(object, starts){
+  out <- methods::callNextMethod(object, starts)
+
+  if(is.null(starts)){
+    # If default starts, need to adjust the intercept starting value
+    beta_name <- paste0("beta_", object@type)
+    out[[beta_name]][1] <- log(median(object@auxiliary$db)) 
+  } 
+
   out
 })
 

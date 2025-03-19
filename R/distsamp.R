@@ -37,15 +37,8 @@ distsamp <- function(formula, data,
   }
   if(keyfun == "hazard"){
     submodels['scale'] <- unmarkedSubmodelScalar(name = "Hazard-rate (scale)", 
-                            short_name = "p", type = "alpha", link = "log")
-    #if(is.null(starts)){
-    #  starts <- default_starts(submodels)
-      # for backwards compatability, initialize log(scale) at 1
-      # it's not clear this is actually better than 0
-      # note also that exp intercept used to be initialized at 0 
-      # instead of log(median(db))
-    #  starts[length(starts)] <- 1
-    #}
+                            short_name = "p", type = "scale", link = "log")
+    # for backwards compatability, initialize log(scale) at 1
   }
   
   # Build response object
@@ -60,9 +53,17 @@ distsamp <- function(formula, data,
     inputs <- engine_inputs_CR(response, submodels)
   }
   # There's no submodel for a uniform key function, but we still need this info
+  # Should find a less clunky way to do this
   if(keyfun == "uniform"){
     ua <- getUA(data)
-    inputs <- c(inputs, list(keyfun_det = "uniform", survey_det = data@survey,
+    if(engine == "TMB"){
+      keyfun_det <- 0
+      survey_det <- ifelse(data@survey == "line", 0, 1)
+    } else {
+      keyfun_det <- "uniform"
+      survey_det <- data@survey
+    }
+    inputs <- c(inputs, list(keyfun_det = keyfun_det, survey_det = survey_det,
                              db_det = data@dist.breaks, w_det = diff(data@dist.breaks),
                              u_det=ua$u, a_det=ua$a))
   }
