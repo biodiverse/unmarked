@@ -77,6 +77,7 @@ distsamp <- function(formula, data,
       detParms <- character(0)
       detIdx <- numeric(0)
       starts_default <- rep(0, nAP)
+      nP <- nAP
     }
     if(keyfun=="exp"){
       starts_default[(nAP+1)] <- 0

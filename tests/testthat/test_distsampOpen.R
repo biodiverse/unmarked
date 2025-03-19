@@ -306,6 +306,8 @@ test_that("distsampOpen uniform keyfun works", {
   fm <- distsampOpen(~1, ~1, ~1, data = umf, K=15,keyfun="unif")
   expect_equivalent(coef(fm), c(1.4586,0.7262,-0.05239),
                      tol=1e-4)
+  actual_aic <- -2 * -fm@opt$value + 2 * length(fm@opt$par)
+  expect_equal(actual_aic, fm@AIC)
 
   set.seed(123)
   y <- simData(lambda=4, gamma=2, omega=0.5, sigma=25, M=50, T=5,type="point",
