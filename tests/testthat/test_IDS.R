@@ -266,7 +266,7 @@ test_that("Hazard-rate works with IDS", {
   mod
 
   # good correspondance
-  expect_equivalent(coef(mod), c(2.8913, -0.4381, -2.4697, 0.60489), tol=1e-4)
+  expect_equivalent(coef(mod), c(2.8927, -0.4381, -2.4711, 0.6044), tol=1e-4)
 
   # "Point count" sites
   # simulate these as 1-bin distance

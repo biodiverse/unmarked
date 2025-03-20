@@ -4,7 +4,7 @@
 \usage{distsamp(formula, data, keyfun=c("halfnorm", "exp",
   "hazard", "uniform"), output=c("density", "abund"),
   unitsOut=c("ha", "kmsq"), starts, method="BFGS", se=TRUE,
-  engine=c("C", "R", "TMB"), rel.tol=0.001, ...)
+  engine=c("C", "R", "TMB"), ...)
 }
 
 \description{
@@ -29,8 +29,6 @@
   \item{method}{Optimization method used by \code{\link{optim}}.}
   \item{se}{logical specifying whether or not to compute standard errors.}
   \item{engine}{Use code written in C++ or R}
-  \item{rel.tol}{Requested relative accuracy of the integral, see
-    \code{\link{integrate}}}
   \item{\dots}{Additional arguments to optim, such as lower and upper
     bounds}
 }
