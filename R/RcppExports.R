@@ -49,10 +49,6 @@ nll_occu_Cpp <- function(params, inputs) {
     .Call(`_unmarked_nll_occu_Cpp`, params, inputs)
 }
 
-nll_occu <- function(y, X, V, beta_psi, beta_p, nd, knownOcc, navec, X_offset, V_offset, link_psi) {
-    .Call(`_unmarked_nll_occu`, y, X, V, beta_psi, beta_p, nd, knownOcc, navec, X_offset, V_offset, link_psi)
-}
-
 nll_occuCOP <- function(y, L, Xpsi, Xlambda, beta_psi, beta_lambda, removed) {
     .Call(`_unmarked_nll_occuCOP`, y, L, Xpsi, Xlambda, beta_psi, beta_lambda, removed)
 }
@@ -67,10 +63,6 @@ nll_occuMulti_loglik <- function(fStart, fStop, dmF, dmOcc, beta, dmDet, dStart,
 
 nll_occuMulti <- function(fStart, fStop, dmF, dmOcc, beta, dmDet, dStart, dStop, y, yStart, yStop, Iy0, z, fixed0, penalty) {
     .Call(`_unmarked_nll_occuMulti`, fStart, fStop, dmF, dmOcc, beta, dmDet, dStart, dStop, y, yStart, yStop, Iy0, z, fixed0, penalty)
-}
-
-nll_occuPEN <- function(y, X, V, beta_psi, beta_p, nd, knownOcc, navec, X_offset, V_offset, penalty) {
-    .Call(`_unmarked_nll_occuPEN`, y, X, V, beta_psi, beta_p, nd, knownOcc, navec, X_offset, V_offset, penalty)
 }
 
 nll_occuRN_Cpp <- function(params, inputs) {

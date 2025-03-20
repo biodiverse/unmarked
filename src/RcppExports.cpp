@@ -321,27 +321,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// nll_occu
-double nll_occu(arma::icolvec y, arma::mat X, arma::mat V, arma::colvec beta_psi, arma::colvec beta_p, Rcpp::IntegerVector nd, Rcpp::LogicalVector knownOcc, Rcpp::LogicalVector navec, arma::colvec X_offset, arma::colvec V_offset, std::string link_psi);
-RcppExport SEXP _unmarked_nll_occu(SEXP ySEXP, SEXP XSEXP, SEXP VSEXP, SEXP beta_psiSEXP, SEXP beta_pSEXP, SEXP ndSEXP, SEXP knownOccSEXP, SEXP navecSEXP, SEXP X_offsetSEXP, SEXP V_offsetSEXP, SEXP link_psiSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::icolvec >::type y(ySEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type V(VSEXP);
-    Rcpp::traits::input_parameter< arma::colvec >::type beta_psi(beta_psiSEXP);
-    Rcpp::traits::input_parameter< arma::colvec >::type beta_p(beta_pSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type nd(ndSEXP);
-    Rcpp::traits::input_parameter< Rcpp::LogicalVector >::type knownOcc(knownOccSEXP);
-    Rcpp::traits::input_parameter< Rcpp::LogicalVector >::type navec(navecSEXP);
-    Rcpp::traits::input_parameter< arma::colvec >::type X_offset(X_offsetSEXP);
-    Rcpp::traits::input_parameter< arma::colvec >::type V_offset(V_offsetSEXP);
-    Rcpp::traits::input_parameter< std::string >::type link_psi(link_psiSEXP);
-    rcpp_result_gen = Rcpp::wrap(nll_occu(y, X, V, beta_psi, beta_p, nd, knownOcc, navec, X_offset, V_offset, link_psi));
-    return rcpp_result_gen;
-END_RCPP
-}
 // nll_occuCOP
 double nll_occuCOP(arma::icolvec y, arma::icolvec L, arma::mat Xpsi, arma::mat Xlambda, arma::colvec beta_psi, arma::colvec beta_lambda, Rcpp::LogicalVector removed);
 RcppExport SEXP _unmarked_nll_occuCOP(SEXP ySEXP, SEXP LSEXP, SEXP XpsiSEXP, SEXP XlambdaSEXP, SEXP beta_psiSEXP, SEXP beta_lambdaSEXP, SEXP removedSEXP) {
@@ -430,27 +409,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::LogicalVector >::type fixed0(fixed0SEXP);
     Rcpp::traits::input_parameter< double >::type penalty(penaltySEXP);
     rcpp_result_gen = Rcpp::wrap(nll_occuMulti(fStart, fStop, dmF, dmOcc, beta, dmDet, dStart, dStop, y, yStart, yStop, Iy0, z, fixed0, penalty));
-    return rcpp_result_gen;
-END_RCPP
-}
-// nll_occuPEN
-double nll_occuPEN(arma::icolvec y, arma::mat X, arma::mat V, arma::colvec beta_psi, arma::colvec beta_p, Rcpp::IntegerVector nd, Rcpp::LogicalVector knownOcc, Rcpp::LogicalVector navec, arma::colvec X_offset, arma::colvec V_offset, double penalty);
-RcppExport SEXP _unmarked_nll_occuPEN(SEXP ySEXP, SEXP XSEXP, SEXP VSEXP, SEXP beta_psiSEXP, SEXP beta_pSEXP, SEXP ndSEXP, SEXP knownOccSEXP, SEXP navecSEXP, SEXP X_offsetSEXP, SEXP V_offsetSEXP, SEXP penaltySEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::icolvec >::type y(ySEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type V(VSEXP);
-    Rcpp::traits::input_parameter< arma::colvec >::type beta_psi(beta_psiSEXP);
-    Rcpp::traits::input_parameter< arma::colvec >::type beta_p(beta_pSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type nd(ndSEXP);
-    Rcpp::traits::input_parameter< Rcpp::LogicalVector >::type knownOcc(knownOccSEXP);
-    Rcpp::traits::input_parameter< Rcpp::LogicalVector >::type navec(navecSEXP);
-    Rcpp::traits::input_parameter< arma::colvec >::type X_offset(X_offsetSEXP);
-    Rcpp::traits::input_parameter< arma::colvec >::type V_offset(V_offsetSEXP);
-    Rcpp::traits::input_parameter< double >::type penalty(penaltySEXP);
-    rcpp_result_gen = Rcpp::wrap(nll_occuPEN(y, X, V, beta_psi, beta_p, nd, knownOcc, navec, X_offset, V_offset, penalty));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -567,12 +525,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_unmarked_nll_multmixOpen", (DL_FUNC) &_unmarked_nll_multmixOpen, 39},
     {"_unmarked_nll_nmixTTD", (DL_FUNC) &_unmarked_nll_nmixTTD, 13},
     {"_unmarked_nll_occu_Cpp", (DL_FUNC) &_unmarked_nll_occu_Cpp, 2},
-    {"_unmarked_nll_occu", (DL_FUNC) &_unmarked_nll_occu, 11},
     {"_unmarked_nll_occuCOP", (DL_FUNC) &_unmarked_nll_occuCOP, 7},
     {"_unmarked_nll_occuMS", (DL_FUNC) &_unmarked_nll_occuMS, 15},
     {"_unmarked_nll_occuMulti_loglik", (DL_FUNC) &_unmarked_nll_occuMulti_loglik, 14},
     {"_unmarked_nll_occuMulti", (DL_FUNC) &_unmarked_nll_occuMulti, 15},
-    {"_unmarked_nll_occuPEN", (DL_FUNC) &_unmarked_nll_occuPEN, 11},
     {"_unmarked_nll_occuRN_Cpp", (DL_FUNC) &_unmarked_nll_occuRN_Cpp, 2},
     {"_unmarked_nll_occuTTD", (DL_FUNC) &_unmarked_nll_occuTTD, 17},
     {"_unmarked_nll_pcount_Cpp", (DL_FUNC) &_unmarked_nll_pcount_Cpp, 2},

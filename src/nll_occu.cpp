@@ -9,6 +9,44 @@ arma::vec inv_logit( arma::vec inp ){
   return(1 / (1 + exp(-1 * inp)));
 }
 
+double calculate_occu_penalty(arma::vec beta_state, arma::vec beta_det,
+    Rcpp::List inputs){
+
+  int type = inputs["pen_type"];
+  if(type == 0) return(0);
+
+  double lambda = inputs["pen_lambda"];
+
+  double penalty = 0;
+
+  if(type == 1){ // Bayes
+    penalty += accu(pow(beta_state, 2)) + accu(pow(beta_det, 2));
+    penalty = penalty * lambda * 0.5;
+
+  } else if(type == 2){ // Ridge
+    bool has_int_state = inputs["has_int_state"];
+    bool has_int_det = inputs["has_int_det"];
+    if(has_int_state & (beta_state.size() > 1)){
+      penalty += accu(pow(beta_state.subvec(1, beta_state.size()-1), 2));
+    } else if(!has_int_state){
+      penalty += accu(pow(beta_state, 2));
+    }
+    if(has_int_det & (beta_det.size() > 1)){
+      penalty += accu(pow(beta_det.subvec(1, beta_det.size()-1), 2));
+    } else if(!has_int_det){
+      penalty += accu(pow(beta_det, 2));
+    }
+    penalty = penalty * lambda * 0.5;
+
+  } else if(type ==3){ //MPLE
+    vec LR_est = as<vec>(inputs["LR_est"]);
+    penalty = accu(abs(beta_state - LR_est)) * lambda;
+  }
+
+  return penalty;
+}
+
+
 // [[Rcpp::export]]
 double nll_occu_Cpp(arma::vec params, Rcpp::List inputs) {
 
@@ -59,47 +97,8 @@ double nll_occu_Cpp(arma::vec params, Rcpp::List inputs) {
     nll -= log(psi(m) * cp + (1-psi(m)) * no_detect(m));
   }
 
+  double penalty = calculate_occu_penalty(beta_state, beta_det, inputs);
+  nll += penalty;
+
   return nll;
-}
-
-
-// [[Rcpp::export]]
-double nll_occu(arma::icolvec y, arma::mat X, arma::mat V,
-    arma::colvec beta_psi, arma::colvec beta_p,
-    Rcpp::IntegerVector nd, Rcpp::LogicalVector knownOcc, Rcpp::LogicalVector navec,
-    arma::colvec X_offset, arma::colvec V_offset, std::string link_psi) {
-
-  int R = X.n_rows;
-  int J = y.n_elem / R;
-
-  //Calculate psi
-  arma::colvec psi_lp = X*beta_psi + X_offset;
-  arma::colvec psi(R);
-  if(link_psi == "cloglog"){
-    psi = 1 - exp(-exp(psi_lp));
-  } else {
-    psi = 1.0/(1.0+exp(-psi_lp));
-  }
-
-  //Calculate p
-  arma::colvec logit_p = V*beta_p + V_offset;
-  arma::colvec p = 1.0/(1.0+exp(-logit_p));
-
-  double ll=0.0;
-  int k=0; // counter
-  for(int i=0; i<R; i++) {
-    double cp=1.0;
-    for(int j=0; j<J; j++) {
-      if(!navec(k))
-	cp *= pow(p(k),y(k)) * pow(1-p(k), 1-y(k));
-      k++;
-    }
-    if(knownOcc(i))
-      psi(i) = 1.0;
-    if(nd(i)==0)
-      ll += log(cp * psi(i) + DBL_MIN);
-    else if(nd(i)==1)
-      ll += log(cp * psi(i) + (1-psi(i)) + DBL_MIN);
-  }
-  return -ll;
 }

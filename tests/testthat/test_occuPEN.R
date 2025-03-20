@@ -143,13 +143,13 @@ test_that("occuPEN can handle NAs",{
   siteCovs[3,1] <- NA
   obsCovs <- data.frame(o1 = 1:10, o2 = exp(-5:4)/10)
   umf <- unmarkedFrameOccu(y = y, siteCovs = siteCovs, obsCovs = obsCovs)
-  expect_warning(fm <- occuPEN(~ o1 + o2 ~ x, data = umf))
+  expect_no_warning(fm <- occuPEN(~ o1 + o2 ~ x, data = umf))
   expect_equal(fm@sitesRemoved, 3)
   expect_equivalent(coef(fm), c(8.70123, 4.58255, 0.66243, -0.22862, 0.58192), tol = 1e-5)
 
   obsCovs[10,2] <- NA
   umf <- unmarkedFrameOccu(y = y, siteCovs = siteCovs, obsCovs = obsCovs)
-  expect_warning(fm <- occuPEN(~ o1 + o2 ~ x, data = umf))
+  expect_no_warning(fm <- occuPEN(~ o1 + o2 ~ x, data = umf))
   expect_equal(fm@sitesRemoved, 3)
   expect_equivalent(coef(fm), c(8.91289, 1.89291, -1.42471, 0.67011, -8.44608), tol = 1e-5)
   

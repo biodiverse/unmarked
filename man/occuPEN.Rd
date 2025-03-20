@@ -4,7 +4,7 @@
 
 \title{Fit the MacKenzie et al. (2002) Occupancy Model with the penalized likelihood methods of Hutchinson et al. (2015)}
 
-\usage{occuPEN(formula, data, knownOcc=numeric(0), starts, method="BFGS",
+\usage{occuPEN(formula, data, knownOcc=numeric(0), starts = NULL, method="BFGS",
     engine=c("C", "R"), lambda=0, pen.type = c("Bayes","Ridge","MPLE"), ...)}
 
 \arguments{
@@ -100,7 +100,6 @@ for(i in 1:nSites) {
 
 # Organize data and look at it
 umf <- unmarkedFrameOccu(y = y, siteCovs = covariates)
-obsCovs(umf) <- covariates
 head(umf)
 summary(umf)
 

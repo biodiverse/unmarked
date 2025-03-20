@@ -4,10 +4,11 @@
 
 \title{Fit the MacKenzie et al. (2002) Occupancy Model with the penalized likelihood methods of Hutchinson et al. (2015) using cross-validation}
 
-\usage{occuPEN_CV(formula, data, knownOcc=numeric(0), starts, method="BFGS",
-    engine=c("C", "R"), lambdaVec=c(0,2^seq(-4,4)),
-    pen.type = c("Bayes","Ridge"), k = 5, foldAssignments = NA,
-    ...)}
+\usage{
+  occuPEN_CV(formula, data, knownOcc=numeric(0), starts = NULL, 
+             method="BFGS",engine=c("C", "R"), lambdaVec=c(0,2^seq(-4,4)),
+             pen.type = c("Bayes","Ridge"), k = 5, foldAssignments = NA, ...)
+}
 
 \arguments{
     \item{formula}{Double right-hand side formula describing covariates of
@@ -96,7 +97,6 @@ for(i in 1:nSites) {
 
 # Organize data and look at it
 umf <- unmarkedFrameOccu(y = y, siteCovs = covariates)
-obsCovs(umf) <- covariates
 head(umf)
 summary(umf)
 
