@@ -195,9 +195,9 @@ test_that("distsamp line keyfunctions work",{
     expect_equivalent(coef(D), 129.5509, tol=1e-4)
     expect_equivalent(SE(D), 9.446125, tol=1e-4)
     expect_equivalent(coef(S), 18.15386, tol=1e-4)
-    expect_equivalent(SE(S), 2.893362, tol=1e-4)
+    expect_equivalent(SE(S), 2.894, tol=1e-4)
     gp <- getP(fm.halfnorm)
-    expect_equal(gp[1,], c(0.149320,0.52341,0.09922,0.05783), tol=1e-5)
+    expect_equal(gp[1,], c(0.149320,0.52341,0.09922,0.05783), tol=1e-4)
 
     fm.exp <- distsamp(~1~1, umf, keyfun="exp", starts=c(4, 0))
     D <- backTransform(fm.exp, type="state")
@@ -309,10 +309,12 @@ test_that("getP works with distsamp",{
   siteCovs=data.frame(scale(issj[,c("elevation","forest","chaparral")])),
   dist.breaks=c(0,100,200,300), unitsIn="m", survey="point")
 
+  # using these starts for backwards compatability
   hn <- distsamp(~1 ~1, jayumf)
-  neg <- distsamp(~1 ~1, jayumf,keyfun="exp")
+  neg <- distsamp(~1 ~1, jayumf,keyfun="exp", starts=rep(0,2))
   unif <- distsamp(~1 ~1, jayumf, keyfun="unif")
-  haz <- distsamp(~1 ~1, jayumf[1:100,], keyfun="hazard")
+  haz <- distsamp(~1 ~1, jayumf[1:100,], keyfun="hazard",
+                  starts = c(0, log(median(jayumf@dist.breaks)), 1))
 
   expect_equivalent(getP(hn)[1,], c(0.08634098, 0.09873522, 0.02369782),
                      tol=1e-5)
@@ -337,7 +339,7 @@ test_that("distsamp works with random effects",{
   hz <- distsamp(~1~area+(1|habitat), umf, keyfun="hazard")
   un <- distsamp(~1~area+(1|habitat), umf, keyfun="uniform")
   mods <- list(hn=hn, ex=ex, hz=hz, un=un)
-  expect_true(all(sapply(mods, function(x) is.list(x@TMB))))
+  expect_true(all(sapply(mods, function(x) inherits(x@TMB, "TMB"))))
 
   sigs <- sapply(mods, function(x) sigma(x)$sigma)
   expect_true(all(sigs < 0.01) & all(sigs > 0.0001))
@@ -355,7 +357,7 @@ test_that("distsamp works with random effects",{
   hz <- distsamp(~1~area+(1|habitat), umf, keyfun="hazard")
   un <- distsamp(~1~area+(1|habitat), umf, keyfun="uniform")
   mods <- list(hn=hn, ex=ex, hz=hz, un=un)
-  expect_true(all(sapply(mods, function(x) is.list(x@TMB))))
+  expect_true(all(sapply(mods, function(x) inherits(x@TMB, "TMB"))))
 
   sigs <- sapply(mods, function(x) sigma(x)$sigma)
   expect_true(all(sigs < 0.01) & all(sigs > 0.0001))

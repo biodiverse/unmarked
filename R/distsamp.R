@@ -20,7 +20,7 @@ distsamp <- function(formula, data,
   state_name <- switch(output, abund = "Abundance", density = "Density")
   A <- rep(1, numSites(data))
   if(output == "density"){
-    A <- rep(get_ds_area(data, unitsOut), numSites(data))
+    A <- get_ds_area(data, unitsOut)
   }
   submodels <- unmarkedSubmodelList(
     state = unmarkedSubmodelState(name = state_name, short_name = "lam", 
@@ -78,7 +78,7 @@ distsamp <- function(formula, data,
       opt = fit$opt, formula = formula, data = data, keyfun=keyfun,
       sitesRemoved = removed_sites(response), unitsOut=unitsOut,
       estimates = fit$submodels, AIC = fit$AIC, negLogLike = fit$opt$value,
-      nllFun = fit$nll, output=output, TMB=fit$opt$TMB)
+      nllFun = fit$nll, output=output, TMB=fit$TMB)
 }
 
 

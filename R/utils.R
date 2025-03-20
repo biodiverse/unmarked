@@ -846,12 +846,15 @@ get_ds_area <- function(umf, unitsOut){
     kmsq = A
   )
 
+  if(umf@survey == "point") A <- rep(A, numSites(umf))
+
   A
 }
 
 pHalfnorm <- function(sigma, survey, db, w, a){
   J <- length(w)
   cp <- rep(NA, J)
+  if(is.na(sigma)) return(cp)
   switch(survey,
     line = {
       f.0 <- 2 * dnorm(0, 0, sd=sigma)
@@ -871,10 +874,11 @@ pHalfnorm <- function(sigma, survey, db, w, a){
 pExp <- function(rate, survey, db, w, a){
   J <- length(w)
   cp <- rep(NA, J)
+  if(is.na(rate)) return(cp)
   switch(survey,
     line = {
       for(j in 1:J) {
-        cp[j] <- integrate(gxexp, db[j], db[j+1], rate=rate, stop.on.error=FALSE)
+        int <- integrate(gxexp, db[j], db[j+1], rate=rate, stop.on.error=FALSE)
         cp[j] <- ifelse(int$mess == "OK", int$value / w[j], NA)
       }
     },
@@ -891,6 +895,7 @@ pExp <- function(rate, survey, db, w, a){
 pHazard <- function(shape, scale, survey, db, w, a){
   J <- length(w)
   cp <- rep(NA, J)
+  if(is.na(shape)) return(cp)
   switch(survey,
     line = {
       for(j in 1:J) {
