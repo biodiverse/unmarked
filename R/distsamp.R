@@ -29,14 +29,15 @@ distsamp <- function(formula, data,
               auxiliary = list(output = output, unitsOut = unitsOut, A = A))
   )
 
+  det <- unmarkedSubmodelDistance(name = "Detection", short_name = "p", 
+                                  type = "det", formula = forms[[1]], data = data, 
+                                  keyfun = keyfun, link = "log")
   if(keyfun != "uniform"){
-    submodels["det"] <- unmarkedSubmodelDistance(name = "Detection", 
-                          short_name = "p", type = "det", 
-                          formula = forms[[1]], data = data, 
-                          keyfun = keyfun, link = "log")
+    submodels["det"] <- det
   }
+
   if(keyfun == "hazard"){
-    submodels['scale'] <- unmarkedSubmodelScalar(name = "Hazard-rate (scale)", 
+    submodels["scale"] <- unmarkedSubmodelScalar(name = "Hazard-rate (scale)", 
                             short_name = "p", type = "scale", link = "log")
     # for backwards compatability, initialize log(scale) at 1
   }
@@ -52,20 +53,12 @@ distsamp <- function(formula, data,
   } else {
     inputs <- engine_inputs_CR(response, submodels)
   }
+
   # There's no submodel for a uniform key function, but we still need this info
-  # Should find a less clunky way to do this
   if(keyfun == "uniform"){
-    ua <- getUA(data)
-    if(engine == "TMB"){
-      keyfun_det <- 0
-      survey_det <- ifelse(data@survey == "line", 0, 1)
-    } else {
-      keyfun_det <- "uniform"
-      survey_det <- data@survey
-    }
-    inputs <- c(inputs, list(keyfun_det = keyfun_det, survey_det = survey_det,
-                             db_det = data@dist.breaks, w_det = diff(data@dist.breaks),
-                             u_det=ua$u, a_det=ua$a))
+    dist_info <- det@auxiliary
+    names(dist_info) <- paste(names(dist_info), det@type, sep="_")
+    inputs <- c(inputs, dist_info)
   }
 
   # Fit model

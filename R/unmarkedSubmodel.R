@@ -73,9 +73,9 @@ unmarkedSubmodelScalar <- function(name, short_name, type, link){
 unmarkedSubmodelDistance <- function(name, short_name, type, formula, data, 
                                         keyfun, link, auxiliary = list()){
   ua <- getUA(data) # in utils
-  aux <- list(auxiliary, survey = data@survey, keyfun = keyfun, 
+  aux <- c(auxiliary, list(survey = data@survey, keyfun = keyfun, 
               db = data@dist.breaks, w = diff(data@dist.breaks), 
-              a = ua$a, u = ua$u, unitsIn = data@unitsIn)
+              a = ua$a, u = ua$u, unitsIn = data@unitsIn))
 
   data <- clean_up_covs(data, drop_final = FALSE)$site_covs
   data <- subset_covs(data, formula)
