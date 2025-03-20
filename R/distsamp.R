@@ -18,23 +18,17 @@ distsamp <- function(formula, data,
 
   # Build submodels
   state_name <- switch(output, abund = "Abundance", density = "Density")
-  A <- rep(1, numSites(data))
-  if(output == "density"){
-    A <- get_ds_area(data, unitsOut)
-  }
+  A <- get_ds_area(data, unitsOut, output)
   submodels <- unmarkedSubmodelList(
     state = unmarkedSubmodelState(name = state_name, short_name = "lam", 
               type = "state", formula = forms[[2]], data = data, 
               family = "poisson", link = "log", 
-              auxiliary = list(output = output, unitsOut = unitsOut, A = A))
-  )
+              auxiliary = list(output = output, unitsOut = unitsOut, A = A)),
 
-  det <- unmarkedSubmodelDistance(name = "Detection", short_name = "p", 
-                                  type = "det", formula = forms[[1]], data = data, 
-                                  keyfun = keyfun, link = "log")
-  if(keyfun != "uniform"){
-    submodels["det"] <- det
-  }
+    det = unmarkedSubmodelDistance(name = "Detection", short_name = "p", 
+                                   type = "det", formula = forms[[1]], 
+                                   data = data, keyfun = keyfun, link = "log")
+  )
 
   if(keyfun == "hazard"){
     submodels["scale"] <- unmarkedSubmodelScalar(name = "Hazard-rate (scale)", 
@@ -52,13 +46,6 @@ distsamp <- function(formula, data,
     inputs <- engine_inputs_TMB(response, submodels)
   } else {
     inputs <- engine_inputs_CR(response, submodels)
-  }
-
-  # There's no submodel for a uniform key function, but we still need this info
-  if(keyfun == "uniform"){
-    dist_info <- det@auxiliary
-    names(dist_info) <- paste(names(dist_info), det@type, sep="_")
-    inputs <- c(inputs, dist_info)
   }
 
   # Fit model

@@ -44,7 +44,9 @@ setClass("unmarkedEstimateList",
 
 setMethod("show", "unmarkedEstimateList",
     function(object) {
-      for(est in object@estimates) {
+    ests <- object@estimates
+    ests <- ests[!sapply(ests, inherits, "unmarkedSubmodelUniform")]
+      for(est in ests) {
         show(est)
         cat("\n")
       }
@@ -54,11 +56,13 @@ setMethod("summary", "unmarkedEstimateList",
     function(object)
 {
     sumList <- list()
-    for(i in 1:length(object@estimates)) {
-        sumList[[i]] <- summary(object@estimates[[i]])
+    est <- object@estimates
+    est <- est[!sapply(est, inherits, "unmarkedSubmodelUniform")]
+    for(i in 1:length(est)) {
+        sumList[[i]] <- summary(est[[i]])
         cat("\n")
         }
-    names(sumList) <- names(object@estimates)
+    names(sumList) <- names(est)
     invisible(sumList)
 })
 
@@ -268,7 +272,7 @@ setMethod("coef", "unmarkedEstimate",
       coefs <- coefs[fixed]
     }
     names(coefs)[names(coefs) == "(Intercept)"] <- "Int"
-    if(altNames) {
+    if(altNames & length(coefs) > 0) {
         names(coefs) <- paste(object@short.name, "(", names(coefs), ")",
                               sep="")
     }

@@ -824,7 +824,10 @@ get_dist_prob <- function(object){
 
 
 # Get area for converting density to abundance in distance sampling models
-get_ds_area <- function(umf, unitsOut){
+get_ds_area <- function(umf, unitsOut, output = "density"){
+
+  if(output == "abund") return(rep(1, numSites(umf)))
+
   db <- umf@dist.breaks
  
   # Calculate area based on survey type
@@ -930,6 +933,29 @@ getDistCP <- function(keyfun, param1, param2, survey, db, w, a, u){
     })
     cp * u
 }
+
+# Detection functions
+gxhn <- function(x, sigma) exp(-x^2/(2 * sigma^2))
+gxexp <- function(x, rate) exp(-x / rate)
+gxhaz <- function(x, shape, scale)  1 - exp(-(x/shape)^-scale)
+grhn <- function(r, sigma) exp(-r^2/(2 * sigma^2)) * r
+grexp <- function(r, rate) exp(-r / rate) * r
+grhaz <- function(r, shape, scale)  (1 - exp(-(r/shape)^-scale)) * r
+
+dxhn <- function(x, sigma)
+	gxhn(x=x, sigma=sigma) / integrate(gxhn, 0, Inf, sigma=sigma)$value
+drhn <- function(r, sigma)
+	grhn(r=r, sigma=sigma) / integrate(grhn, 0, Inf, sigma=sigma)$value
+dxexp <- function(x, rate)
+	gxexp(x=x, rate=rate) / integrate(gxexp, 0, Inf, rate=rate)$value
+drexp <- function(r, rate)
+	grexp(r=r, rate=rate) / integrate(grexp, 0, Inf, rate=rate)$value
+dxhaz <- function(x, shape, scale)
+	gxhaz(x=x, shape=shape, scale=scale) / integrate(gxhaz, 0, Inf,
+		shape=shape, scale=scale)$value
+drhaz <- function(r, shape, scale)
+	grhaz(r=r, shape=shape, scale=scale) / integrate(grhaz, 0, Inf,
+		shape=shape, scale=scale)$value
 
 
 #Modified rmultinom for handling NAs

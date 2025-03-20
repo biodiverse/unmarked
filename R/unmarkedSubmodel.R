@@ -28,6 +28,9 @@ setClass("unmarkedSubmodelScalar",
 setClass("unmarkedSubmodelDistance",
   contains = "unmarkedSubmodelState")
 
+setClass("unmarkedSubmodelUniform",
+  contains = "unmarkedSubmodelDistance")
+
 unmarkedSubmodelDet <- function(name, short_name, type, formula, data, 
                                 family, link, auxiliary = list(), obsNum = TRUE){
   
@@ -82,10 +85,18 @@ unmarkedSubmodelDistance <- function(name, short_name, type, formula, data,
 
   out <- new("unmarkedSubmodelDistance",
     name = name, short.name = short_name, type = type,
-    formula = formula, data = data, family = "binomial", # family is just a placeholder
+    formula = formula, data = data, family = "multinomial",
     invlink = get_invlink(link), invlinkGrad = get_grad(link),
     auxiliary = aux)
   out@fixed <- 1:ncol(model.matrix(out))
+
+  if(keyfun == "uniform"){
+    out <- as(out, "unmarkedSubmodelUniform")
+    out@formula <- ~0
+    out@data <- data.frame()
+    out@fixed <- numeric(0)
+  }
+
   out
 }
 
@@ -249,7 +260,7 @@ setMethod("engine_inputs_TMB", c("unmarkedSubmodelScalar", "missing"), function(
 })
 
 get_family_code <- function(family){
-  switch(family, binomial = 0, poisson = 1, negative_binomial = 2, ZIP = 3)
+  switch(family, binomial = 0, poisson = 1, negative_binomial = 2, ZIP = 3, multinomial = 4)
 }
 
 get_invlink_code <- function(link){
@@ -356,9 +367,13 @@ unmarkedSubmodelList <- function(...){
   new("unmarkedSubmodelList", estimates=submodels)
 }
 
-setGeneric("submodels", function(object) standardGeneric("submodels"))
+setGeneric("submodels", function(object, ...) standardGeneric("submodels"))
 
-setMethod("submodels", "unmarkedSubmodelList", function(object){
+setMethod("submodels", "unmarkedSubmodelList", function(object, drop = TRUE){
+  if(drop){
+    unif <- sapply(object@estimates, inherits, "unmarkedSubmodelUniform")
+    return(object@estimates[!unif])
+  }
   object@estimates
 })
 
@@ -370,7 +385,7 @@ setMethod("submodels<-", "unmarkedSubmodelList", function(object, value){
 })
 
 setMethod("[", "unmarkedSubmodelList", function(x, i, j, drop) {
-  submodels(x)[[i]]
+  submodels(x, drop = FALSE)[[i]]
 })
 
 setMethod("[<-", "unmarkedSubmodelList", function(x, i, value){
@@ -400,12 +415,12 @@ setMethod("get_parameter_idx", "unmarkedSubmodelList",
 })
 
 setMethod("engine_inputs", c("unmarkedSubmodelList", "missing"), function(object, object2){
-  out <- lapply(submodels(object), engine_inputs)
+  out <- lapply(submodels(object, drop = FALSE), engine_inputs)
   do.call(c, unname(out))
 })
 
 setMethod("engine_inputs_TMB", c("unmarkedSubmodelList", "missing"), function(object, object2){
-  out <- lapply(submodels(object), engine_inputs_TMB)
+  out <- lapply(submodels(object, drop = FALSE), engine_inputs_TMB)
   do.call(c, unname(out))
 })
 
