@@ -6,35 +6,21 @@ template <class Type>
 Type tmb_multinomPois(objective_function<Type>* obj) {
   //Describe input data
   DATA_MATRIX(y); //observations
-
-  DATA_MATRIX(X_state); //lambda fixed effect design mat
-  DATA_SPARSE_MATRIX(Z_state); //psi random effect design mat
-  DATA_VECTOR(offset_state);
-  DATA_INTEGER(n_group_vars_state); //# of grouping variables for lambda
-  DATA_IVECTOR(n_grouplevels_state); //# of levels of each grouping variable
-
-  DATA_MATRIX(X_det); //same thing but for p
-  DATA_SPARSE_MATRIX(Z_det);
-  DATA_VECTOR(offset_det);
-  DATA_INTEGER(n_group_vars_det);
-  DATA_IVECTOR(n_grouplevels_det);
+  int M = y.rows(); // # of sites
+  int J = y.cols(); // # of obs per site
   
-  DATA_INTEGER(pifun_type);
+  SUBMODEL_INPUTS(state);
+  UNUSED(family_state);
+  UNUSED(invlink_state);
 
-  PARAMETER_VECTOR(beta_state); //Fixed effect params for lamda
-  PARAMETER_VECTOR(b_state); //Random intercepts and/or slopes for lambda
-  PARAMETER_VECTOR(lsigma_state); //Random effect variance(s) for lambda
-
-  PARAMETER_VECTOR(beta_det); //Same thing but for det
-  PARAMETER_VECTOR(b_det);
-  PARAMETER_VECTOR(lsigma_det);
+  SUBMODEL_INPUTS(det);
+  UNUSED(family_det);
+  UNUSED(invlink_det);
+  DATA_INTEGER(R_det);
+  DATA_INTEGER(pi_code_det);
 
   //Define the log likelihood so that it can be calculated in parallel over sites
   Type loglik = 0.0;
-
-  int M = y.rows(); // # of sites
-  int J = y.cols(); // # of obs per site
-  int R = X_det.rows() / M; // # of detection probs per site
 
   //Construct lambda vector
   vector<Type> lam = X_state * beta_state + offset_state;
@@ -49,20 +35,21 @@ Type tmb_multinomPois(objective_function<Type>* obj) {
   p = invlogit(p);
   
   //Likelihood
-  for (int i=0; i<M; i++){
-    //Not sure if defining these inside loop is necessary for parallel
-    int pstart = i * R;
-    vector<Type> ysub = y.row(i);
-    vector<Type> psub = p.segment(pstart, R);
-    vector<Type> pi_lam = pifun(psub, pifun_type) * lam(i);
+  for (int m=0; m<M; m++){
+    vector<Type> ysub = y.row(m);
+    if(all_na(ysub)) continue;
+
+    int pstart = m * R_det;
+    vector<Type> psub = p.segment(pstart, R_det);
+    vector<Type> pi = pifun(psub, pi_code_det);
     
     for (int j=0; j<J; j++){
-      if(R_IsNA(asDouble(ysub(j)))) continue;
-      loglik -= dpois(ysub(j), pi_lam(j), true);
+      if(is_na(ysub(j))) continue;
+      loglik += dpois(ysub(j), lam(m) * pi(j), true);
     }
   }
 
-  return loglik;
+  return -loglik;
 
 }
 

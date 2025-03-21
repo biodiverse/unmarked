@@ -31,6 +31,9 @@ setClass("unmarkedSubmodelDistance",
 setClass("unmarkedSubmodelUniform",
   contains = "unmarkedSubmodelDistance")
 
+setClass("unmarkedSubmodelMultinom",
+  contains = "unmarkedSubmodelDet")
+
 unmarkedSubmodelDet <- function(name, short_name, type, formula, data, 
                                 family, link, auxiliary = list(), obsNum = TRUE){
   
@@ -96,6 +99,32 @@ unmarkedSubmodelDistance <- function(name, short_name, type, formula, data,
     out@data <- data.frame()
     out@fixed <- numeric(0)
   }
+
+  out
+}
+
+unmarkedSubmodelMultinom <- function(name, short_name, type, formula, data, 
+                                     keyfun, link, auxiliary = list()){
+  
+  T <- ifelse(methods::.hasSlot(data, "numPrimary"),
+              data@numPrimary, 1)
+  aux <- list(pi_name = data@piFun, pi_fun = get(data@piFun), pi_code = -1,
+              R = obsNum(data), J = ncol(data@y) / T, T = T)
+  c_support <- c('doublePiFun','removalPiFun','depDoublePiFun')
+  if(data@piFun %in% c_support){
+    aux$pi_code <- switch(data@piFun, removalPiFiFun = 0,
+                          doublePiFun = 1, depDoublePiFun = 2)
+  }
+
+  data <- clean_up_covs(data, drop_final = FALSE)$obs_covs
+  data <- subset_covs(data, formula)
+  
+  out <- new("unmarkedSubmodelMultinom",
+    name = name, short.name = short_name, type = type,
+    formula = formula, data = data, family = "multinomial",
+    invlink = get_invlink(link), invlinkGrad = get_grad(link),
+    auxiliary = aux)
+  out@fixed <- 1:ncol(model.matrix(out))
 
   out
 }
@@ -196,6 +225,18 @@ setMethod("find_missing", "unmarkedSubmodel",
   apply(mm, 1, function(x) any(is.na(x)))
 })
 
+setMethod("find_missing", "unmarkedSubmodelMultinom",
+  function(object, ...){
+  mm <- model.matrix(object)
+  dummy_coefs <- rep(0, ncol(mm))
+  p <- plogis(mm %*% dummy_coefs)
+  p <- matrix(p, ncol = object@auxiliary$R, byrow=TRUE)
+
+  pi <- do.call(object@auxiliary$pi_fun, list(p = p))
+  pi <- as.vector(t(pi))
+  is.na(pi)
+})
+
 setGeneric("default_starts", function(object, ...) standardGeneric("default_starts"))
 
 setMethod("default_starts", "unmarkedSubmodel", function(object, ...){
@@ -252,6 +293,13 @@ setMethod("engine_inputs_TMB", c("unmarkedSubmodelDistance", "missing"), functio
   out[[surv_id]] <- switch(out[[surv_id]], line={0}, point={1})
   # Also must remove some character entries
   out[sapply(out, is.character)] <- NULL
+  out
+})
+
+setMethod("engine_inputs_TMB", c("unmarkedSubmodelMultinom", "missing"), function(object, object2){
+  out <- methods::callNextMethod(object)
+  not_numeric <- !sapply(out, function(x) is.numeric(x) | is(x, "sparseMatrix"))
+  out[not_numeric] <- NULL
   out
 })
 

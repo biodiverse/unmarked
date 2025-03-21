@@ -4,7 +4,7 @@
 
 \title{Multinomial-Poisson Mixtures Model}
 
-\usage{multinomPois(formula, data, starts, method = "BFGS",
+\usage{multinomPois(formula, data, starts = NULL, method = "BFGS",
    se = TRUE, engine=c("C","R","TMB"), ...)}
 
 \description{Fit the multinomial-Poisson mixture model to data collected

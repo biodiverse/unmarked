@@ -79,13 +79,13 @@ test_that("multinomPois can fit a removal model",{
     #checkEqualsNumeric(coef(m1_R), coef(m1_C), tol=1e-5)
 
     #m2_R <- multinomPois(~x2 ~1, umf1, engine="R")
-    expect_warning(m2_C <- multinomPois(~x2 ~1, umf1, engine="C"))
+    expect_no_warning(m2_C <- multinomPois(~x2 ~1, umf1, engine="C"))
     expect_equivalent(coef(m2_C), c(1.9159845, 0.2248897, -0.1808144), tol=1e-5)
     expect_equal(m2_C@sitesRemoved, 4:5)
     #checkEqualsNumeric(coef(m2_R),coef(m2_C), tol=1e-5)
 
     #m3_R <- multinomPois(~x2 ~x1, umf1, engine="R")
-    expect_warning(m3_C <- multinomPois(~x2 ~x1, umf1, engine="C"))
+    expect_no_warning(m3_C <- multinomPois(~x2 ~x1, umf1, engine="C"))
     expect_equivalent(m3_C@sitesRemoved, c(1, 4:5))
     expect_equivalent(coef(m3_C),
         c(1.9118525, -0.4071202, 8.3569943, 0.3232485), tol=1e-5)
@@ -135,7 +135,7 @@ test_that("multinomPois can fit a removal model",{
     expect_is(pb, "parboot")
     expect_equal(pb@t.star[1,1], 5.2789, tol=1e-4)
 
-    npb <- expect_warning(nonparboot(m2_C, B=2))
+    npb <- expect_no_warning(nonparboot(m2_C, B=2))
     expect_equal(length(npb@bootstrapSamples), 2)
     expect_equal(npb@bootstrapSamples[[1]]@AIC, 30.45706, tol=1e-4)
     expect_equal(numSites(npb@bootstrapSamples[[1]]@data), numSites(npb@data))
@@ -209,7 +209,7 @@ test_that("multinomPois handles NAs",{
 
     umf <- unmarkedFrameMPois(y = y, obsCovs = list(x=oc), type="double")
 
-    expect_warning(m2 <- multinomPois(~x ~1, umf, starts=c(1.3, 0, 0.2)))
+    expect_no_warning(m2 <- multinomPois(~x ~1, umf, starts=c(1.3, 0, 0.2)))
     expect_equal(m2@sitesRemoved, 4:6)
 
 })
@@ -258,7 +258,7 @@ test_that("multinomPois can fit models with random effects",{
 
   fm <- multinomPois(~observer-1 ~x1 + (1|ref), umf2)
 
-  expect_true(inherits(fm@TMB, "list"))
+  expect_true(inherits(fm@TMB, "TMB"))
   expect_equivalent(sigma(fm)$sigma, 0.3655, tol=1e-3)
   expect_true(inherits(randomTerms(fm), "data.frame"))
   pr <- predict(fm, type='state')
@@ -277,15 +277,15 @@ test_that("multinomPois can fit models with random effects",{
   umf2@siteCovs$x1[3] <- NA
   umf2@obsCovs$observer[80] <- NA
 
-  expect_warning(fm_na <- multinomPois(~observer-1 ~x1 + (1|ref), umf2))
+  expect_no_warning(fm_na <- multinomPois(~observer-1 ~x1 + (1|ref), umf2))
   expect_true(inherits(fm_na, "unmarkedFitMPois"))
 
   expect_warning(umf3 <- unmarkedFrameMPois(y=y, obsCovs=list(observer=observer),
             piFun="fake", obsToY=umf@obsToY, siteCovs=sc))
 
-  expect_error(multinomPois(~observer-1 ~x1 + (1|ref), umf3))
+  expect_error(expect_warning(multinomPois(~observer-1 ~x1 + (1|ref), umf3)))
 
   # Site covs in detection formula
-  expect_warning(fm <- multinomPois(~(1|ref)~1, umf2))
+  expect_no_warning(fm <- multinomPois(~(1|ref)~1, umf2))
   expect_true(sigma(fm)$Model[1]=="p")
 })

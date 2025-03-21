@@ -217,23 +217,15 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// nll_multinomPois
-double nll_multinomPois(arma::vec beta, std::string pi_fun, arma::mat Xlam, arma::vec Xlam_offset, arma::mat Xdet, arma::vec Xdet_offset, arma::vec y, arma::vec navec, int nP, int nAP);
-RcppExport SEXP _unmarked_nll_multinomPois(SEXP betaSEXP, SEXP pi_funSEXP, SEXP XlamSEXP, SEXP Xlam_offsetSEXP, SEXP XdetSEXP, SEXP Xdet_offsetSEXP, SEXP ySEXP, SEXP navecSEXP, SEXP nPSEXP, SEXP nAPSEXP) {
+// nll_multinomPois_Cpp
+double nll_multinomPois_Cpp(arma::vec params, Rcpp::List inputs);
+RcppExport SEXP _unmarked_nll_multinomPois_Cpp(SEXP paramsSEXP, SEXP inputsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::vec >::type beta(betaSEXP);
-    Rcpp::traits::input_parameter< std::string >::type pi_fun(pi_funSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type Xlam(XlamSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type Xlam_offset(Xlam_offsetSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type Xdet(XdetSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type Xdet_offset(Xdet_offsetSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type y(ySEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type navec(navecSEXP);
-    Rcpp::traits::input_parameter< int >::type nP(nPSEXP);
-    Rcpp::traits::input_parameter< int >::type nAP(nAPSEXP);
-    rcpp_result_gen = Rcpp::wrap(nll_multinomPois(beta, pi_fun, Xlam, Xlam_offset, Xdet, Xdet_offset, y, navec, nP, nAP));
+    Rcpp::traits::input_parameter< arma::vec >::type params(paramsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type inputs(inputsSEXP);
+    rcpp_result_gen = Rcpp::wrap(nll_multinomPois_Cpp(params, inputs));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -521,7 +513,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_unmarked_nll_gdistsamp", (DL_FUNC) &_unmarked_nll_gdistsamp, 23},
     {"_unmarked_nll_gmultmix", (DL_FUNC) &_unmarked_nll_gmultmix, 17},
     {"_unmarked_nll_gpcount", (DL_FUNC) &_unmarked_nll_gpcount, 15},
-    {"_unmarked_nll_multinomPois", (DL_FUNC) &_unmarked_nll_multinomPois, 10},
+    {"_unmarked_nll_multinomPois_Cpp", (DL_FUNC) &_unmarked_nll_multinomPois_Cpp, 2},
     {"_unmarked_nll_multmixOpen", (DL_FUNC) &_unmarked_nll_multmixOpen, 39},
     {"_unmarked_nll_nmixTTD", (DL_FUNC) &_unmarked_nll_nmixTTD, 13},
     {"_unmarked_nll_occu_Cpp", (DL_FUNC) &_unmarked_nll_occu_Cpp, 2},

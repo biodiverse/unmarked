@@ -1,50 +1,44 @@
 #include <RcppArmadillo.h>
 #include "pifun.h"
+#include "utils.h"
 
 using namespace Rcpp;
 using namespace arma;
 
-mat inv_logit_( mat inp ){
-  return(1 / (1 + exp(-1 * inp)));
-}
-
 // [[Rcpp::export]]
-double nll_multinomPois(arma::vec beta, std::string pi_fun,
-    arma::mat Xlam, arma::vec Xlam_offset, arma::mat Xdet, arma::vec Xdet_offset,
-    arma::vec y, arma::vec navec, int nP, int nAP){
+double nll_multinomPois_Cpp(arma::vec params, Rcpp::List inputs){
 
-  int M = Xlam.n_rows;
-  vec lambda = exp( Xlam * beta.subvec(0, (nAP - 1) ) + Xlam_offset );
+  mat y = as<mat>(inputs["y"]);
+  int M = y.n_rows;
+  int J = y.n_cols;
 
-  int J = Xdet.n_rows / M;
-  int R = y.size() / M;
-  vec p = inv_logit_( Xdet * beta.subvec(nAP,(nP-1)) + Xdet_offset);
+  SUBMODEL_INPUTS(state);
 
-  int y_ind = 0;
-  int p_ind = 0;
+  SUBMODEL_INPUTS(det);
+  int R = inputs["R_det"];
+  std::string pi_name = inputs["pi_name_det"];
 
-  mat ll = zeros(M,R);
+  vec lambda = exp(X_state * beta_state + offset_state);
+
+  vec p = inv_logit(X_det * beta_det + offset_det);
+
+  double loglik = 0;
+  int p_start, p_stop;
+  uvec fin;
+  vec pi(J);
+
   for (int m=0; m<M; m++){
+    fin = find_finite(y.row(m));
+    if(fin.size() == 0) continue;
 
-    int y_stop = y_ind + R - 1;
-    int p_stop = p_ind + J - 1;
+    p_start = m * R;
+    p_stop = p_start + R - 1;
+    pi = piFun(p.subvec(p_start, p_stop), pi_name);
 
-    vec na_sub = navec.subvec(y_ind, y_stop);
-    if( ! all(na_sub) ){
-
-      vec pi_lam = piFun( p.subvec(p_ind, p_stop), pi_fun ) * lambda(m);
-
-      for (int r=0; r<R; r++){
-        if( ! na_sub(r) ){
-           ll(m,r) = R::dpois(y(y_ind+r), pi_lam(r), 1);
-        }
-      }
+    for (unsigned j=0; j<fin.size(); j++){
+      loglik += Rf_dpois(y(m, fin(j)), lambda(m) * pi(fin(j)), true);
     }
-
-      y_ind += R;
-      p_ind += J;
   }
 
-  return -accu(ll);
-
+  return -loglik;
 }
