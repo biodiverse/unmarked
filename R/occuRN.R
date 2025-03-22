@@ -22,9 +22,7 @@ occuRN <- function(formula, data, K = 25, starts = NULL, method = "BFGS",
   )
 
   # Build response object
-  response <- unmarkedResponseBinary(data, Kmax = K)
-  # Handle missing values in covariates
-  response <- add_missing(response, submodels)
+  response <- unmarkedResponseBinary(data, submodels, Kmax = K)
 
   inputs <- engine_inputs_CR(response, submodels)
   inputs$threads <- threads

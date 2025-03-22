@@ -37,9 +37,7 @@ distsamp <- function(formula, data,
   }
   
   # Build response object
-  response <- unmarkedResponse(data, Kmax = NULL)
-  # Handle missing values in covariates
-  response <- add_missing(response, submodels)
+  response <- unmarkedResponseCount(data, submodels, Kmax = NULL)
 
   # Generate engine inputs
   if(engine == "TMB"){

@@ -496,7 +496,7 @@ setClass("unmarkedResponse",
   )
 )
 
-unmarkedResponse <- function(data, Kmax){
+unmarkedResponse <- function(data, submodels, Kmax){
   if(is.null(Kmax)){
     Kmax <- max(data@y, na.rm = TRUE) + 100
   }
@@ -505,12 +505,17 @@ unmarkedResponse <- function(data, Kmax){
     ifelse(all(is.na(x)), NA, max(x, na.rm=TRUE))
   })
   response@Kmin <- Kmin
+  response <- add_missing(response, submodels)
   response
 }
 
-unmarkedResponseBinary <- function(data, Kmax = 1){
+unmarkedResponseBinary <- function(data, submodels, Kmax = 1){
   data@y <- truncateToBinary(data@y)
-  unmarkedResponse(data, Kmax = Kmax)
+  unmarkedResponse(data, submodels, Kmax = Kmax)
+}
+
+unmarkedResponseCount <- function(data, submodels, Kmax){
+  unmarkedResponse(data, submodels, Kmax = Kmax)
 }
 
 setGeneric("add_missing", function(object, submodel, ...){

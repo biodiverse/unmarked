@@ -31,8 +31,7 @@ occuPEN_CV <- function(formula, data, knownOcc = numeric(0), starts = NULL,
                        starts = starts, method = "SANN", engine = engine,
                        control = list(maxit=1), se = FALSE)
 
-  response <- unmarkedResponseBinary(data)
-  response <- add_missing(response, template_fit@estimates)
+  response <- unmarkedResponseBinary(data, template_fit@estimates)
   has_obs <- response@Kmin == 1
   
   M <- numSites(data)

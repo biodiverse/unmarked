@@ -31,9 +31,7 @@ occu <- function(formula, data, knownOcc = numeric(0),
   )
 
   # Build response object
-  response <- unmarkedResponseBinary(data)
-  # Handle missing values in covariates
-  response <- add_missing(response, submodels)
+  response <- unmarkedResponseBinary(data, submodels)
 
   if(engine == "TMB"){
     inputs <- engine_inputs_TMB(response, submodels)
@@ -188,8 +186,7 @@ computeMPLElambda = function(formula, data, knownOcc = numeric(0),
   X_state <- model.matrix(mle["state"])
   X_det <- model.matrix(mle["det"])
 
-  response <- unmarkedResponseBinary(data)
-  response <- add_missing(response, mle@estimates)
+  response <- unmarkedResponseBinary(data, mle@estimates)
   ymax <- response@Kmin
 
   starts <- if(is.null(starts)) starts <- default_starts(mle["state"])

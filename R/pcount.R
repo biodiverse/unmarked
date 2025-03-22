@@ -42,9 +42,7 @@ pcount <- function(formula, data, K = NULL, mixture = c("P", "NB", "ZIP"),
   }
 
   # Build response object
-  response <- unmarkedResponse(data, Kmax = K)
-  # Handle missing values in covariates
-  response <- add_missing(response, submodels)
+  response <- unmarkedResponseCount(data, submodels, Kmax = K)
 
   # Generate engine inputs
   if(engine == "TMB"){
