@@ -592,6 +592,15 @@ setMethod("engine_inputs_TMB", c("unmarkedResponse", "unmarkedSubmodelList"),
 
 # Fitting models---------------------------------------------------------------
 
+nll_inputs <- function(response, submodels, engine){
+  if(engine == "TMB"){
+    inputs <- engine_inputs_TMB(response, submodels)
+  } else {
+    inputs <- engine_inputs_CR(response, submodels)
+  }
+  inputs
+}
+
 fit_model <- function(nll_fun, inputs, submodels, starts, method, se, ...){
   # C and R engines
   if(is.function(nll_fun)){ 

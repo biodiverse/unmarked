@@ -10,7 +10,6 @@ multinomPois <- function(formula, data, starts = NULL, method = "BFGS",
   engine <- match.arg(engine, c("C", "R", "TMB"))
   forms <- split_formula(formula)
   if(any(sapply(forms, has_random))) engine <- "TMB"
-
   c_support <- c('doublePiFun','removalPiFun','depDoublePiFun')
   if(engine %in% c("C", "TMB") & !data@piFun %in% c_support){
     warning("Custom pi functions are not supported by C engine. Using R engine instead.",
@@ -32,18 +31,14 @@ multinomPois <- function(formula, data, starts = NULL, method = "BFGS",
   # Build response object
   response <- unmarkedResponseCount(data, submodels, Kmax = NULL)
 
-  # Generate engine inputs
-  if(engine == "TMB"){
-    inputs <- engine_inputs_TMB(response, submodels)
-  } else {
-    inputs <- engine_inputs_CR(response, submodels)
-  }
-
-  # Fit model
+  # Get nll inputs
+  inputs <- nll_inputs(response, submodels, engine)
   nll_fun <- switch(engine, R = nll_multinomPois_R, C = nll_multinomPois_Cpp, 
                     TMB = "tmb_multinomPois")
+
+  # Fit model
   fit <- fit_model(nll_fun, inputs = inputs, submodels = submodels,
-                   starts = starts, method = method, se = se)#, ...)
+                   starts = starts, method = method, se = se, ...)
    
   # Create unmarkedFit object
   new("unmarkedFitMPois", fitType="multinomPois", call=match.call(),

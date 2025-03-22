@@ -24,11 +24,12 @@ occuRN <- function(formula, data, K = 25, starts = NULL, method = "BFGS",
   # Build response object
   response <- unmarkedResponseBinary(data, submodels, Kmax = K)
 
-  inputs <- engine_inputs_CR(response, submodels)
+  # Get nll inputs
+  inputs <- nll_inputs(response, submodels, engine)
   inputs$threads <- threads
+  nll_fun <- switch(engine, R = nll_occuRN_R, C = nll_occuRN_Cpp)
 
   # Fit model
-  nll_fun <- switch(engine, R = nll_occuRN_R, C = nll_occuRN_Cpp)
   fit <- fit_model(nll_fun, inputs = inputs, submodels = submodels,
                    starts = starts, method = method, se = se, ...)
 

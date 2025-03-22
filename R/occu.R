@@ -7,18 +7,18 @@ occu <- function(formula, data, knownOcc = numeric(0),
                  lambda = NULL, pen.type = c("Bayes", "Ridge", "MPLE"), ...){
 
   # Check arguments
-  if(!is(data, "unmarkedFrameOccu")) stop("Data is not an unmarkedFrameOccu object.")
-
+  if(!is(data, "unmarkedFrameOccu")){
+    stop("Data is not an unmarkedFrameOccu object.")
+  }
   engine <- match.arg(engine)
   forms <- split_formula(formula)
   if(any(sapply(forms, has_random))) engine <- "TMB"
   linkPsi <- match.arg(linkPsi)
   pen.type <- match.arg(pen.type)
 
+  # Build submodels
   known_occ <- rep(0, numSites(data))
   known_occ[knownOcc] <- 1
-
-  # Build submodels
   submodels <- unmarkedSubmodelList(
     state = unmarkedSubmodelState(name = "Occupancy", short_name = "psi", 
                                   type = "state", formula = forms[[2]], data = data, 
@@ -33,23 +33,22 @@ occu <- function(formula, data, knownOcc = numeric(0),
   # Build response object
   response <- unmarkedResponseBinary(data, submodels)
 
-  if(engine == "TMB"){
-    inputs <- engine_inputs_TMB(response, submodels)
-  } else {
-    inputs <- engine_inputs_CR(response, submodels)
-  }
+  # Get nll inputs
+  inputs <- nll_inputs(response, submodels, engine)
+  nll_fun <- switch(engine, R = nll_occu_R, C = nll_occu_Cpp, TMB = "tmb_occu")
 
-  # Penalized likelihood
-  if(!is.null(lambda)){
+  # Handle penalized likelihood
+  inputs$pen_type <- 0 # Skip penalty by default
+  use_penalty <- !is.null(lambda)
+  if(use_penalty){
     check_occu_penalty_args(formula, data, knownOcc, linkPsi, starts,
                             method, engine, lambda, pen.type)
     se <- FALSE
+    pen_info <- penalty_info(submodels, response, pen.type, lambda, starts)
+    inputs <- utils::modifyList(inputs, pen_info)
   }
-  inputs <- c(inputs, 
-              penalty_info(submodels, response, pen.type, lambda, starts))  
 
   # Fit model
-  nll_fun <- switch(engine, R = nll_occu_R, C = nll_occu_Cpp, TMB = "tmb_occu")
   fit <- fit_model(nll_fun, inputs = inputs, submodels = submodels,
                    starts = starts, method = method, se = se, ...)
 
@@ -60,7 +59,8 @@ occu <- function(formula, data, knownOcc = numeric(0),
     negLogLike = fit$opt$value, nllFun = fit$nll, 
     knownOcc = as.logical(known_occ), TMB=fit$TMB)
 
-  if(!is.null(lambda)){
+  # If penalized likelihood was used, convert to unmarkedFitOccuPEN
+  if(use_penalty){
     umfit <- occu_to_occuPEN(umfit, lambda = lambda, pen.type = pen.type)
   }
 

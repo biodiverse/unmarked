@@ -9,11 +9,9 @@ pcount <- function(formula, data, K = NULL, mixture = c("P", "NB", "ZIP"),
   if(!is(data, "unmarkedFramePCount")){
     stop("Data is not an unmarkedFramePCount object.")
   }
-
   engine <- match.arg(engine)
   forms <- split_formula(formula)
   if(any(sapply(forms, has_random))) engine <- "TMB"
-
   mixture <- match.arg(mixture)
   if(identical(mixture, "ZIP") & engine == "R"){
     stop("ZIP mixture not available for R engine")
@@ -44,16 +42,12 @@ pcount <- function(formula, data, K = NULL, mixture = c("P", "NB", "ZIP"),
   # Build response object
   response <- unmarkedResponseCount(data, submodels, Kmax = K)
 
-  # Generate engine inputs
-  if(engine == "TMB"){
-    inputs <- engine_inputs_TMB(response, submodels)
-  } else {
-    inputs <- engine_inputs_CR(response, submodels)
-    inputs$threads <- threads
-  }
+  # Get nll inputs
+  inputs <- nll_inputs(response, submodels, engine)
+  inputs$threads <- threads
+  nll_fun <- switch(engine, R = nll_pcount_R, C = nll_pcount_Cpp, TMB = "tmb_pcount")
 
   # Fit model
-  nll_fun <- switch(engine, R = nll_pcount_R, C = nll_pcount_Cpp, TMB = "tmb_pcount")
   fit <- fit_model(nll_fun, inputs = inputs, submodels = submodels,
                    starts = starts, method = method, se = se, ...)
    

@@ -7,8 +7,7 @@ distsamp <- function(formula, data,
   # Check arguments
   if(!is(data, "unmarkedFrameDS")){
     stop("Data is not an unmarkedFrameDS object.")
-  }
-  
+  }  
   engine <- match.arg(engine)
   forms <- split_formula(formula)
   if(any(sapply(split_formula(formula), has_random))) engine <- "TMB"
@@ -39,16 +38,12 @@ distsamp <- function(formula, data,
   # Build response object
   response <- unmarkedResponseCount(data, submodels, Kmax = NULL)
 
-  # Generate engine inputs
-  if(engine == "TMB"){
-    inputs <- engine_inputs_TMB(response, submodels)
-  } else {
-    inputs <- engine_inputs_CR(response, submodels)
-  }
-
-  # Fit model
+  # Get nll inputs
+  inputs <- nll_inputs(response, submodels, engine)
   nll_fun <- switch(engine, R = nll_distsamp_R, C = nll_distsamp_Cpp, 
                     TMB = "tmb_distsamp")
+
+  # Fit model
   fit <- fit_model(nll_fun, inputs = inputs, submodels = submodels,
                    starts = starts, method = method, se = se, ...)
 
@@ -90,29 +85,3 @@ nll_distsamp_R <- function(params, inputs){
   -sum(ll, na.rm = TRUE)
   })
 }
-
-
-# Detection functions
-gxhn <- function(x, sigma) exp(-x^2/(2 * sigma^2))
-gxexp <- function(x, rate) exp(-x / rate)
-gxhaz <- function(x, shape, scale)  1 - exp(-(x/shape)^-scale)
-grhn <- function(r, sigma) exp(-r^2/(2 * sigma^2)) * r
-grexp <- function(r, rate) exp(-r / rate) * r
-grhaz <- function(r, shape, scale)  (1 - exp(-(r/shape)^-scale)) * r
-
-dxhn <- function(x, sigma)
-	gxhn(x=x, sigma=sigma) / integrate(gxhn, 0, Inf, sigma=sigma)$value
-drhn <- function(r, sigma)
-	grhn(r=r, sigma=sigma) / integrate(grhn, 0, Inf, sigma=sigma)$value
-dxexp <- function(x, rate)
-	gxexp(x=x, rate=rate) / integrate(gxexp, 0, Inf, rate=rate)$value
-drexp <- function(r, rate)
-	grexp(r=r, rate=rate) / integrate(grexp, 0, Inf, rate=rate)$value
-dxhaz <- function(x, shape, scale)
-	gxhaz(x=x, shape=shape, scale=scale) / integrate(gxhaz, 0, Inf,
-		shape=shape, scale=scale)$value
-drhaz <- function(r, shape, scale)
-	grhaz(r=r, shape=shape, scale=scale) / integrate(grhaz, 0, Inf,
-		shape=shape, scale=scale)$value
-
-
