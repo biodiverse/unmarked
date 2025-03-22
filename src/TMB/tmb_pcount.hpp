@@ -43,11 +43,9 @@ Type tmb_pcount(objective_function<Type>* obj) {
   DATA_IVECTOR(Kmin); //Minimum obs at each site
 
   SUBMODEL_INPUTS(state);
-  UNUSED(invlink_state);
+  DATA_INTEGER(family_state);
 
   SUBMODEL_INPUTS(det);
-  UNUSED(family_det);
-  UNUSED(invlink_det);
 
   Type par2 = 0;
   if(family_state == 2){

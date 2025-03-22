@@ -10,12 +10,10 @@ Type tmb_occu(objective_function<Type>* obj) {
   vector<Type> no_detect = 1 - Kmin;
 
   SUBMODEL_INPUTS(state);
-  UNUSED(family_state);
+  DATA_INTEGER(invlink_state);
   DATA_IVECTOR(known_occ_state);
 
   SUBMODEL_INPUTS(det);
-  UNUSED(family_det);
-  UNUSED(invlink_det);
 
   Type loglik = 0.0;
 

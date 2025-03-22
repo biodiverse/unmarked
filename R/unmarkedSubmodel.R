@@ -82,6 +82,10 @@ unmarkedSubmodelDistance <- function(name, short_name, type, formula, data,
   aux <- c(auxiliary, list(survey = data@survey, keyfun = keyfun, 
               db = data@dist.breaks, w = diff(data@dist.breaks), 
               a = ua$a, u = ua$u, unitsIn = data@unitsIn))
+  # For TMB support
+  aux$survey_code <- switch(aux$survey, line={0}, point={1})
+  aux$keyfun_code <- switch(aux$keyfun, 
+                            uniform={0}, halfnorm={1}, exp={2}, hazard={3})
 
   data <- clean_up_covs(data, drop_final = FALSE)$site_covs
   data <- subset_covs(data, formula)
@@ -275,25 +279,16 @@ setGeneric("engine_inputs_TMB", function(object, object2) standardGeneric("engin
 
 setMethod("engine_inputs_TMB", c("unmarkedSubmodel", "missing"), function(object, object2){
   out <- engine_inputs(object)
+  # Remove all non-numeric elements for TMB compatibility
+  #not_numeric <- !sapply(out, function(x) is.numeric(x) | is(x, "sparseMatrix"))
+  #out[not_numeric] <- NULL
+  # Add random effects stuff
   n_grouplevels <- get_nrandom(object@formula, object@data)
   tmb <- list(Z = Z_matrix(object),
               n_group_vars = length(n_grouplevels[n_grouplevels > 0]),
               n_grouplevels = n_grouplevels)
   names(tmb) <- paste0(names(tmb), "_", object@type)
   c(out, tmb)
-})
-
-setMethod("engine_inputs_TMB", c("unmarkedSubmodelDistance", "missing"), function(object, object2){
-  out <- methods::callNextMethod(object)
-  # TMB requires keyfun and survey to be integers
-  key_id <- paste0("keyfun_", object@type)
-  out[[key_id]] <- switch(out[[key_id]], 
-                          uniform={0}, halfnorm={1}, exp={2}, hazard={3})
-  surv_id <- paste0("survey_", object@type)
-  out[[surv_id]] <- switch(out[[surv_id]], line={0}, point={1})
-  # Also must remove some character entries
-  out[sapply(out, is.character)] <- NULL
-  out
 })
 
 setMethod("engine_inputs_TMB", c("unmarkedSubmodelMultinom", "missing"), function(object, object2){

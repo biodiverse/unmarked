@@ -43,8 +43,6 @@ bool all_na(vector<Type> x){
 
 // Macro for submodel inputs
 #define SUBMODEL_INPUTS(type) \
-  DATA_INTEGER(family_##type) \
-  DATA_INTEGER(invlink_##type) \
   DATA_MATRIX(X_##type) \
   DATA_SPARSE_MATRIX(Z_##type) \
   DATA_VECTOR(offset_##type) \
@@ -53,5 +51,3 @@ bool all_na(vector<Type> x){
   PARAMETER_VECTOR(beta_##type) \
   PARAMETER_VECTOR(b_##type) \
   PARAMETER_VECTOR(lsigma_##type)
-
-#define UNUSED(x) (void)(x)
