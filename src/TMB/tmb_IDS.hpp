@@ -86,7 +86,7 @@ Type tmb_IDS(objective_function<Type>* obj) {
                                     db_hds, w_hds, a_hds, u_hds);
 
     for (int j=0; j<J; j++){
-      loglik -= dpois(y_hds(i,j), lam_hds(i) * cp(j) * p_avail(i), true);
+      loglik += dpois(y_hds(i,j), lam_hds(i) * cp(j) * p_avail(i), true);
     }
   }
 
@@ -128,7 +128,7 @@ Type tmb_IDS(objective_function<Type>* obj) {
   for (int i=0; i<M; i++){
     vector<Type> cp = distance_prob(key_pc, sigma_pc(i), scale_pc, survey,
                                     db_pc, w_pc, a_pc, u_pc);
-    loglik -= dpois(y_pc(i,0), lam_pc(i) * cp(0) * p_avail_pc(i), true);
+    loglik += dpois(y_pc(i,0), lam_pc(i) * cp(0) * p_avail_pc(i), true);
   }
 
   }
@@ -187,13 +187,13 @@ Type tmb_IDS(objective_function<Type>* obj) {
       g = dbinom(y_oc(i,0), Type(1), p, false);
       site_lp += f * g;
     }
-    loglik -= log(site_lp);
+    loglik += log(site_lp);
 
   }
 
   }
 
-  return loglik;
+  return -loglik;
 
 }
 

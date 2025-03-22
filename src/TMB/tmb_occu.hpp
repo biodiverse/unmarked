@@ -53,10 +53,10 @@ Type tmb_occu(objective_function<Type>* obj) {
     }
     if(all_na) continue;
     if(known_occ_state(i)) psi(i) = 1.0;
-    loglik -= log(psi(i) * cp + (1-psi(i)) * no_detect(i));
+    loglik += log(psi(i) * cp + (1-psi(i)) * no_detect(i));
   }
 
-  return loglik;
+  return -loglik;
 }
 
 #undef TMB_OBJECTIVE_PTR

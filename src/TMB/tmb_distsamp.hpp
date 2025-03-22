@@ -62,10 +62,10 @@ Type tmb_distsamp(objective_function<Type>* obj) {
       if(is_na(ysub(j))) continue; //If NA found skip
       site_lp += dpois(ysub(j), lambda(m) * cp(j), true);
     }
-    loglik -= site_lp;
+    loglik += site_lp;
   }
 
-  return loglik;
+  return -loglik;
 
 }
 

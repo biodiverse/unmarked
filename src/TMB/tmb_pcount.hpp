@@ -77,11 +77,11 @@ Type tmb_pcount(objective_function<Type>* obj) {
     int pstart = i * J;
     vector<Type> ysub = y.row(i);
     vector<Type> psub = p.segment(pstart, J);
-    loglik -= lp_site_pcount(ysub, family_state, lam(i), psub,
+    loglik += lp_site_pcount(ysub, family_state, lam(i), psub,
                              par2, Kmax, Kmin(i));
   }
 
-  return loglik;
+  return -loglik;
 
 }
 

@@ -192,10 +192,10 @@ Type tmb_gdistremoval(objective_function<Type>* obj) {
     fg = f.array() * g.array();
     site_lp += log(sum(fg));
     
-    loglik -= site_lp;
+    loglik += site_lp;
   }
 
-  return loglik;
+  return -loglik;
 
 }
 

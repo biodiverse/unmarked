@@ -18,7 +18,7 @@ vector<Type> add_ranef(vector<Type> par, Type& loglik,
   int idx = 0;
   for (int i=0; i<n_group_vars; i++){
     for (int j=0; j<n_grouplevels(i); j++){
-      loglik -= dnorm(b(idx), Type(0.0), sigma(i), true);
+      loglik += dnorm(b(idx), Type(0.0), sigma(i), true);
       idx += 1;
     }
   }

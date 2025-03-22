@@ -16,17 +16,17 @@ Type tmb_multinomPois(objective_function<Type>* obj) {
   DATA_INTEGER(pi_code_det);
 
   //Define the log likelihood so that it can be calculated in parallel over sites
-  Type nll = 0.0;
+  Type loglik = 0.0;
 
   //Construct lambda vector
   vector<Type> lam = X_state * beta_state + offset_state;
-  lam = add_ranef(lam, nll, b_state, Z_state, lsigma_state, 
+  lam = add_ranef(lam, loglik, b_state, Z_state, lsigma_state, 
                   n_group_vars_state, n_grouplevels_state);
   lam = exp(lam);
 
   //Construct p vector
   vector<Type> p = X_det * beta_det + offset_det;
-  p = add_ranef(p, nll, b_det, Z_det, lsigma_det, 
+  p = add_ranef(p, loglik, b_det, Z_det, lsigma_det, 
                 n_group_vars_det, n_grouplevels_det);
   p = invlogit(p);
   
@@ -41,11 +41,11 @@ Type tmb_multinomPois(objective_function<Type>* obj) {
     
     for (int j=0; j<J; j++){
       if(is_na(ysub(j))) continue;
-      nll -= dpois(ysub(j), lam(m) * pi(j), true);
+      loglik += dpois(ysub(j), lam(m) * pi(j), true);
     }
   }
 
-  return nll;
+  return -loglik;
 
 }
 
