@@ -487,20 +487,23 @@ setClass("unmarkedResponse",
   slots = c(
     y = "ANY",
     Kmin = "numeric",
-    Kmax = "numeric"
+    Kmax = "numeric",
+    auxiliary = "list"
   ), 
   prototype = list(
     y = numeric(0),
     Kmin = numeric(0),
-    Kmax = numeric(0)
+    Kmax = numeric(0),
+    auxiliary = list()
   )
 )
 
-unmarkedResponse <- function(data, submodels, Kmax){
+unmarkedResponse <- function(data, submodels, Kmax, auxiliary = list()){
   if(is.null(Kmax)){
     Kmax <- max(data@y, na.rm = TRUE) + 100
   }
-  response <- new("unmarkedResponse", y = data@y, Kmax = Kmax)
+  response <- new("unmarkedResponse", y = data@y, Kmax = Kmax, 
+                  auxiliary = auxiliary)
   Kmin <- apply(data@y, 1, function(x){
     ifelse(all(is.na(x)), NA, max(x, na.rm=TRUE))
   })
@@ -564,7 +567,8 @@ setMethod("removed_sites", "unmarkedResponse", function(object, ...){
 })
 
 setMethod("engine_inputs", c("unmarkedResponse", "missing"), function(object, object2){
-  list(y = object@y, Kmin = object@Kmin, Kmax = object@Kmax)
+  out <- list(y = object@y, Kmin = object@Kmin, Kmax = object@Kmax)
+  c(out, object@auxiliary)
 })
 
 

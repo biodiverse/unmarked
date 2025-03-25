@@ -6,7 +6,7 @@
 and Miller et al. [2011]) }
 
 \usage{occuFP(detformula = ~ 1, FPformula = ~ 1, Bformula = ~ 1, 
-stateformula = ~ 1, data, starts, method="BFGS", se = TRUE, engine = "R", ...)}
+stateformula = ~ 1, data, starts = NULL, method="BFGS", se = TRUE, engine = "R", ...)}
 
 \arguments{
     \item{detformula}{formula describing covariates of

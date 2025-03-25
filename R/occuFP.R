@@ -4,136 +4,111 @@
 #  2) Royle-Link (2006) type
 #  3) certain-uncertain data like Miller (2011)
 
+occuFP <- function(detformula = ~ 1, FPformula = ~ 1, Bformula = ~ 1, 
+                   stateformula = ~ 1, data, starts = NULL, method = "BFGS", 
+                   se = TRUE, engine = "R", ...) {
 
-
-occuFP <- function(detformula = ~ 1,FPformula = ~ 1,Bformula = ~ 1,stateformula = ~ 1, data, starts,
-                 method = "BFGS", se = TRUE, engine = "R", ...) {
-    check_no_support(list(detformula,FPformula,Bformula,stateformula))
-
-    if(!is(data, "unmarkedFrameOccuFP"))   stop("Data is not an unmarkedFrameOccuFP object.")
-
-    type <- data@type
-
-    if(sum(type[2:3])==0)   stop("Only type 1 data. No data types with false positives. Use occu instead.")
-
-    designMats <- getDesign(data, detformula,FPformula,Bformula,stateformula)
-    X <- designMats$X; V <- designMats$V; U <- designMats$U; W <- designMats$W;
-    y <- designMats$y
-
-    if(any(type[1:2]>0)) if(any(y[,1:sum(type[1:2])]>1,na.rm = TRUE))   stop("Values of y for type 1 and type 2 data must be 0 or 1.")
-    if(type[3]>0) if(any(y[,1:sum(type[3])]>2,na.rm = TRUE))   stop("Values of y for type 3 data must be 0, 1, or 2.")
-
-
-    removed <- designMats$removed.sites
-    X.offset <- designMats$X.offset; V.offset <- designMats$V.offset; U.offset <- designMats$U.offset; W.offset <- designMats$W.offset
-    if(is.null(X.offset)) {
-        X.offset <- rep(0, nrow(X))
+  # Check arguments
+  if(!is(data, "unmarkedFrameOccuFP")){
+    stop("Data is not an unmarkedFrameOccuFP object.")
+  }
+  # these checks should be in unmarkedFrameOccuFP
+  if(sum(data@type[2:3])==0){
+    stop("Only type 1 data. No data types with false positives. Use occu instead.")
+  }
+  if(any(data@type[1:2] > 0)){
+    if(any(data@y[,1:sum(data@type[1:2])] > 1, na.rm = TRUE)){
+      stop("Values of y for type 1 and type 2 data must be 0 or 1.", call.=FALSE)
     }
-    if(is.null(V.offset)) {
-        V.offset <- rep(0, nrow(V))
+  }
+  if(data@type[3] > 0){
+    if(any(data@y > 2, na.rm = TRUE)){
+      stop("Values of y for type 3 data must be 0, 1, or 2.", call.=FALSE)
     }
-    if(is.null(U.offset)) {
-      U.offset <- rep(0, nrow(U))
+  }
+  check_no_support(list(detformula,FPformula,Bformula,stateformula))
+  engine <- match.arg(engine)
+
+  # Build submodels
+  submodels <- unmarkedSubmodelList(
+    state = unmarkedSubmodelState(name = "Occupancy", short_name = "psi", 
+                                  type = "state", formula = stateformula, data = data, 
+                                  family = "binomial", link = "logit"),
+
+    det = unmarkedSubmodelDet(name = "Detection", short_name = "p", 
+                              type = "det", formula = detformula, data = data, 
+                              family = "binomial", link = "logit"),
+
+    fp = unmarkedSubmodelDet(name = "false positive", short_name = "fp",
+                             type = "fp", formula = FPformula, data = data,
+                             family = "binomial", link = "logit")
+  )
+
+  if(data@type[3] != 0){
+     submodels["b"] = unmarkedSubmodelDet(name = "Pcertain", short_name = "b",
+                                          type = "b", formula = Bformula, 
+                                          data = data, family = "binomial", 
+                                          link = "logit") 
+  }
+
+  response <- unmarkedResponse(data, submodels, Kmax = NULL,
+                               auxiliary = list(data_type = data@type))
+
+  # Get nll inputs
+  inputs <- nll_inputs(response, submodels, engine)
+
+  fit <- fit_model(nll_occuFP_R, inputs = inputs, submodels = submodels,
+                   starts = starts, method = method, se = se, ...)
+
+  new("unmarkedFitOccuFP", fitType = "occuFP", call = match.call(),
+      detformula = detformula, FPformula = FPformula, Bformula = Bformula,
+      stateformula = stateformula, formula = ~1, type = data@type, data = data,
+      sitesRemoved = removed_sites(response), estimates = fit$submodels, 
+      AIC = fit$AIC, opt = fit$opt, negLogLike = fit$opt$value, nllFun = fit$nll)
+}
+
+nll_occuFP_R <- function(params, inputs){
+
+  with(inputs, {
+
+  M <- nrow(y)
+  J <- ncol(y)
+
+  yvec0 <- as.numeric(t(y==0))
+  yvec1 <- as.numeric(t(y==1))
+  yvec2 <- as.numeric(t(y==2))
+
+  beta_state <- params[idx_state[1]:idx_state[2]]
+  beta_det <- params[idx_det[1]:idx_det[2]]
+  beta_fp <- params[idx_fp[1]:idx_fp[2]]
+
+  psi <- plogis(X_state %*% beta_state + offset_state)
+  pvec <- plogis(X_det %*% beta_det + offset_det)
+  fvec <- plogis(X_fp %*% beta_fp + offset_fp)
+    
+  if(data_type[1] != 0){
+    fvec[rep(c(rep(TRUE, data_type[1]),rep(FALSE, sum(data_type[2:3]))),M)] <- 0
+  }
+
+  if(data_type[3]!=0){
+    beta_b <- params[idx_b[1]:idx_b[2]]
+    bvec <- plogis(X_b %*% beta_b + offset_b)
+    if (data_type[1]!=0 | data_type[2]!=0){
+      bvec[rep(c(rep(TRUE,sum(data_type[1:2])),rep(FALSE,data_type[3])),M)] <- 0
     }
-    if(is.null(W.offset)) {
-      W.offset <- rep(0, nrow(W))
-    }
+  } else if (data_type[3]==0){
+    bvec <- matrix(0,M*J,1)
+  }
+  cp0 <- (1-fvec)^(yvec0) * (fvec)^(yvec1) * (1-yvec2)
+  cp1 <- (1 - pvec)^(yvec0)*(pvec*(1-bvec))^(yvec1)*(pvec*bvec)^(yvec2)
 
-    J <- ncol(y)
-    M <- nrow(y)
+  na_vec <- is.na(t(y))
+  cp0[na_vec] <- 1
+  cp1[na_vec] <- 1
 
-
-    occParms <- colnames(X)
-    detParms <- colnames(V)
-    FPParms <- colnames(U)
-    if(type[3]!=0) BParms <- colnames(W) else BParms = NULL
-    nDP <- ncol(V)
-    nFP <- ncol(U)
-    nBP <- ifelse(type[3]!=0,ncol(W),0)
-    nOP <- ncol(X)
-
-    nP <- nDP + nOP + nFP + nBP
-    if(!missing(starts) && length(starts) != nP)
-        stop(paste("The number of starting values should be", nP))
-
-    yvec0 <- as.numeric(t(y==0))
-    yvec1 <- as.numeric(t(y==1))
-    yvec2 <- as.numeric(t(y==2))
-    navec <- c(t(is.na(y)))
-
-
-        nll <- function(params) {
-            psi <- plogis(X %*% params[1 : nOP] + X.offset)
-            pvec <- plogis(V %*% params[(nOP + 1) : (nOP + nDP)] + V.offset)
-            fvec <- plogis(U %*% params[(nOP + nDP + 1) : (nOP + nDP + nFP)] + U.offset)
-            if (type[1]!=0) fvec[rep(c(rep(TRUE,type[1]),rep(FALSE,sum(type[2:3]))),M)] = 0
-            if (type[3]!=0){
-              bvec <- plogis(W %*% params[(nOP + nDP + nFP + 1) : nP] + W.offset)
-              if (type[1]!=0|type[2]!=0) bvec[rep(c(rep(TRUE,sum(type[1:2])),rep(FALSE,type[3])),M)] = 0}
-            if (type[3]==0){
-              bvec <- matrix(0,M*J,1)
-            }
-            cp0 <- (1-fvec)^(yvec0) * (fvec)^(yvec1) * (1-yvec2)
-            cp1 <- (1 - pvec)^(yvec0)*(pvec*(1-bvec))^(yvec1)*(pvec*bvec)^(yvec2)
-            cp0[navec] <- 1 # so that NA's don't modify likelihood
-            cp1[navec] <- 1 # so that NA's don't modify likelihood
-            cp0mat <- matrix(cp0, M, J, byrow = TRUE) #
-            cp1mat <- matrix(cp1, M, J, byrow = TRUE) #
-            loglik <- log(rowProds(cp0mat) *(1-psi) + rowProds(cp1mat) * psi)
-            -sum(loglik)
-        }
-
-
-    if(missing(starts)) starts <- rep(0, nP)
-    fm <- optim(starts, nll, method = method, hessian = se, ...)
-    covMat <- invertHessian(fm, nP, se)
-    ests <- fm$par
-    fmAIC <- 2 * fm$value + 2 * nP #+ 2*nP*(nP + 1)/(M - nP - 1)
-    names(ests) <- c(occParms, detParms,FPParms,BParms)
-
-    state <- unmarkedEstimate(name = "Occupancy", short.name = "psi",
-                              estimates = ests[1:nOP],
-                              covMat = as.matrix(covMat[1:nOP,1:nOP]),
-                              invlink = "logistic",
-                              invlinkGrad = "logistic.grad")
-
-    det <- unmarkedEstimate(name = "Detection", short.name = "p",
-                            estimates = ests[(nOP + 1) : (nOP+nDP)],
-                            covMat = as.matrix(covMat[(nOP + 1) : (nOP+nDP),
-                                                      (nOP + 1) : (nOP+nDP)]),
-                            invlink = "logistic",
-                            invlinkGrad = "logistic.grad")
-
-    fp <- unmarkedEstimate(name = "false positive", short.name = "fp",
-                            estimates = ests[(nOP+nDP+1) : (nOP+nDP+nFP)],
-                            covMat = as.matrix(covMat[(nOP+nDP+1) : (nOP+nDP+nFP),
-                                                      (nOP+nDP+1) : (nOP+nDP+nFP)]),
-                            invlink = "logistic",
-                            invlinkGrad = "logistic.grad")
-    if (type[3]!=0){
-    b <- unmarkedEstimate(name = "Pcertain", short.name = "b",
-                            estimates = ests[(nOP+nDP+nFP+1): nP],
-                            covMat = as.matrix(covMat[(nOP+nDP+nFP+1): nP,
-                                                      (nOP+nDP+nFP+1): nP]),
-                            invlink = "logistic",
-                            invlinkGrad = "logistic.grad")
-    }
-
-
-
-    if (type[3]!=0) {
-      estimateList <- unmarkedEstimateList(list(state=state, det=det,fp=fp,b=b))}
-    if (type[3]==0) {
-      estimateList <- unmarkedEstimateList(list(state=state, det=det,fp=fp))
-    }
-
-    umfit <- new("unmarkedFitOccuFP", fitType = "occuFP", call = match.call(),
-                 detformula = detformula,FPformula = FPformula,Bformula = Bformula,
-                 stateformula = stateformula, formula = ~1, type = type, data = data,
-                 sitesRemoved = designMats$removed.sites,
-                 estimates = estimateList, AIC = fmAIC, opt = fm,
-                 negLogLike = fm$value,
-                 nllFun = nll)
-
-    return(umfit)
+  cp0mat <- matrix(cp0, M, J, byrow = TRUE) #
+  cp1mat <- matrix(cp1, M, J, byrow = TRUE) #
+  loglik <- log(rowProds(cp0mat) *(1-psi) + rowProds(cp1mat) * psi)
+  -sum(loglik, na.rm = TRUE)
+  })
 }
