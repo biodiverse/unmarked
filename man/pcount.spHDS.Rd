@@ -9,7 +9,7 @@ Fit spatial hierarchical distance sampling model.
 Function fits an N-mixture model for a discrete state space with raster covariates, and a detection function which decreases with distance from the observer, assumed to be at the centre. See Kery & Royle (2016) Section 9.8.4 for details.
 }
 \usage{
-pcount.spHDS(formula, data, K, mixture = c("P", "NB", "ZIP"), starts,
+pcount.spHDS(formula, data, K, mixture = c("P", "NB"), starts = NULL,
   method = "BFGS", se = TRUE, ...)
 }
 \arguments{
