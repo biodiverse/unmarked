@@ -34,6 +34,9 @@ setClass("unmarkedSubmodelUniform",
 setClass("unmarkedSubmodelMultinom",
   contains = "unmarkedSubmodelDet")
 
+setClass("unmarkedSubmodelAvail",
+  contains = "unmarkedSubmodel")
+
 unmarkedSubmodelDet <- function(name, short_name, type, formula, data, 
                                 family, link, auxiliary = list(), obsNum = TRUE){
   
@@ -130,6 +133,23 @@ unmarkedSubmodelMultinom <- function(name, short_name, type, formula, data,
     auxiliary = aux)
   out@fixed <- 1:ncol(model.matrix(out))
 
+  out
+}
+
+unmarkedSubmodelAvail <- function(name, short_name, type, formula, data, 
+                                  family, link, auxiliary = list()){
+   
+  T <- data@numPrimary
+  J <- ncol(data@y) / T
+  data <- clean_up_covs(data, drop_final = FALSE)$yearly_site_covs
+
+  data <- subset_covs(data, formula)
+  out <- new("unmarkedSubmodelAvail",
+    name = name, short.name = short_name, type = type,
+    formula = formula, data = data, family = family,
+    invlink = get_invlink(link), invlinkGrad = get_grad(link),
+    auxiliary = list(T = T, J = J))
+  out@fixed <- 1:ncol(model.matrix(out))
   out
 }
 
@@ -547,6 +567,20 @@ setMethod("add_missing", c("unmarkedResponse", "unmarkedSubmodelDet"),
 setMethod("add_missing", c("unmarkedResponse", "unmarkedSubmodelScalar"),
   function(object, submodel, ...){
   object # do nothing
+})
+
+setMethod("add_missing", c("unmarkedResponse", "unmarkedSubmodelAvail"),
+  function(object, submodel, ...){
+  yt <- t(object@y)
+  fm <- find_missing(submodel)
+  fm <- rep(fm, each = submodel@auxiliary$J)
+  yt[fm] <- NA
+  object@y <- t(yt)
+  Kmin <- apply(object@y, 1, function(x){
+    ifelse(all(is.na(x)), NA, max(x, na.rm=TRUE))
+  })
+  object@Kmin <- Kmin
+  object
 })
 
 setMethod("add_missing", c("unmarkedResponse", "unmarkedSubmodelList"),

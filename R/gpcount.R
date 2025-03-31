@@ -1,71 +1,95 @@
 
 # data will need to be an unmarkedMultFrame
 gpcount <- function(lambdaformula, phiformula, pformula, data,
-    mixture=c('P', 'NB', 'ZIP'), K, starts, method = "BFGS", se = TRUE,
-    engine=c('C', 'R'), threads=1, ...)
-{
-if(!is(data, "unmarkedFrameGPC"))
+    mixture=c('P', 'NB', 'ZIP'), K = NULL, starts = NULL, method = "BFGS", 
+    se = TRUE, engine=c('C', 'R'), threads = 1, ...){
+
+  if(!is(data, "unmarkedFrameGPC")){
     stop("Data is not of class unmarkedFrameGPC.")
-mixture <- match.arg(mixture)
-engine <- match.arg(engine)
+  }
+  if(data@numPrimary < 2) stop("Use pcount instead", call.=FALSE)
+  mixture <- match.arg(mixture)
+  engine <- match.arg(engine)
+  formlist <- list(lambdaformula = lambdaformula, phiformula = phiformula,
+                   pformula = pformula)
+  check_no_support(formlist)
+  form <- as.formula(paste(unlist(formlist), collapse=" "))
 
-formlist <- list(lambdaformula = lambdaformula, phiformula = phiformula,
-    pformula = pformula)
-check_no_support(formlist)
-form <- as.formula(paste(unlist(formlist), collapse=" "))
-D <- getDesign(data, formula = form)
+  # Build submodels
+  fam <- switch(mixture, P = "poisson", NB = "negative_binomial", ZIP = "ZIP")
+  submodels <- unmarkedSubmodelList(
+    lambda = unmarkedSubmodelState(name = "Abundance", short_name = "lam", 
+                                  type = "lambda", formula = lambdaformula,
+                                  data = data, family = fam, link = "log"),
 
-Xlam <- D$Xlam
-Xphi <- D$Xphi
-Xdet <- D$Xdet
-ym <- D$y  # MxJT
+    phi = unmarkedSubmodelAvail(name = "Availability", short_name = "phi", 
+                                type = "phi", formula = phiformula, data = data, 
+                                family = "binomial", link = "logit"),
 
-Xlam.offset <- D$Xlam.offset
-Xphi.offset <- D$Xphi.offset
-Xdet.offset <- D$Xdet.offset
-if(is.null(Xlam.offset)) Xlam.offset <- rep(0, nrow(Xlam))
-if(is.null(Xphi.offset)) Xphi.offset <- rep(0, nrow(Xphi))
-if(is.null(Xdet.offset)) Xdet.offset <- rep(0, nrow(Xdet))
+    det = unmarkedSubmodelDet(name = "Detection", short_name = "p", 
+                              type = "det", formula = pformula, data = data, 
+                              family = "binomial", link = "logit")
+  )
 
-if(missing(K) || is.null(K)) {
-    K <- max(ym, na.rm=TRUE) + 100
-    warning("K was not specified, so was set to max(y)+100 =", K)
+  # Build response object
+  response <- unmarkedResponseCount(data, submodels, Kmax = K)
+
+  # Get nll inputs
+  inputs <- nll_inputs(response, submodels, engine)
+  inputs$threads <- threads
+  nll_fun <- switch(engine, R = nll_gpcount_R, C = nll_gpcount_Cpp)
+
+  # Fit model
+  fit <- fit_model(nll_fun, inputs = inputs, submodels = submodels,
+                   starts = starts, method = method, se = se, ...)
+
+  new("unmarkedFitGPC", fitType = "gpcount",
+      call = match.call(), formula = form, formlist = formlist,
+      data = data, estimates = fit$submodels, 
+      sitesRemoved = removed_sites(response), AIC = fit$AIC, opt = fit$opt,
+      negLogLike = fit$opt$value, nllFun = fit$nll, mixture=mixture, 
+      K=response@Kmax)
 }
-M <- N <- 0:K
-lM <- length(M)
-I <- nrow(ym)
-T <- data@numPrimary
-if(T==1)
-    stop("use pcount instead")
-J <- numY(data) / T
 
-y <- array(ym, c(I, J, T))
 
-lamPars <- colnames(Xlam)
-detPars <- colnames(Xdet)
-nLP <- ncol(Xlam)
-nPP <- ncol(Xphi)
-phiPars <- colnames(Xphi)
-nDP <- ncol(Xdet)
-nP <- nLP + nPP + nDP + (mixture%in%c('NB','ZIP'))
-if(!missing(starts) && length(starts) != nP)
-    stop("There should be", nP, "starting values, not", length(starts))
+nll_gpcount_R <- function(params, inputs){
 
-if(identical(engine, "R")) {
-# Minus negative log-likelihood
-nll <- function(pars) {
-    lam <- exp(Xlam %*% pars[1:nLP] + Xlam.offset)
-    phi <- plogis(Xphi %*% pars[(nLP+1):(nLP+nPP)] + Xphi.offset)
-    phi <- matrix(phi, I, T, byrow=TRUE)
-    p <- plogis(Xdet %*% pars[(nLP+nPP+1):(nLP+nPP+nDP)] + Xdet.offset)
-    p <- matrix(p, I, byrow=TRUE)
-    p <- array(p, c(I, J, T))  # byrow?
-    L <- rep(NA, I)
+  with(inputs, {
+
+  M <- N <- 0:Kmax
+  lM <- length(M)
+
+  I  <- nrow(y)
+  T <- T_phi
+  J <- J_phi
+  y <- array(y, c(I, J, T))
+
+  beta_lambda <- params[idx_lambda[1]:idx_lambda[2]]
+  beta_phi <- params[idx_phi[1]:idx_phi[2]]
+  beta_det <- params[idx_det[1]:idx_det[2]]
+
+  lam <- exp(X_lambda %*% beta_lambda + offset_lambda)
+  phi <- plogis(X_phi %*% beta_phi + offset_phi)
+  phi <- matrix(phi, I, T, byrow=TRUE)
+  p <- plogis(X_det %*% beta_det + offset_det)
+  p <- matrix(p, I, byrow=TRUE)
+  p <- array(p, c(I, J, T))  # byrow?
+
+  par2 <- 0
+  if(family_lambda == 2){ # negbin
+    par2 <- exp(params[idx_alpha[1]])
+  } else if(family_lambda == 3){
+    par2 <- plogis(params[idx_alpha[1]])
+  }
+
+  L <- rep(NA, I)
+
     for(i in 1:I) {
-        f <- switch(mixture,
-            P = dpois(M, lam[i], log=TRUE),
-            NB = dnbinom(M, mu=lam[i], size=exp(pars[nP]), log=TRUE),
-            ZIP = log(dzip(M, lambda=lam[i], psi=plogis(pars[nP])))
+        if(all(is.na(y[i,,]))) next
+        f <- switch(family_lambda,
+            "1" = dpois(M, lam[i], log=TRUE),
+            "2" = dnbinom(M, mu=lam[i], size=exp(pars[nP]), log=TRUE),
+            "3" = log(dzip(M, lambda=lam[i], psi=plogis(pars[nP])))
         )
         ghi <- rep(0, lM)
         for(t in 1:T) {
@@ -94,76 +118,6 @@ nll <- function(pars) {
         fgh <- f + ghi
         L[i] <- sum(exp(fgh)) # sum over M
     }
-    return(-sum(log(L)))
+    return(-sum(log(L), na.rm = TRUE))
+  })
 }
-} else
-if(identical(engine, "C")) {
-    nll <- function(pars) {
-        beta.lam <- pars[1:nLP]
-        beta.phi <- pars[(nLP+1):(nLP+nPP)]
-        beta.p <- pars[(nLP+nPP+1):(nLP+nPP+nDP)]
-        log.alpha <- 1
-        if(mixture %in% c("NB", "ZIP"))
-            log.alpha <- pars[nP]
-        nll_gpcount(ym, Xlam, Xphi, Xdet, beta.lam, beta.phi, beta.p,
-                    log.alpha, Xlam.offset, Xphi.offset, Xdet.offset,
-                    as.integer(K), mixture, T, threads)
-    }
-}
-
-if(missing(starts)) starts <- rep(0, nP)
-fm <- optim(starts, nll, method = method, hessian = se, ...)
-covMat <- invertHessian(fm, nP, se)
-ests <- fm$par
-fmAIC <- 2 * fm$value + 2 * nP
-
-nbParm <- switch(mixture, P={character(0)}, NB={"alpha"}, ZIP={"psi"})
-
-names(ests) <- c(lamPars, phiPars, detPars, nbParm)
-
-lamEstimates <- unmarkedEstimate(name = "Abundance", short.name = "lambda",
-    estimates = ests[1:nLP],
-    covMat = as.matrix(covMat[1:nLP, 1:nLP]), invlink = "exp",
-    invlinkGrad = "exp")
-
-phiEstimates <- unmarkedEstimate(name = "Availability",
-                                 short.name = "phi",
-                                 estimates = ests[(nLP+1):(nLP+nPP)],
-                                 covMat = as.matrix(covMat[(nLP+1) :
-                                 (nLP+nPP), (nLP+1):(nLP+nPP)]),
-                                 invlink = "logistic",
-                                 invlinkGrad = "logistic.grad")
-
-detEstimates <- unmarkedEstimate(name = "Detection", short.name = "p",
-    estimates = ests[(nLP+nPP+1):(nLP+nPP+nDP)],
-    covMat = as.matrix(
-        covMat[(nLP+nPP+1):(nLP+nPP+nDP), (nLP+nPP+1):(nLP+nPP+nDP)]),
-    invlink = "logistic", invlinkGrad = "logistic.grad")
-
-estimateList <- unmarkedEstimateList(list(lambda=lamEstimates, phi=phiEstimates, det=detEstimates))
-
-if(identical(mixture,"NB"))
-    estimateList@estimates$alpha <- unmarkedEstimate(name = "Dispersion",
-        short.name = "alpha", estimates = ests[nP],
-        covMat = as.matrix(covMat[nP, nP]), invlink = "exp",
-        invlinkGrad = "exp")
-
-if(identical(mixture,"ZIP")) {
-    estimateList@estimates$psi <- unmarkedEstimate(name="Zero-inflation",
-        short.name = "psi", estimates = ests[nP],
-        covMat=as.matrix(covMat[nP, nP]), invlink = "logistic",
-        invlinkGrad = "logistic.grad")
-}
-
-umfit <- new("unmarkedFitGPC", fitType = "gpcount",
-    call = match.call(), formula = form, formlist = formlist,
-    data = data, estimates = estimateList, sitesRemoved = D$removed.sites,
-    AIC = fmAIC, opt = fm, negLogLike = fm$value, nllFun = nll,
-    mixture=mixture, K=K)
-
-return(umfit)
-}
-
-
-
-
