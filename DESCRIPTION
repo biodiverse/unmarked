@@ -1,6 +1,6 @@
 Package: unmarked
-Version: 1.5.0.9001
-Date: 2025-03-19
+Version: 1.5.0.9002
+Date: 2025-04-30
 Type: Package
 Title: Models for Data from Unmarked Animals
 Authors@R: c(
@@ -48,7 +48,7 @@ Collate: 'classes.R' 'unmarkedEstimate.R' 'unmarkedFrame.R'
     'unmarkedFit.R' 'utils.R' 'getDesign.R'
     'fitted.R' 'residuals.R' 'update.R' 'simulate.R' 'nonparboot.R' 'getP.R'
     'ranef.R' 'posteriorSamples.R'
-    'colext.R' 'distsamp.R'
+    'colext.R' 'colext2.R' 'distsamp.R'
     'multinomPois.R' 'occu.R' 'occuRN.R' 'occuMulti.R' 'pcount.R' 'gmultmix.R'
     'pcountOpen.R' 'gdistsamp.R' 'unmarkedFitList.R' 'unmarkedLinComb.R'
     'parboot.R' 'occuFP.R' 'gpcount.R' 'occuPEN.R' 'pcount.spHDS.R'

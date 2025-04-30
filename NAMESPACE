@@ -21,7 +21,7 @@ importFrom(Rcpp, evalCpp)
 
 # Fitting functions
 export(occu, occuFP, occuRN, pcount, pcountOpen, multinomPois, distsamp,
-       colext, gmultmix, gdistsamp, gpcount, occuPEN, occuPEN_CV, occuMulti,
+       colext, colext2, gmultmix, gdistsamp, gpcount, occuPEN, occuPEN_CV, occuMulti,
        occuMS, computeMPLElambda, pcount.spHDS, occuTTD, distsampOpen,
        multmixOpen, nmixTTD, gdistremoval, goccu, occuCOP, IDS, occuComm)
 
