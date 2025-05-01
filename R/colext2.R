@@ -133,8 +133,8 @@ colext2 <- function(psiformula = ~ 1, gammaformula = ~ 1,
 
   ## computed projected estimates
   phis <- array(NA,c(2,2,T-1,M))
-  phis[,1,,] <- plogis(X_gam %*% gam_coef$ests)
-  phis[,2,,] <- plogis(X_eps %*% -eps_coef$ests)
+  phis[,1,,] <- plogis(X_gam %x% c(-1,1) %*% gam_coef$ests)
+  phis[,2,,] <- plogis(X_eps %x% c(-1,1) %*% -eps_coef$ests)
 
   projected <- array(NA, c(2, T, M))
   projected[1,1,] <- 1 - psis
@@ -149,9 +149,18 @@ colext2 <- function(psiformula = ~ 1, gammaformula = ~ 1,
   colnames(projected.mean) <- 1:T
 
   ## smoothing (not supported right now)
-  smoothed <- array(NA, c(2, T, M))
-  smoothed.mean <- projected.mean
-  smoothed.mean[] <- NA
+  smoothed <- calculate_smooth(y = y, psi = psis,
+                               gam = plogis(X_gam %*% gam_coef$ests),
+                               eps = plogis(X_eps %*% eps_coef$ests),
+                               p = plogis(X_det %*% det_coef$ests),
+                               M = M, T = T, J = J)
+  smoothed.mean <- apply(smoothed, 1:2, mean)
+  rownames(smoothed.mean) <- c("unoccupied","occupied")
+  colnames(smoothed.mean) <- 1:T
+
+  #smoothed <- array(NA, c(2, T, M))
+  #smoothed.mean <- projected.mean
+  #smoothed.mean[] <- NA
   #forward(detParams, phis, psis, storeAlpha = TRUE)
   #  beta <- backward(detParams, phis)
   #  gamma <- array(NA, c(K + 1, nY, M))
@@ -179,4 +188,96 @@ colext2 <- function(psiformula = ~ 1, gammaformula = ~ 1,
                 smoothed = smoothed, smoothed.mean = smoothed.mean)
 
   return(umfit)
+}
+
+calculate_smooth <- function(y, psi, gam, eps, p, M, T, J){
+
+  smoothed <- array(NA, c(2, T, M))
+
+  # Turn parameters into matrices
+  p <- matrix(p, M, T*J, byrow=TRUE)
+  gam <- matrix(gam, M, (T-1), byrow=TRUE)
+  eps <- matrix(eps, M, (T-1), byrow = TRUE)
+
+  tind <- rep(1:T, each = J)
+
+  for (i in 1:M){
+
+    # Forward pass
+    alpha1 <- matrix(NA, M, T)
+    alpha0 <- matrix(NA, M, T)
+
+    # Initialize at t=1
+    ysub <- y[i, tind == 1]
+    #no_detects <- all(na.omit(ysub) == 0) * 1 
+    psub <- p[i, tind == 1]
+
+    if(all(is.na(ysub))){
+      # Don't include detection likelihood in calculation if no data
+      alpha1[i,1] <- psi[i]
+      alpha0[i,1] <- (1-psi[i])
+    } else {
+      # Case when z = 1
+      cp <- prod(na.omit(dbinom(ysub, 1, psub)))
+      alpha1[i,1] <- psi[i] * cp 
+
+      # Case when z = 0
+      cp <- prod(na.omit(dbinom(ysub, 1, 0)))
+      alpha0[i,1] <- (1-psi[i]) * cp
+    }
+
+    for (t in 2:T){
+      ysub <- y[i, tind == t]
+      psub <- y[i, tind == t]
+
+      if(all(is.na(ysub))){
+        alpha1[i,t] <- alpha0[i,t-1] * gam[i,t-1] + alpha1[i,t-1] * (1 - eps[i,t-1])
+        alpha0[i,t] <- alpha0[i,t-1] * (1-gam[i,t-1]) + alpha1[i,t-1] * eps[i,t-1]
+      } else {
+        # Case when z = 1
+        cp <- prod(na.omit(dbinom(ysub, 1, psub)))
+        alpha1[i,t] <- (alpha0[i,t-1] * gam[i,t-1] + alpha1[i,t-1] * (1 - eps[i,t-1])) * cp  
+
+        # Case when z = 0
+        cp <- prod(na.omit(dbinom(ysub, 1, 0)))
+        alpha0[i,t] <- (alpha0[i,t-1] * (1-gam[i,t-1]) + alpha1[i,t-1] * eps[i,t-1]) * cp
+      }
+    }
+
+    # Backwards pass
+    beta1 <- matrix(NA, M, T)
+    beta0 <- matrix(NA, M, T)
+
+    # Initialize
+    beta1[i, T] <- 1
+    beta0[i, T] <- 1
+  
+    for (t in (T-1):1){
+      ysub <- y[i, tind == t+1]
+      psub <- y[i, tind == t+1]
+
+      if(all(is.na(ysub))){
+        beta1[i, t] <- eps[t] * beta0[i, t+1] + (1-eps[t]) * beta1[i, t+1]
+        beta0[i, t] <- (1-gam[t]) * beta0[i, t+1] + gam[t] * beta1[i, t+1]
+      } else {
+        cp1 <- prod(na.omit(dbinom(ysub, 1, psub)))
+        cp0 <- prod(na.omit(dbinom(ysub, 1, 0)))
+
+        # Case when z = 1
+        beta1[i, t] <- eps[t] * cp0 * beta0[i, t+1] + (1-eps[t]) * cp1 * beta1[i, t+1]
+        # Case when z = 0
+        beta0[i, t] <- (1-gam[t]) * cp0 * beta0[i, t+1] + gam[t] * cp1 * beta1[i, t+1]
+      }
+    }
+
+    out <- rep(0, T)
+    for (t in 1:T){
+      out[t] <- (alpha1[i,t] * beta1[i,t]) / (alpha0[i,t]*beta0[i,t] + alpha1[i,t] * beta1[i,t])
+    }
+
+    smoothed[1, 1:T, i] <- 1 - out
+    smoothed[2, 1:T, i] <- out
+  }
+
+  smoothed
 }
