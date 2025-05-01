@@ -4,10 +4,7 @@ colext2 <- function(psiformula = ~ 1, gammaformula = ~ 1,
 
   ## truncate to 1
   data@y <- truncateToBinary(data@y)
-  M <- numSites(data)
-  T <- data@numPrimary
-  J <- ncol(data@y) / T
-    
+ 
   formula <- list(psiformula = psiformula, gammaformula = gammaformula,
                   epsilonformula = epsilonformula, pformula = pformula)
   check_no_support(formula)
@@ -18,7 +15,8 @@ colext2 <- function(psiformula = ~ 1, gammaformula = ~ 1,
   X_det <- designMats$V
   y <- designMats$y
   M <- nrow(y)
-  T <- ncol(y) / J
+  T <- data@numPrimary
+  J <- ncol(y) / T
   psiParms <- colnames(X_psi)
   gamParms <- colnames(X_gam)
   epsParms <- colnames(X_eps)
@@ -29,22 +27,16 @@ colext2 <- function(psiformula = ~ 1, gammaformula = ~ 1,
   X_eps <- as.matrix(X_eps[-seq(T,M*T,by=T),])
 
   # Determine which periods were sampled at each site
-  pers_sampled <- matrix(1, M, T)
+  site_sampled <- matrix(1, M, T)
   Trep <- rep(1:T, each = J)
   for (t in 1:T){
     ind <- which(Trep == t)
     for (i in 1:M){
-      if(all(is.na(y[i, ind]))) pers_sampled[i,t] <- 0
+      if(all(is.na(y[i, ind]))) site_sampled[i,t] <- 0
     }
   }
-  T_site <- apply(pers_sampled, 1, sum)
 
-  Tsamp <- matrix(NA, M, T)
-  for (i in 1:M){
-    which_sampled <- which(pers_sampled[i,] == 1)
-    Tsamp[i,1:length(which_sampled)] <- which_sampled
-  }
-
+  # Determine site-periods with no detections
   no_detects <- matrix(1, M, T)
   for (i in 1:M){
     for (t in 1:T){
@@ -60,38 +52,29 @@ colext2 <- function(psiformula = ~ 1, gammaformula = ~ 1,
     }
   }
 
-  nDP <- length(detParms)
-  nGP <- length(gamParms)
-  nEP <- length(epsParms)
-  nSP <- length(psiParms)
+  # Parameter indices
   pind_mat <- matrix(0, 4, 2)
   pind_mat[1,] <- c(1, length(psiParms))
   pind_mat[2,] <- max(pind_mat[1,]) + c(1, length(gamParms))
   pind_mat[3,] <- max(pind_mat[2,]) + c(1, length(epsParms))
   pind_mat[4,] <- max(pind_mat[3,]) + c(1, length(detParms))
-  #nDMP <-  1
   
-  tmb_dat <- list(y = as.vector(t(y)), X_psi = X_psi, X_gam = X_gam, X_eps = X_eps, X_det = X_det,
-                  M = M, T = T, J = J, site_sampled = pers_sampled, nd = no_detects)
+  tmb_dat <- list(y = as.vector(t(y)), X_psi = X_psi, X_gam = X_gam, 
+                  X_eps = X_eps, X_det = X_det,
+                  M = M, T = T, J = J, 
+                  site_sampled = site_sampled, nd = no_detects)
 
-  tmb_pars <- list(beta_psi = rep(0, nSP), beta_gam = rep(0, nGP),
-                   beta_eps = rep(0, nEP), beta_det = rep(0, nDP))
-
-
-
-  #library(TMB)  
-  #compile("~/downloads/colext.cpp")
-  #dyn.load(dynlib("~/downloads/colext"))
-
-  #tmb_obj <- MakeADFun(data = tmb_dat, parameters=tmb_pars,
-  #                     DLL = "colext", silent=TRUE)
+  tmb_pars <- list(beta_psi = rep(0, length(psiParms)), 
+                   beta_gam = rep(0, length(gamParms)),
+                   beta_eps = rep(0, length(epsParms)), 
+                   beta_det = rep(0, length(detParms)))
 
   tmb_obj <- TMB::MakeADFun(data = c(model = "tmb_colext", tmb_dat), 
                             parameters = tmb_pars,
                             DLL = "unmarked_TMBExports", silent=TRUE)
   
   opt <- optim(unlist(tmb_pars), fn=tmb_obj$fn, gr=tmb_obj$gr, 
-               method=method, hessian = se)#, ...)
+               method=method, hessian = se, ...)
 
   fmAIC <- 2 * opt$value + 2 * length(unlist(tmb_pars))
 
@@ -131,7 +114,7 @@ colext2 <- function(psiformula = ~ 1, gammaformula = ~ 1,
   
   psis <- plogis(X_psi %*% psi_coef$ests)
 
-  ## computed projected estimates
+  # Compute projected estimates
   phis <- array(NA,c(2,2,T-1,M))
   phis[,1,,] <- plogis(X_gam %x% c(-1,1) %*% gam_coef$ests)
   phis[,2,,] <- plogis(X_eps %x% c(-1,1) %*% -eps_coef$ests)
@@ -148,7 +131,7 @@ colext2 <- function(psiformula = ~ 1, gammaformula = ~ 1,
   rownames(projected.mean) <- c("unoccupied","occupied")
   colnames(projected.mean) <- 1:T
 
-  ## smoothing (not supported right now)
+  # Compute smoothed estimates
   smoothed <- calculate_smooth(y = y, psi = psis,
                                gam = plogis(X_gam %*% gam_coef$ests),
                                eps = plogis(X_eps %*% eps_coef$ests),
@@ -157,20 +140,6 @@ colext2 <- function(psiformula = ~ 1, gammaformula = ~ 1,
   smoothed.mean <- apply(smoothed, 1:2, mean)
   rownames(smoothed.mean) <- c("unoccupied","occupied")
   colnames(smoothed.mean) <- 1:T
-
-  #smoothed <- array(NA, c(2, T, M))
-  #smoothed.mean <- projected.mean
-  #smoothed.mean[] <- NA
-  #forward(detParams, phis, psis, storeAlpha = TRUE)
-  #  beta <- backward(detParams, phis)
-  #  gamma <- array(NA, c(K + 1, nY, M))
-  #  for(i in 1:M) {
-  #  for(t in 1:nY) {
-  #      gamma[,t,i] <- alpha[,t,i]*beta[,t,i] / sum(alpha[,t,i]*beta[,t,i])
-  #  }}
-  #  smoothed.mean <- apply(gamma, 1:2, mean)
-  #  rownames(smoothed.mean) <- c("unoccupied","occupied")
-  #  colnames(smoothed.mean) <- 1:nY
 
   umfit <- new("unmarkedFitColExt", fitType = "colext",
                 call = match.call(),

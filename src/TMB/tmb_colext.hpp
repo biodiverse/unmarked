@@ -54,10 +54,6 @@ Type tmb_colext(objective_function<Type>* obj) {
     for (int t=0; t<(T-1); t++){
 
       phi = phi.setZero();
-      //phi(0, 0) = 1 - eps(Tidx);
-      //phi(1, 0) = eps(Tidx);
-      //phi(0, 1) = gam(Tidx);
-      //phi(1, 1) = 1 - gam(Tidx);
       phi(0, 0) = 1 - eps(Tidx);
       phi(0, 1) = eps(Tidx);
       phi(1, 0) = gam(Tidx);
@@ -116,7 +112,7 @@ Type tmb_colext(objective_function<Type>* obj) {
 
     psi_vec(0) = psi(i);
     psi_vec(1) = 1 - psi(i);
-    //Surely TMB has a better dot product??
+    // Dot product
     vector<Type> site_lik = psi_vec.array() * phi_end.array();
     loglik += log(sum(site_lik));
   }
