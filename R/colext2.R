@@ -190,6 +190,8 @@ colext2 <- function(psiformula = ~ 1, gammaformula = ~ 1,
   return(umfit)
 }
 
+# Based on Weir, Fiske, Royle 2009 "TRENDS IN ANURAN OCCUPANCY"
+# Appendix 1
 calculate_smooth <- function(y, psi, gam, eps, p, M, T, J){
 
   smoothed <- array(NA, c(2, T, M))
@@ -228,7 +230,7 @@ calculate_smooth <- function(y, psi, gam, eps, p, M, T, J){
 
     for (t in 2:T){
       ysub <- y[i, tind == t]
-      psub <- y[i, tind == t]
+      psub <- p[i, tind == t]
 
       if(all(is.na(ysub))){
         alpha1[i,t] <- alpha0[i,t-1] * gam[i,t-1] + alpha1[i,t-1] * (1 - eps[i,t-1])
@@ -254,19 +256,19 @@ calculate_smooth <- function(y, psi, gam, eps, p, M, T, J){
   
     for (t in (T-1):1){
       ysub <- y[i, tind == t+1]
-      psub <- y[i, tind == t+1]
+      psub <- p[i, tind == t+1]
 
       if(all(is.na(ysub))){
-        beta1[i, t] <- eps[t] * beta0[i, t+1] + (1-eps[t]) * beta1[i, t+1]
-        beta0[i, t] <- (1-gam[t]) * beta0[i, t+1] + gam[t] * beta1[i, t+1]
+        beta1[i, t] <- eps[i,t] * beta0[i, t+1] + (1-eps[i,t]) * beta1[i, t+1]
+        beta0[i, t] <- (1-gam[i,t]) * beta0[i, t+1] + gam[i,t] * beta1[i, t+1]
       } else {
         cp1 <- prod(na.omit(dbinom(ysub, 1, psub)))
         cp0 <- prod(na.omit(dbinom(ysub, 1, 0)))
 
         # Case when z = 1
-        beta1[i, t] <- eps[t] * cp0 * beta0[i, t+1] + (1-eps[t]) * cp1 * beta1[i, t+1]
+        beta1[i, t] <- eps[i,t] * cp0 * beta0[i, t+1] + (1-eps[i,t]) * cp1 * beta1[i, t+1]
         # Case when z = 0
-        beta0[i, t] <- (1-gam[t]) * cp0 * beta0[i, t+1] + gam[t] * cp1 * beta1[i, t+1]
+        beta0[i, t] <- (1-gam[i,t]) * cp0 * beta0[i, t+1] + gam[i,t] * cp1 * beta1[i, t+1]
       }
     }
 
