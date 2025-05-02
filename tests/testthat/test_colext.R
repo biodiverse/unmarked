@@ -49,13 +49,13 @@ test_that("colext model fitting works", {
   umf1 <- unmarkedMultFrame(y=y, siteCovs=sc, obsCovs=list(oc=oc),
                             yearlySiteCovs=list(ysc=ysc), numPrimary=nyr)
 
-  fm1 <- colext2(~1, ~1, ~1, ~1, umf1)
+  fm1 <- colext(~1, ~1, ~1, ~1, umf1)
     expect_equivalent(coef(fm1),
         c(0.14227, -1.49561,  0.210121,  1.200177),
         tol=1e-5)
 
   # With site covs
-  fm2 <- colext2(~sc1, ~1, ~1, ~1, umf1)
+  fm2 <- colext(~sc1, ~1, ~1, ~1, umf1)
   expect_equivalent(coef(fm2), c(1.3473, -6.3828,-1.5830,0.1416,1.1643),
                     tol=1e-4)
 
@@ -65,13 +65,13 @@ test_that("colext model fitting works", {
     0.3525, 0.3415, 0.1299), dim = c(3L, 3L)), tol = 1e-4)
 
   # With obs covs
-  fm3 <- colext2(~1, ~1, ~1, ~oc, umf1)
+  fm3 <- colext(~1, ~1, ~1, ~oc, umf1)
   expect_equivalent(coef(fm3),
         c(0.1434,-1.4980,0.2083,1.2006,-0.03827),
         tol=1e-4)
 
   # With yearly site covs
-  fm4 <- colext2(~1, ~ysc, ~ysc, ~1, umf1)
+  fm4 <- colext(~1, ~ysc, ~ysc, ~1, umf1)
   expect_equivalent(coef(fm4),
                     c(0.2677,-2.0574,-1.0604,0.2156,0.6871,1.1025), tol=1e-4)
 
@@ -110,24 +110,24 @@ test_that("colext handles missing values",{
   umf2 <- umf1
   umf2@y[1,3] <- NA
 
-  fm1 <- colext2(~1, ~1, ~1, ~1, umf2)
+  fm1 <- colext(~1, ~1, ~1, ~1, umf2)
   expect_is(fm1, "unmarkedFitColExt")
 
   umf3 <- umf1
   umf3@y[1,] <- NA
-  expect_warning(fm2 <- colext2(~1, ~1, ~1, ~1, umf3))
+  expect_warning(fm2 <- colext(~1, ~1, ~1, ~1, umf3))
   expect_is(fm2, "unmarkedFitColExt")
   expect_equal(fm2@sitesRemoved, 1)
 
   umf4 <- umf1
   umf4@y[1,3:4] <- NA
-  fm3 <- colext2(~1, ~1, ~1, ~1, umf4)
+  fm3 <- colext(~1, ~1, ~1, ~1, umf4)
   expect_is(fm3, "unmarkedFitColExt")
 
   umf5 <- umf1
   umf5@siteCovs$sc1[2] <- NA
   umf5@obsCovs$oc[1] <- NA
-  expect_warning(fm4 <- colext2(~sc1, ~1, ~1, ~oc, umf5))
+  expect_warning(fm4 <- colext(~sc1, ~1, ~1, ~oc, umf5))
   expect_warning(pr <- predict(fm4, 'det'))
   expect_equal(nrow(pr), (nsites-1)*nyr*nrep)
   expect_true(all(is.na(pr[1,])))
@@ -148,21 +148,21 @@ test_that("colext handles missing values",{
   umf5 <- umf1
   umf5@yearlySiteCovs$ysc[1] <- NA
   # This should work, right?
-  expect_error(expect_warning(fm4 <- colext2(~1, ~1, ~ysc, ~1, umf5)))
+  expect_error(expect_warning(fm4 <- colext(~1, ~1, ~ysc, ~1, umf5)))
 
 })
 
 test_that("colext errors when random effects are in formula",{
   umf1 <- unmarkedMultFrame(y=y, siteCovs=sc, obsCovs=list(oc=oc),
                             yearlySiteCovs=list(ysc=ysc), numPrimary=nyr)
-  expect_error(colext2(~(1|dummy), ~1, ~ysc, ~1, umf1))
+  expect_error(colext(~(1|dummy), ~1, ~ysc, ~1, umf1))
 })
 
 test_that("colext methods work",{
 
   umf1 <- unmarkedMultFrame(y=y, siteCovs=sc, obsCovs=list(oc=oc),
                             yearlySiteCovs=list(ysc=ysc), numPrimary=nyr)
-  fm1 <- colext2(~sc1, ~1, ~ysc, ~oc, umf1)
+  fm1 <- colext(~sc1, ~1, ~ysc, ~oc, umf1)
 
   pdf(NULL)
   plot(fm1)

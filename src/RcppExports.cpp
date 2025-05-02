@@ -564,9 +564,6 @@ BEGIN_RCPP
 END_RCPP
 }
 
-RcppExport SEXP getDetVecs(void *, void *, void *, void *, void *);
-RcppExport SEXP getSingleDetVec(void *, void *, void *);
-
 static const R_CallMethodDef CallEntries[] = {
     {"_unmarked_get_lik_trans", (DL_FUNC) &_unmarked_get_lik_trans, 2},
     {"_unmarked_get_mlogit", (DL_FUNC) &_unmarked_get_mlogit, 4},
@@ -589,8 +586,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_unmarked_nll_occuTTD", (DL_FUNC) &_unmarked_nll_occuTTD, 17},
     {"_unmarked_nll_pcount", (DL_FUNC) &_unmarked_nll_pcount, 11},
     {"_unmarked_nll_pcountOpen", (DL_FUNC) &_unmarked_nll_pcountOpen, 35},
-    {"getDetVecs",      (DL_FUNC) &getDetVecs,      5},
-    {"getSingleDetVec", (DL_FUNC) &getSingleDetVec, 3},
     {NULL, NULL, 0}
 };
 

@@ -74,7 +74,7 @@ test_that("simulate can generate new datasets from scratch",{
   temp <- unmarkedMultFrame(y_ce, siteCovs=sc, numPrimary=3)
 
   s <- expect_message(simulate(temp, psiformula=~elev, coefs=cf_colext)[[1]])
-  fm <- colext2(~elev, ~1, ~1, ~1, s)
+  fm <- colext(~elev, ~1, ~1, ~1, s)
   expect_equivalent(coef(fm), c(-0.132,0.381,0.0701,0.158,0.015),
                      tol=1e-3)
 
