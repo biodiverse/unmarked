@@ -314,6 +314,8 @@ test_that("gdistsamp with uniform keyfunction works",{
     # R and C engines return same result
     fm_R <- gdistsamp(~par1, ~par2, ~1, umf, output="density",
                       keyfun="uniform", se=FALSE, engine="C", control=list(maxit=1))
+    actual_aic <- -2 * -fm_R@opt$value + 2 * length(fm_R@opt$par)
+    expect_equal(actual_aic, fm_R@AIC)
     fm_C <- gdistsamp(~par1, ~par2, ~1, umf, output="density",
                       keyfun="uniform", se=FALSE, engine="R", control=list(maxit=1))
     expect_equal(coef(fm_R), coef(fm_C))
