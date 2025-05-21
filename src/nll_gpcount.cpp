@@ -1,93 +1,123 @@
 #include <RcppArmadillo.h>
 #include "distr.h"
+#include "utils.h"
 
 #ifdef _OPENMP
   #include <omp.h>
 #endif
 
-using namespace Rcpp ;
-using namespace arma ;
+using namespace Rcpp;
+using namespace arma;
 
 // [[Rcpp::export]]
-double nll_gpcount(arma::mat ym, arma::mat Xlam, arma::mat Xphi, arma::mat Xp,
-    arma::vec beta_lam, arma::vec beta_phi, arma::vec beta_p, double log_alpha,
-    arma::vec Xlam_offset, arma::vec Xphi_offset, arma::vec Xp_offset,
-    int M, std::string mixture, int T, int threads){
+double nll_gpcount_Cpp(arma::vec params, Rcpp::List inputs){
 
   #ifdef _OPENMP
+    int threads = inputs["threads"];
     omp_set_num_threads(threads);
   #endif
 
-  arma::mat yimax = max(ym, 1);
-  int lM = M+1;
-  double alpha = 0.0;
-  if(mixture=="NB")
-    alpha = exp(log_alpha);
-  else if(mixture=="ZIP")
-    alpha = 1.0/(1.0+exp(-log_alpha));
-  int R = ym.n_rows;
-  int J = ym.n_cols / T;
-  arma::colvec lam = exp(Xlam*beta_lam + Xlam_offset);
-  arma::colvec logit_phi = Xphi*beta_phi + Xphi_offset;
-  arma::mat phiv = 1.0/(1.0+exp(-logit_phi));
-  arma::colvec logit_p = Xp*beta_p + Xp_offset;
-  arma::mat pv = 1.0/(1.0+exp(-logit_p));
-  phiv.reshape(T,R);
-  arma::mat phi = trans(phiv);
-  pv.reshape(J*T,R);
-  arma::mat pm = trans(pv);
-  arma::cube y(R,J,T);
-  arma::cube p(R,J,T);
-  for(int q=0; q<(R*J*T); q++) {
-    y(q) = ym(q);
-    p(q) = pm(q);
+  mat y = as<mat>(inputs["y"]);
+  int Kmax = inputs["Kmax"];
+  uvec Kmin = as<uvec>(inputs["Kmin"]);
+
+  int M = y.n_rows;
+  int T = inputs["T_phi"];
+  int J = inputs["J_phi"];
+
+  SUBMODEL_INPUTS(lambda);
+  int family_lambda = inputs["family_lambda"];
+  vec lam = exp(X_lambda * beta_lambda + offset_lambda);
+
+  double par2 = 0;
+  if(family_lambda == 2){
+    ivec idx = as<ivec>(inputs["idx_alpha"]) - 1;
+    par2 = params(idx(0));
+  } else if(family_lambda == 3){
+    ivec idx = as<ivec>(inputs["idx_psi"]) - 1;
+    par2 = params(idx(0));
   }
-  //  Rprintf("made it %f \\n", 1.);
-  double loglik=0.0;
+
+  SUBMODEL_INPUTS(phi);
+  vec phi = inv_logit(X_phi * beta_phi + offset_phi);
+
+  SUBMODEL_INPUTS(det);
+  vec p = inv_logit(X_det * beta_det + offset_det);
+
+  //Indices etc.
+  int phi_idx;
+  double phi_t;
+  int y_start;
+  int y_end;
+  int p_start;
+  int p_end;
+  rowvec y_m(T*J);
+  rowvec y_t(J);
+  vec p_t(J);
+  uvec fin;
+
+  double loglik = 0;
+  //Intermediate sums etc.
+  double f;
+  double lik_site;
+  double ll_k;
+  double Nt_lik;
 
   #pragma omp parallel for reduction(+: loglik) if(threads > 1)
-  for(int i=0; i<R; i++) {
+  for (int m=0; m<M; m++){
+    lik_site = 0;
+    y_m = y.row(m);
 
-    double g=0.0, h=0.0;
-    arma::vec f = arma::zeros<arma::vec>(lM);
-    arma::mat gh = arma::zeros<arma::mat>(lM, lM);
-    arma::vec ghi = arma::zeros<arma::vec>(lM);
+    fin = find_finite(y_m);
+    if(fin.size() == 0) continue;
 
-    //    Rprintf("log-like %f \\n", L);
-    for(int m=0; m<lM; m++) {
-      if(m < yimax(i))
-	f(m) = log(0.0);
-      else if(mixture=="P")
-	f(m) = Rf_dpois(m, lam(i), true);
-      else if(mixture=="NB")
-        f(m) = dnbinom_mu(m, alpha, lam(i), true);
-      else if(mixture=="ZIP")
-	f(m) = log(dzip(m, lam(i), alpha));
-    }
-    ghi.zeros();
-    for(int t=0; t<T; t++) {
-      gh.zeros();
-      for(int m=0; m<lM; m++) { // FIXME: increment from max(y[i,])
-	for(int n=0; n<lM; n++) {
-	  if((n > m) || (m < yimax(i))) {
-	    gh(n,m) = log(0.0);
-	    continue;
-	  }
-	  g = 0.0;
-	  if(arma::is_finite(phi(i,t)))
-	    g = Rf_dbinom(n, m, phi(i,t), true);
-	  h = 0.0;
-	  for(int j=0; j<J; j++) {
-	    if(arma::is_finite(y(i,j,t))) { // true if not NA, NaN, +/-Inf
-	      h += Rf_dbinom(y(i,j,t), n, p(i,j,t), true);
-	    }
-	  }
-	  gh(n,m) = g + h;
-	}
-	ghi(m) += log(arma::accu(exp(gh.col(m)))); // sum over N(t)
+    //Iterate over possible true population size K
+    for (int k=Kmin(m); k<(Kmax+1); k++){
+
+      y_start = 0;
+      p_start = m*T*J;
+      phi_idx = m*T;
+
+      ll_k = log(N_density(family_lambda, k, lam(m), par2));
+
+      for (int t=0; t<T; t++){
+
+        //Extract data for period T and increment
+        phi_t = phi(phi_idx);
+        phi_idx += 1;
+
+        y_end = y_start + J - 1;
+        p_end = p_start + J - 1;
+        y_t = y_m.subvec(y_start, y_end);
+        p_t = p.subvec(p_start, p_end);
+        y_start += J;
+        p_start += J;
+
+        //If no obs for this period, skip
+        fin = find_finite(y_t);
+        if(fin.size() == 0) continue;
+
+        //Iterate over possible # of available animals N(t)
+        //Cannot be smaller than max observed in period t
+        Nt_lik = 0;
+        for (int n=max(y_t); n<(k+1); n++){
+          //Availability log-likelihood
+          f = 0;
+          if(is_finite(phi_t)){
+            f = Rf_dbinom(n, k, phi_t, true);
+          }
+          //Detection log-likelihood
+          for (unsigned j=0; j<fin.size(); j++){
+            f += Rf_dbinom(y_t(fin(j)), n, p_t(fin(j)), true);
+          }
+          Nt_lik += exp(f);
+        }
+        ll_k += log(Nt_lik);
       }
+      lik_site += exp(ll_k);
     }
-    loglik += log(arma::accu(exp(f + ghi))); // sum over M
+    loglik += log(lik_site);
   }
+
   return -loglik;
 }

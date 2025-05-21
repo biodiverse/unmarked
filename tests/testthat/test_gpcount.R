@@ -54,40 +54,44 @@ test_that("gpcount function works", {
                 3,2,3, 2,2,2, 1,1,1,
                 NA,0,0, 0,0,0, 0,0,0,
                 3,3,3, 3,1,3, 2,2,1,
-                0,0,0, 0,0,0, 0,0,0), 5, 9, byrow=TRUE)
-  siteCovs <- data.frame(x = c(0,2,-1,4,-1))
-  obsCovs <- list(o1 = matrix(seq(-3, 3, length=length(y)), 5, 9))
+                0,0,0, 0,0,0, 0,0,0,
+                NA,NA,NA, NA,NA,NA, NA,NA,NA), 6, 9, byrow=TRUE)
+  siteCovs <- data.frame(x = c(0,2,-1,4,-1,0))
+  obsCovs <- list(o1 = matrix(seq(-3, 3, length=length(y)), 6, 9))
   obsCovs$o1[5,4:6] <- NA
-  yrSiteCovs <- list(yr=matrix(c('1','2','2'), 5, 3, byrow=TRUE))
+  yrSiteCovs <- list(yr=matrix(c('1','2','2'), 6, 3, byrow=TRUE))
   yrSiteCovs$yr[4,2] <- NA
+  y[4,4:6] <- NA
 
   expect_warning(umf <- unmarkedFrameGPC(y = y, siteCovs = siteCovs, obsCovs = obsCovs,
         yearlySiteCovs = yrSiteCovs, numPrimary=3))
 
-  expect_warning(fm <- gpcount(~x, ~yr, ~o1, data = umf, K=23))
-  expect_equal(fm@sitesRemoved, integer(0))
+  fm <- gpcount(~x, ~yr, ~o1, data = umf, K=23)
+  expect_equal(fm@sitesRemoved, 6)
   expect_equivalent(coef(fm),
-        c(1.14754541, 0.44499137, -1.52079283, -0.08881542,
-          2.52037155, -0.10950615), tol = 1e-5)
+        c(0.5351, 0.4341, -0.6629, -0.1519, 2.5174, -0.1111), tol = 1e-4)
+
+  fmR <- gpcount(~x, ~yr, ~o1, data = umf, K=23, engine="R")
+  expect_equal(coef(fm), coef(fmR))
 
   # Check methods
   gp <- getP(fm)
   expect_equal(dim(gp), dim(y))
   expect_true(all(is.na(gp[5,4:6])))
-  expect_equal(as.vector(gp[1:2, 1:2]), c(0.9452,0.9445,0.9413,0.9404), tol=1e-4)
+  expect_equal(as.vector(gp[1:2, 1:2]), c(0.9454,0.9447,0.9413,0.9406), tol=1e-4)
 
   expect_warning(pr <- predict(fm, 'lambda'))
-  expect_equal(dim(pr), c(nrow(y), 4))
+  expect_equal(dim(pr), c(5, 4)) # TODO: fix later when NAs are not dropped
 
   nd <- data.frame(x=c(0,1))
   pr <- predict(fm, 'lambda', newdata=nd)
   expect_equal(dim(pr), c(2,4))
-  expect_equal(pr[1,1], c(3.15045), tol=1e-4)
+  expect_equal(pr[1,1], c(1.70758), tol=1e-4)
 
   ft <- fitted(fm)
   expect_equal(dim(ft), dim(umf@y))
   expect_equal(round(ft,4)[1:2,1:2],
-    structure(c(0.5341, 1.2995, 0.5318, 1.2939), dim = c(2L, 2L)))
+    structure(c(0.5490, 1.3072, 0.5466, 1.3016), dim = c(2L, 2L)))
   expect_true(all(is.na(ft[5,4:6]))) # missing obs covs
   expect_true(all(is.na(ft[4,4:6]))) # missing ysc cov for site 4 yr 2
 
@@ -95,7 +99,7 @@ test_that("gpcount function works", {
   sc2$x[1] <- NA
   umf2 <- umf
   umf2@siteCovs <- sc2
-  expect_warning(fm2 <- gpcount(~x, ~yr, ~o1, data = umf2, K=10))
+  fm2 <- gpcount(~x, ~yr, ~o1, data = umf2, K=10)
   ft2 <- fitted(fm2)
   expect_equal(dim(ft2), dim(umf2@y))
   expect_true(all(is.na(ft2[1,]))) # missing site cov
@@ -105,19 +109,19 @@ test_that("gpcount function works", {
 
   r <- ranef(fm)
   expect_equal(dim(r@post), c(nrow(y), 24, 1))
-  expect_equal(bup(r), c(7.31, 12.63, 1.30, 14.90, 2.04), tol=1e-3)
+  expect_equal(bup(r), c(3.867,6.790,0.433,9.580,0.753,NA), tol=1e-3)
 
   expect_warning(s <- simulate(fm, 2))
   expect_equal(length(s), 2)
   expect_equal(dim(s[[1]]), dim(y))
 
   expect_warning(pb <- parboot(fm, nsim=1))
-  expect_equal(pb@t.star[1], 24.06449, tol=1e-4)
+  expect_equal(pb@t.star[1], 11.74351, tol=1e-4)
   expect_is(pb, "parboot")
 
-  npb <- expect_warning(nonparboot(fm, B=2))
+  npb <- nonparboot(fm, B=2)
   expect_equal(length(npb@bootstrapSamples), 2)
-  expect_equal(npb@bootstrapSamples[[1]]@AIC, 36.08938, tol=1e-4)
+  expect_equal(npb@bootstrapSamples[[1]]@AIC, 39.5753, tol=1e-4)
   v <- vcov(npb, method='nonparboot')
   expect_equal(nrow(v), length(coef(npb)))
 

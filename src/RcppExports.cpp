@@ -192,28 +192,15 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// nll_gpcount
-double nll_gpcount(arma::mat ym, arma::mat Xlam, arma::mat Xphi, arma::mat Xp, arma::vec beta_lam, arma::vec beta_phi, arma::vec beta_p, double log_alpha, arma::vec Xlam_offset, arma::vec Xphi_offset, arma::vec Xp_offset, int M, std::string mixture, int T, int threads);
-RcppExport SEXP _unmarked_nll_gpcount(SEXP ymSEXP, SEXP XlamSEXP, SEXP XphiSEXP, SEXP XpSEXP, SEXP beta_lamSEXP, SEXP beta_phiSEXP, SEXP beta_pSEXP, SEXP log_alphaSEXP, SEXP Xlam_offsetSEXP, SEXP Xphi_offsetSEXP, SEXP Xp_offsetSEXP, SEXP MSEXP, SEXP mixtureSEXP, SEXP TSEXP, SEXP threadsSEXP) {
+// nll_gpcount_Cpp
+double nll_gpcount_Cpp(arma::vec params, Rcpp::List inputs);
+RcppExport SEXP _unmarked_nll_gpcount_Cpp(SEXP paramsSEXP, SEXP inputsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type ym(ymSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type Xlam(XlamSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type Xphi(XphiSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type Xp(XpSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type beta_lam(beta_lamSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type beta_phi(beta_phiSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type beta_p(beta_pSEXP);
-    Rcpp::traits::input_parameter< double >::type log_alpha(log_alphaSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type Xlam_offset(Xlam_offsetSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type Xphi_offset(Xphi_offsetSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type Xp_offset(Xp_offsetSEXP);
-    Rcpp::traits::input_parameter< int >::type M(MSEXP);
-    Rcpp::traits::input_parameter< std::string >::type mixture(mixtureSEXP);
-    Rcpp::traits::input_parameter< int >::type T(TSEXP);
-    Rcpp::traits::input_parameter< int >::type threads(threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(nll_gpcount(ym, Xlam, Xphi, Xp, beta_lam, beta_phi, beta_p, log_alpha, Xlam_offset, Xphi_offset, Xp_offset, M, mixture, T, threads));
+    Rcpp::traits::input_parameter< arma::vec >::type params(paramsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type inputs(inputsSEXP);
+    rcpp_result_gen = Rcpp::wrap(nll_gpcount_Cpp(params, inputs));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -509,7 +496,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_unmarked_nll_gdistremoval", (DL_FUNC) &_unmarked_nll_gdistremoval, 20},
     {"_unmarked_nll_gdistsamp", (DL_FUNC) &_unmarked_nll_gdistsamp, 23},
     {"_unmarked_nll_gmultmix", (DL_FUNC) &_unmarked_nll_gmultmix, 17},
-    {"_unmarked_nll_gpcount", (DL_FUNC) &_unmarked_nll_gpcount, 15},
+    {"_unmarked_nll_gpcount_Cpp", (DL_FUNC) &_unmarked_nll_gpcount_Cpp, 2},
     {"_unmarked_nll_multinomPois_Cpp", (DL_FUNC) &_unmarked_nll_multinomPois_Cpp, 2},
     {"_unmarked_nll_multmixOpen", (DL_FUNC) &_unmarked_nll_multmixOpen, 39},
     {"_unmarked_nll_nmixTTD", (DL_FUNC) &_unmarked_nll_nmixTTD, 13},

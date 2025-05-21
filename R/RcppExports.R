@@ -29,8 +29,8 @@ nll_gmultmix <- function(beta, n_param, y, mixture, pi_fun, Xlam, Xlam_offset, X
     .Call(`_unmarked_nll_gmultmix`, beta, n_param, y, mixture, pi_fun, Xlam, Xlam_offset, Xphi, Xphi_offset, Xdet, Xdet_offset, k, lfac_k, lfac_kmyt, kmyt, Kmin, threads)
 }
 
-nll_gpcount <- function(ym, Xlam, Xphi, Xp, beta_lam, beta_phi, beta_p, log_alpha, Xlam_offset, Xphi_offset, Xp_offset, M, mixture, T, threads) {
-    .Call(`_unmarked_nll_gpcount`, ym, Xlam, Xphi, Xp, beta_lam, beta_phi, beta_p, log_alpha, Xlam_offset, Xphi_offset, Xp_offset, M, mixture, T, threads)
+nll_gpcount_Cpp <- function(params, inputs) {
+    .Call(`_unmarked_nll_gpcount_Cpp`, params, inputs)
 }
 
 nll_multinomPois_Cpp <- function(params, inputs) {

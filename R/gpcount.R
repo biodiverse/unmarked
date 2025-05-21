@@ -31,6 +31,16 @@ gpcount <- function(lambdaformula, phiformula, pformula, data,
                               family = "binomial", link = "logit")
   )
 
+  if(mixture == "NB"){
+    submodels['alpha'] <- unmarkedSubmodelScalar(name = "Dispersion", 
+                                                 short_name = "alpha", 
+                                                 type = "alpha", link = "log")
+  } else if(mixture == "ZIP"){
+    submodels['psi'] <- unmarkedSubmodelScalar(name = "Zero-inflation", 
+                                               short_name = "psi", 
+                                               type = "psi", link = "logit")
+  }
+
   # Build response object
   response <- unmarkedResponseCount(data, submodels, Kmax = K)
 
@@ -79,7 +89,7 @@ nll_gpcount_R <- function(params, inputs){
   if(family_lambda == 2){ # negbin
     par2 <- exp(params[idx_alpha[1]])
   } else if(family_lambda == 3){
-    par2 <- plogis(params[idx_alpha[1]])
+    par2 <- plogis(params[idx_psi[1]])
   }
 
   L <- rep(NA, I)
@@ -88,23 +98,27 @@ nll_gpcount_R <- function(params, inputs){
         if(all(is.na(y[i,,]))) next
         f <- switch(family_lambda,
             "1" = dpois(M, lam[i], log=TRUE),
-            "2" = dnbinom(M, mu=lam[i], size=exp(pars[nP]), log=TRUE),
-            "3" = log(dzip(M, lambda=lam[i], psi=plogis(pars[nP])))
+            "2" = dnbinom(M, mu=lam[i], size=par2, log=TRUE),
+            "3" = log(dzip(M, lambda=lam[i], psi=par2))
         )
         ghi <- rep(0, lM)
         for(t in 1:T) {
+          if(is.na(phi[i,t])) next
             gh <- matrix(-Inf, lM, lM)
             for(m in M) {
                 if(m < max(y[i,,], na.rm=TRUE)) {
                     gh[,m+1] <- -Inf
                     next
                 }
-                if(is.na(phi[i,t])) {
-                    g <- rep(0, lM)
-                    g[N>m] <- -Inf
-                }
-                else
-                    g <- dbinom(N, m, phi[i,t], log=TRUE)
+                # Changing this 5/21/25, which breaks backward compatibility
+                # when phi[i,t] is missing. It should be equivalent to 
+                # simply having all ys for this T missing (see ~L106)
+                #if(is.na(phi[i,t])) {
+                #    g <- rep(0, lM)
+                #    g[N>m] <- -Inf
+                #}
+                #else
+                g <- dbinom(N, m, phi[i,t], log=TRUE)
                 h <- rep(0, lM)
                 for(j in 1:J) {
                     if(is.na(y[i,j,t]))
