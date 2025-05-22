@@ -130,8 +130,8 @@ test_that("nonparboot works with colext",{
                               yearlySiteCovs=list(ysc=ysc),
                               obsCovs=list(oc=oc), numPrimary=nYears)
 
-    m2 <- expect_warning(colext(~sc, ~1, ~1, ~oc, umf2))
-    m2 <- expect_warning(nonparboot(m2, B=2))
+    m2 <- colext(~sc, ~1, ~1, ~oc, umf2)
+    m2 <- nonparboot(m2, B=2)
 })
 
 test_that("nonparboot works without obs covs",{

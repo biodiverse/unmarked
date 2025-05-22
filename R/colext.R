@@ -75,7 +75,7 @@ colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
   colnames(projected.mean) <- 1:T
 
   # Compute smoothed estimates
-  smoothed <- calculate_smooth(y = y, psi = psis,
+  smoothed <- calculate_smooth(y = inputs$y, psi = psis,
                                gam = plogis(inputs$X_col %*% coef(fit$submodels["col"])),
                                eps = plogis(inputs$X_ext %*% coef(fit$submodels["ext"])),
                                p = plogis(inputs$X_det %*% coef(fit$submodels["det"])),

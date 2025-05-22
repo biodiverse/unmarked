@@ -57,7 +57,11 @@ Type tmb_colext(objective_function<Type>* obj) {
   for (int i=0; i<M; i++){
     yind = 0;
     ys = y.row(i);
-    if(all_na(ys)) continue;
+    if(all_na(ys)){
+      pind += J*T;
+      Tidx += (T-1);
+      continue;
+    }
     phi_total = phi.setIdentity();
 
     //All but the last time period

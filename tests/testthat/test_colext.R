@@ -94,7 +94,7 @@ test_that("colext model fitting works", {
    
   # parboot
   pb <- parboot(fm4, nsim=2)
-  expect_equal(pb@t.star[1,1], 10.2837, tol=1e-4)
+  expect_equal(pb@t.star[1,1], 10.2804, tol=1e-4)
 
   # getP
   gp <- getP(fm4)
@@ -129,6 +129,8 @@ test_that("colext handles missing values",{
   umf5@obsCovs$oc[1] <- NA
   fm4 <- colext(~sc1, ~1, ~1, ~oc, umf5)
   expect_equivalent(coef(fm4), c(-0.6886, -1.1497, -0.8637, 0.2437, 1.3023, 0.2360), tol=1e-4)
+  expect_true(all(is.na(fm4@projected[,,2])))
+  expect_true(all(is.na(fm4@smoothed[,,2])))
   expect_warning(pr <- predict(fm4, 'det'))
   expect_equal(nrow(pr), (nsites-1)*nyr*nrep)
   expect_true(all(is.na(pr[1,])))
