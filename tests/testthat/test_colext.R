@@ -111,30 +111,33 @@ test_that("colext handles missing values",{
   umf2@y[1,3] <- NA
 
   fm1 <- colext(~1, ~1, ~1, ~1, umf2)
-  expect_is(fm1, "unmarkedFitColExt")
+  expect_equivalent(coef(fm1), c(0.1768, -1.4942, 0.1922, 1.0655), tol=1e-4)
 
   umf3 <- umf1
   umf3@y[1,] <- NA
-  expect_warning(fm2 <- colext(~1, ~1, ~1, ~1, umf3))
-  expect_is(fm2, "unmarkedFitColExt")
+  fm2 <- colext(~1, ~1, ~1, ~1, umf3)
+  expect_equivalent(coef(fm2), c(-0.3248, -1.3593, 0.3486, 1.3866), tol=1e-4) 
   expect_equal(fm2@sitesRemoved, 1)
 
   umf4 <- umf1
   umf4@y[1,3:4] <- NA
   fm3 <- colext(~1, ~1, ~1, ~1, umf4)
-  expect_is(fm3, "unmarkedFitColExt")
+  expect_equivalent(coef(fm3), c(0.2059, -1.5619, 0.4322, 0.9620), tol=1e-4)
 
   umf5 <- umf1
   umf5@siteCovs$sc1[2] <- NA
   umf5@obsCovs$oc[1] <- NA
-  expect_warning(fm4 <- colext(~sc1, ~1, ~1, ~oc, umf5))
+  fm4 <- colext(~sc1, ~1, ~1, ~oc, umf5)
+  expect_equivalent(coef(fm4), c(-0.6886, -1.1497, -0.8637, 0.2437, 1.3023, 0.2360), tol=1e-4)
   expect_warning(pr <- predict(fm4, 'det'))
   expect_equal(nrow(pr), (nsites-1)*nyr*nrep)
   expect_true(all(is.na(pr[1,])))
+  expect_equal(pr[2,1], 0.8017, tol=1e-4)
   ft <- fitted(fm4)
   expect_equal(dim(ft), dim(umf5@y))
   expect_true(is.na(ft[1,1]))
   expect_true(all(is.na(ft[2,])))
+  expect_equal(ft[1,2], 0.3920, tol=1e-4)
 
   gp <- getP(fm4)
   expect_equal(dim(gp), dim(umf5@y))
@@ -144,6 +147,7 @@ test_that("colext handles missing values",{
   r <- ranef(fm4)
   expect_true(all(is.na(r@post[fm4@sitesRemoved,,1])))
   expect_equal(nrow(r@post), numSites(fm4@data))
+  expect_equivalent(r@post[1,1,1], 0.8405, tol=1e-4)
 
   umf5 <- umf1
   umf5@yearlySiteCovs$ysc[1] <- NA

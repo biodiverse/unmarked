@@ -1,123 +1,66 @@
 colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
                     epsilonformula = ~ 1, pformula = ~ 1,
-                    data, starts, method = "BFGS", se = TRUE, ...){
+                    data, starts = NULL, method = "BFGS", se = TRUE, ...){
 
-  ## truncate to 1
-  data@y <- truncateToBinary(data@y)
- 
+  # Check inputs
   formula <- list(psiformula = psiformula, gammaformula = gammaformula,
                   epsilonformula = epsilonformula, pformula = pformula)
   check_no_support(formula)
-  designMats <- getDesign(data, formula = as.formula(paste(unlist(formula), collapse=" ")))
-  X_psi <- designMats$W
-  X_gam <- designMats$X.gam
-  X_eps <- designMats$X.eps
-  X_det <- designMats$V
-  y <- designMats$y
-  M <- nrow(y)
-  T <- data@numPrimary
-  J <- ncol(y) / T
-  psiParms <- colnames(X_psi)
-  gamParms <- colnames(X_gam)
-  epsParms <- colnames(X_eps)
-  detParms <- colnames(X_det)
 
-  ## remove final year from transition prob design matrices
-  X_gam <- as.matrix(X_gam[-seq(T,M*T,by=T),])
-  X_eps <- as.matrix(X_eps[-seq(T,M*T,by=T),])
+  # Build submodels
+  submodels <- unmarkedSubmodelList(    
+    psi = unmarkedSubmodelState(name = "Initial", short_name = "psi", 
+                                  type = "psi", formula = psiformula, data = data, 
+                                  family = "binomial", link = "logit"),
+
+    col = unmarkedSubmodelTransition(name = "Colonization", short_name = "col", 
+                                     type = "col", formula = gammaformula, 
+                                     data = data, family = "binomial", link = "logit"),
+
+    ext = unmarkedSubmodelTransition(name = "Extinction", short_name = "ext", 
+                                     type = "ext", formula = epsilonformula, 
+                                     data = data, family = "binomial", link = "logit"),
+
+    det = unmarkedSubmodelDet(name = "Detection", short_name = "p", 
+                              type = "det", formula = pformula, data = data, 
+                              family = "binomial", link = "logit")
+  )
+
+  # Build response object
+  response <- unmarkedResponseBinary(data, submodels)
+
+  # Get nll inputs
+  inputs <- nll_inputs(response, submodels, engine="TMB")
+
+  # Adjust Kmin to be by period
+  # TODO: do this automatically
+  inputs$Kmin <- Kmin_by_T(inputs$y, data@numPrimary)
 
   # Determine which periods were sampled at each site
-  site_sampled <- matrix(1, M, T)
+  M <- nrow(inputs$X_psi)
+  T <- inputs$T_col
+  J <- inputs$J_col
+  inputs$site_sampled <- matrix(1, M, T)
   Trep <- rep(1:T, each = J)
   for (t in 1:T){
     ind <- which(Trep == t)
     for (i in 1:M){
-      if(all(is.na(y[i, ind]))) site_sampled[i,t] <- 0
+      if(all(is.na(inputs$y[i, ind]))) inputs$site_sampled[i,t] <- 0
     }
   }
 
-  # Determine site-periods with no detections
-  no_detects <- matrix(1, M, T)
-  for (i in 1:M){
-    for (t in 1:T){
-      ind <- which(Trep == t)
-      ysub <- y[i, ind]
-      if(all(is.na(ysub))) next
-      ysub <- na.omit(ysub)
-      if(all(ysub == 0)){
-        no_detects[i,t] <- 1
-      } else {
-        no_detects[i,t] <- 0
-      }
-    }
-  }
-
-  # Parameter indices
-  pind_mat <- matrix(0, 4, 2)
-  pind_mat[1,] <- c(1, length(psiParms))
-  pind_mat[2,] <- max(pind_mat[1,]) + c(1, length(gamParms))
-  pind_mat[3,] <- max(pind_mat[2,]) + c(1, length(epsParms))
-  pind_mat[4,] <- max(pind_mat[3,]) + c(1, length(detParms))
-  
-  tmb_dat <- list(y = as.vector(t(y)), X_psi = X_psi, X_gam = X_gam, 
-                  X_eps = X_eps, X_det = X_det,
-                  M = M, T = T, J = J, 
-                  site_sampled = site_sampled, nd = no_detects)
-
-  tmb_pars <- list(beta_psi = rep(0, length(psiParms)), 
-                   beta_gam = rep(0, length(gamParms)),
-                   beta_eps = rep(0, length(epsParms)), 
-                   beta_det = rep(0, length(detParms)))
-
-  tmb_obj <- TMB::MakeADFun(data = c(model = "tmb_colext", tmb_dat), 
-                            parameters = tmb_pars,
-                            DLL = "unmarked_TMBExports", silent=TRUE)
-  
-  opt <- optim(unlist(tmb_pars), fn=tmb_obj$fn, gr=tmb_obj$gr, 
-               method=method, hessian = se, ...)
-
-  fmAIC <- 2 * opt$value + 2 * length(unlist(tmb_pars))
-
-  sdr <- TMB::sdreport(tmb_obj)
-
-  psi_coef <- get_coef_info(sdr, "psi", psiParms, pind_mat[1,1]:pind_mat[1,2])
-  gam_coef <- get_coef_info(sdr, "gam", gamParms, pind_mat[2,1]:pind_mat[2,2])
-  eps_coef <- get_coef_info(sdr, "eps", epsParms, pind_mat[3,1]:pind_mat[3,2])
-  det_coef <- get_coef_info(sdr, "det", detParms, pind_mat[4,1]:pind_mat[4,2])
-  
-  psi <- unmarkedEstimate(name = "Initial", short.name = "psi",
-                          estimates = psi_coef$ests,
-                          covMat = psi_coef$cov,
-                          invlink = "logistic",
-                          invlinkGrad = "logistic.grad")
-
-  col <- unmarkedEstimate(name = "Colonization", short.name = "col",
-                          estimates = gam_coef$ests,
-                          covMat = gam_coef$cov,
-                          invlink = "logistic",
-                          invlinkGrad = "logistic.grad")
-
-  ext <- unmarkedEstimate(name = "Extinction", short.name = "ext",
-                          estimates = eps_coef$ests,
-                          covMat = eps_coef$cov,
-                          invlink = "logistic",
-                          invlinkGrad = "logistic.grad")
-
-  det <- unmarkedEstimate(name = "Detection", short.name = "p",
-                          estimates = det_coef$ests,
-                          covMat = det_coef$cov,
-                          invlink = "logistic",
-                          invlinkGrad = "logistic.grad")
-
-  estimateList <- unmarkedEstimateList(list(psi = psi, col = col,
-                                            ext = ext, det=det))
-  
-  psis <- plogis(X_psi %*% psi_coef$ests)
+  # Fit model
+  fit <- fit_model("tmb_colext", inputs = inputs, submodels = submodels,
+                   starts = starts, method = method, se = se, ...)
 
   # Compute projected estimates
+  M <- nrow(inputs$X_psi)
+  T <- data@numPrimary
+  J <- inputs$J_col
+  psis <- plogis(inputs$X_psi %*% coef(fit$submodels["psi"]))
   phis <- array(NA,c(2,2,T-1,M))
-  phis[,1,,] <- plogis(X_gam %x% c(-1,1) %*% gam_coef$ests)
-  phis[,2,,] <- plogis(X_eps %x% c(-1,1) %*% -eps_coef$ests)
+  phis[,1,,] <- plogis(inputs$X_col %x% c(-1,1) %*% coef(fit$submodels["col"]))
+  phis[,2,,] <- plogis(inputs$X_ext %x% c(-1,1) %*% -coef(fit$submodels["ext"]))
 
   projected <- array(NA, c(2, T, M))
   projected[1,1,] <- 1 - psis
@@ -133,30 +76,23 @@ colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
 
   # Compute smoothed estimates
   smoothed <- calculate_smooth(y = y, psi = psis,
-                               gam = plogis(X_gam %*% gam_coef$ests),
-                               eps = plogis(X_eps %*% eps_coef$ests),
-                               p = plogis(X_det %*% det_coef$ests),
+                               gam = plogis(inputs$X_col %*% coef(fit$submodels["col"])),
+                               eps = plogis(inputs$X_ext %*% coef(fit$submodels["ext"])),
+                               p = plogis(inputs$X_det %*% coef(fit$submodels["det"])),
                                M = M, T = T, J = J)
   smoothed.mean <- apply(smoothed, 1:2, mean)
   rownames(smoothed.mean) <- c("unoccupied","occupied")
   colnames(smoothed.mean) <- 1:T
 
-  umfit <- new("unmarkedFitColExt", fitType = "colext",
-                call = match.call(),
-                formula = as.formula(paste(unlist(formula),collapse=" ")),
-                psiformula = psiformula,
-                gamformula = gammaformula,
-                epsformula = epsilonformula,
-                detformula = pformula,
-                data = data, sitesRemoved = designMats$removed.sites,
-                estimates = estimateList,
-                AIC = fmAIC, opt = opt, negLogLike = opt$value,
-                nllFun = tmb_obj$fn,
-                projected = projected,
-                projected.mean = projected.mean,
-                smoothed = smoothed, smoothed.mean = smoothed.mean)
-
-  return(umfit)
+  new("unmarkedFitColExt", fitType = "colext", call = match.call(),
+      formula = as.formula(paste(unlist(formula),collapse=" ")),
+      psiformula = psiformula, gamformula = gammaformula, 
+      epsformula = epsilonformula, detformula = pformula,
+      data = data, sitesRemoved = removed_sites(response),
+      estimates = fit$submodels, AIC = fit$AIC, opt = fit$opt,
+      negLogLike = fit$opt$value, nllFun = fit$nll,
+      projected = projected, projected.mean = projected.mean,
+      smoothed = smoothed, smoothed.mean = smoothed.mean)
 }
 
 # Based on Weir, Fiske, Royle 2009 "TRENDS IN ANURAN OCCUPANCY"

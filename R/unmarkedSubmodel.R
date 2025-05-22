@@ -37,6 +37,9 @@ setClass("unmarkedSubmodelMultinom",
 setClass("unmarkedSubmodelAvail",
   contains = "unmarkedSubmodel")
 
+setClass("unmarkedSubmodelTransition",
+  contains = "unmarkedSubmodel")
+
 unmarkedSubmodelDet <- function(name, short_name, type, formula, data, 
                                 family, link, auxiliary = list(), obsNum = TRUE){
   
@@ -153,6 +156,24 @@ unmarkedSubmodelAvail <- function(name, short_name, type, formula, data,
   out
 }
 
+unmarkedSubmodelTransition <- function(name, short_name, type, formula, data, 
+                                       family, link, auxiliary = list()){
+   
+  T <- data@numPrimary
+  J <- ncol(data@y) / T
+  # Set the final period of covariate data for each site to NA since it is not used
+  data <- clean_up_covs(data, drop_final = TRUE)$yearly_site_covs
+
+  data <- subset_covs(data, formula)
+  out <- new("unmarkedSubmodelTransition",
+    name = name, short.name = short_name, type = type,
+    formula = formula, data = data, family = family,
+    invlink = get_invlink(link), invlinkGrad = get_grad(link),
+    auxiliary = list(T = T, J = J))
+  out@fixed <- 1:ncol(model.matrix(out))
+  out
+}
+
 subset_covs <- function(covs, formula){
   vars <- all.vars(formula)
   cov_nms <- names(covs)
@@ -199,6 +220,22 @@ setMethod("model.matrix", "unmarkedSubmodel",
   }
 
   model.matrix(form, mf)
+})
+
+setMethod("model.matrix", "unmarkedSubmodelTransition",
+  function(object, newdata = NULL, drop_final = TRUE, ...){
+  
+  mm <- methods::callNextMethod(object, newdata = newdata, ...)
+
+  # If this is the original data, drop the final primary period for each site
+  # since it is not used in the model
+  if(is.null(newdata) & drop_final){
+    T <- object@auxiliary$T
+    drop_rows <- seq(T, nrow(mm), by = T)
+    mm <- mm[-drop_rows,,drop=FALSE]
+    stopifnot(all(!is.na(mm)))
+  }
+  mm
 })
 
 setGeneric("has_random", function(object) standardGeneric("has_random"))
@@ -583,6 +620,15 @@ setMethod("add_missing", c("unmarkedResponse", "unmarkedSubmodelAvail"),
   object
 })
 
+setMethod("add_missing", c("unmarkedResponse", "unmarkedSubmodelTransition"),
+  function(object, submodel, ...){
+  mm <- model.matrix(submodel)
+  if(any(is.na(mm))){
+    stop("Missing values not allowed in yearlySiteCovs", call.=FALSE)
+  }
+  object
+})
+
 setMethod("add_missing", c("unmarkedResponse", "unmarkedSubmodelList"),
   function(object, submodel, ...){  
   for (i in 1:length(submodels(submodel))){
@@ -627,6 +673,21 @@ setMethod("engine_inputs_TMB", c("unmarkedResponse", "unmarkedSubmodelList"),
   c(engine_inputs(object), engine_inputs_TMB(object2))
 })
 
+# Get intergration lower bound (Kmin) by site and primary period
+# Right now this is called manually by fitting functions - 
+# can it be done automatically?
+Kmin_by_T <- function(y, T){
+  M <- nrow(y)
+  stopifnot(ncol(y) %% T == 0)
+  J <- ncol(y) / T
+
+  yarr <- array(as.vector(t(y)), c(J, T, M))
+  yarr <- aperm(yarr, c(3, 1, 2))
+  apply(yarr, c(1,3), function(x){
+    if(all(is.na(x))) return(NA)
+    max(x, na.rm=TRUE)
+  })
+}
 
 # Fitting models---------------------------------------------------------------
 
