@@ -114,6 +114,9 @@ test_that("gdistsamp with halfnorm keyfunction works",{
     })
     expect_equal(max(yt)+100, fm_C@K)
 
+    # Check error when provided K is too small
+    expect_error(gdistsamp(~1,~1,~1, umf, K=6), "larger than")
+
     #When output = density
     #fm_R <- gdistsamp(~1, ~1, ~1, umf, output="density", se=FALSE, engine="R")
     fm_C <- gdistsamp(~1, ~1, ~1, umf, output="density", se=FALSE, engine="C")
