@@ -361,7 +361,7 @@ test_that("occuCOP can fit simple models", {
   expect_no_error(umfNA <- unmarkedFrameOccuCOP(y = yNA, L = L))
 
   expect_warning(fit_NA <- occuCOP(data = umfNA, psistarts = 0, lambdastarts = 0, L1=T))
-  expect_error(occuCOP(data = umfNA, psistarts = 0, lambdastarts = 0, na.rm = F))
+  expect_warning(occuCOP(data = umfNA, psistarts = 0, lambdastarts = 0, na.rm = F))
 })
 
 test_that("We can simulate COP data", {
@@ -478,9 +478,12 @@ test_that("occuCOP can fit and predict models with covariates", {
   expect_equal(bup(r)[1:4], c(0,0,0,0), tol=1e-4) # is this correct?
 
   # With missing values in covs
-  umf_na <- umf
-  umf_na@obsCovs$rain[1] <- NA
-  #umf_na@siteCovs$elev[2] <- NA # Optim error - should be handled somehow?
+  sc_na <- siteCovs(umf)
+  sc_na$elev[1] <- NA
+  oc_na <- obsCovs(umf)
+  oc_na$rain[6] <- NA
+  umf_na <- expect_warning(unmarkedFrameOccuCOP(y=umf@y, siteCovs=sc_na, obsCovs=oc_na))
+
   expect_warning(
   umfit <- occuCOP(
     umf_na,
@@ -490,13 +493,14 @@ test_that("occuCOP can fit and predict models with covariates", {
     na.rm=TRUE
   ))
 
-  # Errors but it shouldn't
-  expect_error(ft <- fitted(umfit))
-  # ditto
-  expect_error(gp <- getP(umfit))
-  #expect_equal(dim(gp), dim(umfit@data@y))
-  #expect_true(is.na(gp[1,1]))
+  expect_warning(ft <- fitted(umfit))
+  expect_equal(dim(ft), c(100,5))
+  expect_true(is.na(ft[2,1]))
 
-  expect_error(expect_warning(r <- ranef(umfit)))
+  expect_warning(gp <- getP(umfit))
+  expect_equal(dim(gp), dim(umfit@data@y))
+  expect_true(is.na(gp[2,1]))
+
+  expect_warning(r <- ranef(umfit))
 })
 
