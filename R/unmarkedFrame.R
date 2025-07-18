@@ -885,6 +885,7 @@ setReplaceMethod("obsToY", "unmarkedFrame", function(object, value) {
 
 setGeneric("getY", function(object) standardGeneric("getY"))
 setMethod("getY", "unmarkedFrame", function(object) object@y)
+setMethod("getY", "unmarkedFrameOccuMulti", function(object) object@ylist[[1]])
 
 
 ################################### SUMMARY METHODS ######################

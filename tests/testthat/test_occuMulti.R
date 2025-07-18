@@ -13,6 +13,12 @@ test_that("unmarkedFrameOccuMulti construction and methods work",{
   s <- capture.output(summary(umf))
   expect_equal(s[4], "2 species: sp1 sp2 ")
 
+  # Check getY
+  umf@y <- matrix(NA, 5, 3) 
+  expect_equal(getY(umf), umf@ylist[[1]])
+  df_test <- as(umf, "data.frame")
+  expect_equal(as.numeric(as.matrix(df_test)), as.numeric(umf@ylist[[1]]))
+
   # Check plot
   pdf(NULL)
   pl <- plot(umf)

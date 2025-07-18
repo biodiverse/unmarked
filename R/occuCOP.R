@@ -159,7 +159,7 @@ setMethod(
       matrix(missing_oc, M, J, byrow = T)
     
     if (any(removed_obs)) {
-      if (na.rm) {
+      #if (na.rm) {
         nb_missing_sites <- sum(rowSums(!removed_obs) == 0)
         nb_missing_observations <- sum(is.na(removed_obs))
         warning("There is missing data: ",
@@ -169,12 +169,12 @@ setMethod(
                 "Data from only ", (M*J)-sum(removed_obs), " observations out of ", (M*J), " are used, ",
                 "from ", M-nb_missing_sites, " sites out of ", M, ".\n\t"
         )
-      } else {
-        stop("na.rm=FALSE and there is missing data :\n\t",
-             sum(missing_y), " missing count data (y)\n\t",
-             sum(missing_sc), " missing site covariates (siteCovs)\n\t",
-             sum(missing_oc), " missing observation covariates (obsCovs)")
-      }
+      #} else {
+      #  stop("na.rm=FALSE and there is missing data :\n\t",
+      #       sum(missing_y), " missing count data (y)\n\t",
+      #       sum(missing_sc), " missing site covariates (siteCovs)\n\t",
+      #       sum(missing_oc), " missing observation covariates (obsCovs)")
+      #}
     }
     
     # Output -------------------------------------------------------------------
@@ -461,12 +461,11 @@ setMethod("nonparboot_internal", "unmarkedFitOccuCOP",
 setMethod("ranef_internal", "unmarkedFitOccuCOP", function(object, ...) {
   # Sites removed (srm) and sites kept (sk)
   srm <- object@sitesRemoved
+  sk <- 1:numSites(getData(object))
   if (length(srm) > 0) {
-    sk = 1:numSites(getData(object))[-srm]
-  } else{
-    sk = 1:numSites(getData(object))
+    sk = sk[-srm]
   }
-  
+
   # unmarkedFrame informations
   M <- length(sk)
   J <- obsNum(getData(object))

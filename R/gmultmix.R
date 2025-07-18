@@ -132,16 +132,19 @@ if(engine=="R"){
     as.vector(t(out))
   }
   y_long <- long_format(y)
-  kmytC <- kmyt
-  kmytC[which(is.na(kmyt))] <- 0
 
+  # Vectorize these arrays as using arma::subcube sometimes crashes
+  kmytC <- as.vector(aperm(kmyt, c(3,2,1)))
+  kmytC[which(is.na(kmytC))] <- 0
+  lfac.kmytC <- as.vector(aperm(lfac.kmyt, c(3,2,1)))
+ 
   mixture_code <- switch(mixture, P={1}, NB={2}, ZIP={3})
   n_param <- c(nLP, nPP, nDP, mixture%in%c("NB","ZIP"))
   Kmin <- apply(yt, 1, max, na.rm=TRUE)
 
   nll <- function(params) {
     nll_gmultmix(params, n_param, y_long, mixture_code, piFun, Xlam, Xlam.offset,
-                 Xphi, Xphi.offset, Xdet, Xdet.offset, k, lfac.k, lfac.kmyt,
+                 Xphi, Xphi.offset, Xdet, Xdet.offset, k, lfac.k, lfac.kmytC,
                  kmytC, Kmin, threads)
   }
 

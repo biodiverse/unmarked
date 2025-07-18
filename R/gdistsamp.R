@@ -52,7 +52,14 @@ yt <- apply(y, 1:2, function(x) {
     else return(sum(x, na.rm=TRUE))
     })
 
-if(missing(K) || is.null(K)) K <- max(yt, na.rm=TRUE) + 100
+minK <- max(yt, na.rm=TRUE)
+if(missing(K) || is.null(K)){
+  K <- minK + 100
+} else {
+  if(K < minK){
+    stop("K should be larger than the max observed abundance, ", minK, call.=FALSE)
+  }
+}
 k <- 0:K
 lk <- length(k)
 

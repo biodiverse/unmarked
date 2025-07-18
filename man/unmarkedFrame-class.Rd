@@ -4,6 +4,7 @@
 \alias{unmarkedFrame-class}
 \alias{getY}
 \alias{getY,unmarkedFrame-method}
+\alias{getY,unmarkedFrameOccuMulti-method}
 \alias{head,unmarkedFrame-method}
 \alias{hist,unmarkedFrameDS-method}
 \alias{numSites}

@@ -413,3 +413,25 @@ vcov_TMB <- function(object, type, fixedOnly){
   }
   v
 }
+
+# Check if various objects have random effects
+setGeneric("has_random", function(object){
+  standardGeneric("has_random")
+})
+
+setMethod("has_random", "unmarkedEstimate", function(object){
+  methods::.hasSlot(object, "randomVarInfo") &&
+    length(object@randomVarInfo) > 0
+})
+
+setMethod("has_random", "unmarkedEstimateList", function(object){
+  any(sapply(object@estimates, has_random))
+})
+
+setMethod("has_random", "unmarkedFit", function(object){
+  has_random(object@estimates)
+})
+
+setMethod("has_random", "formula", function(object){
+  length(reformulas::findbars(object)) > 0
+})
