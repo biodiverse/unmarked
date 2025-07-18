@@ -238,15 +238,15 @@ setMethod("model.matrix", "unmarkedSubmodelTransition",
   mm
 })
 
-setGeneric("has_random", function(object) standardGeneric("has_random"))
+#setGeneric("has_random", function(object) standardGeneric("has_random"))
 
-setMethod("has_random", "formula", function(object){
-  length(reformulas::findbars(object)) > 0
-})
+#setMethod("has_random", "formula", function(object){
+#  length(reformulas::findbars(object)) > 0
+#})
 
-setMethod("has_random", "unmarkedSubmodel", function(object){
-  has_random(object@formula) 
-})
+#setMethod("has_random", "unmarkedSubmodel", function(object){
+#  has_random(object@formula) 
+#})
 
 setGeneric("Z_matrix", function(object, ...){
   standardGeneric("Z_matrix")
@@ -493,9 +493,9 @@ setMethod("[<-", "unmarkedSubmodelList", function(x, i, value){
   x
 })
 
-setMethod("has_random", "unmarkedSubmodelList", function(object){
-  sapply(submodels(object), has_random)
-})
+#setMethod("has_random", "unmarkedSubmodelList", function(object){
+#  sapply(submodels(object), has_random)
+#})
 
 setGeneric("get_parameter_idx", function(object, ...){
   standardGeneric("get_parameter_idx")

@@ -435,3 +435,11 @@ setMethod("has_random", "unmarkedFit", function(object){
 setMethod("has_random", "formula", function(object){
   length(reformulas::findbars(object)) > 0
 })
+
+setMethod("has_random", "unmarkedSubmodel", function(object){
+  has_random(object@formula) 
+})
+
+setMethod("has_random", "unmarkedSubmodelList", function(object){
+  sapply(submodels(object), has_random)
+})
