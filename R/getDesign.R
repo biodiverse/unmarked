@@ -3,154 +3,107 @@
 setGeneric("getDesign", function(umf, ...) standardGeneric("getDesign"))
 setGeneric("handleNA", function(umf, ...) standardGeneric("handleNA"))
 
+# Utility functions used in several methods------------------------------------
+get_model_matrix <- function(formula, covs){
+  miss_vars <- all.vars(formula)[!all.vars(formula) %in% names(covs)]
+  if(length(miss_vars) > 0){
+    stop(paste("Variable(s)", paste(miss_vars, collapse=", "), 
+                "not found in siteCovs"), call.=FALSE)
+  }
 
+  formula <- reformulas::nobars(formula)
 
-# unmarkedFrame
+  X_mf <- model.frame(formula, covs, na.action = stats::na.pass)
+  model.matrix(formula, X_mf)
+}
 
-setMethod("getDesign", "unmarkedFrame",
-    function(umf, formula, na.rm=TRUE)
-{
-    detformula <- reformulas::nobars(as.formula(formula[[2]]))
-    stateformula <- reformulas::nobars(as.formula(paste("~", formula[3], sep="")))
-    detVars <- all.vars(detformula)
+get_offset <- function(formula, covs){
+  formula <- reformulas::nobars(formula)
+  X_mf <- model.frame(formula, covs, na.action = stats::na.pass)
+  offset <- as.vector(model.offset(X_mf))
+  if (!is.null(offset)) {
+    offset[is.na(offset)] <- 0
+  } else {
+    offset <- rep(0, nrow(X_mf)) 
+  }
+  offset
+}
 
-    M <- numSites(umf)
-    R <- obsNum(umf)
+row_has_na <- function(mat){
+  apply(mat, 1, function(x) any(is.na(x))) 
+}
 
-    ## Compute state design matrix
-    if(is.null(siteCovs(umf))) {
-        siteCovs <- data.frame(placeHolder = rep(1, M))
-    } else {
-        siteCovs <- siteCovs(umf)
-    }
-    miss_vars <-all.vars(stateformula)[!all.vars(stateformula) %in% names(siteCovs)]
-    if(length(miss_vars) > 0){
-      stop(paste("Variable(s)", paste(miss_vars, collapse=", "), 
-                 "not found in siteCovs"), call.=FALSE)
-    }
-    X.mf <- model.frame(stateformula, siteCovs, na.action = NULL)
-    X <- model.matrix(stateformula, X.mf)
-    X.offset <- as.vector(model.offset(X.mf))
-    if (!is.null(X.offset)) {
-        X.offset[is.na(X.offset)] <- 0
-    }
+row_all_na <- function(mat){
+  apply(mat, 1, function(x) all(is.na(x))) 
+}
 
-    ## Compute detection design matrix
-    if(is.null(obsCovs(umf))) {
-        obsCovs <- data.frame(placeHolder = rep(1, M*R))
-    } else {
-        obsCovs <- obsCovs(umf)
-    }
+# getDesign methods------------------------------------------------------------
 
-    ## Record future column names for obsCovs
-    colNames <- c(colnames(obsCovs), colnames(siteCovs))
+# generic method for unmarkedFrame
+# used by distsamp, multinomPois, occu, occuPEN, occuRN, pcount, pcount.spHDS, IDS
+setMethod("getDesign", "unmarkedFrame", 
+  function(umf, formula, na.rm = TRUE, ...){
 
-    ## add site Covariates at observation-level
-    obsCovs <- cbind(obsCovs, siteCovs[rep(1:M, each = R),])
-    colnames(obsCovs) <- colNames
+  M <- numSites(umf)
+  J <- obsNum(umf)
+  y <- getY(umf)
 
-    ## add observation number if not present
-    if(!("obsNum" %in% names(obsCovs))) {
-        obsCovs <- cbind(obsCovs, obsNum = as.factor(rep(1:R, M)))
-    }
+  formulas <- split_formula(formula)
+  stateformula <- formulas[[2]]
+  detformula <- formulas[[1]]
 
-    miss_vars <-all.vars(detformula)[!all.vars(detformula) %in% names(obsCovs)]
-    if(length(miss_vars) > 0){
-      stop(paste("Variable(s)", paste(miss_vars, collapse=", "), 
-                 "not found in obsCovs"), call.=FALSE)
-    }
-    V.mf <- model.frame(detformula, obsCovs, na.action = NULL)
-    V <- model.matrix(detformula, V.mf)
-    V.offset <- as.vector(model.offset(V.mf))
-    if (!is.null(V.offset)) {
-        V.offset[is.na(V.offset)] <- 0
-    }
+  # Process covariates
+  covs <- clean_up_covs(umf)
+  # add observation number if not present for backwards compatibility
+  if(!("obsNum" %in% names(covs$obs_covs))) {
+    covs$obs_covs$obsNum <- as.factor(rep(1:J, M))
+  }
+  
+  # Model matrices and offset for state submodel
+  X_state <- get_model_matrix(stateformula, covs$site_covs)
+  offset_state <- get_offset(stateformula, covs$site_covs)
+  Z_state <- get_Z(stateformula, covs$site_covs)
 
-    #Generate random effects indicator matrices
-    sf_rand <- as.formula(paste("~", formula[3], sep=""))
-    df_rand <- as.formula(formula[[2]])
-    Z_state <- get_Z(sf_rand, siteCovs)
-    Z_det <- get_Z(df_rand, obsCovs)
+  # Model matrices and offset for detection submodel
+  X_det <- get_model_matrix(detformula, covs$obs_covs)
+  offset_det <- get_offset(detformula, covs$obs_covs)
+  Z_det <- get_Z(detformula, covs$obs_covs)
 
-    if (na.rm) {
-        out <- handleNA(umf, X, X.offset, V, V.offset, Z_state, Z_det)
-        y <- out$y
-        X <- out$X
-        X.offset <- out$X.offset
-        V <- out$V
-        V.offset <- out$V.offset
-        Z_state <- out$Z_state
-        Z_det <- out$Z_det
-        removed.sites <- out$removed.sites
-    } else {
-        y=getY(umf)
-        removed.sites=integer(0)
-    }
+  # Identify missing values in state covs
+  has_na_site <- row_has_na(cbind(X_state, Z_state))
+  has_na_site <- matrix(rep(has_na_site, ncol(y)), M)
 
-    if (is.null(X.offset)) X.offset <- rep(0, nrow(X))
-    if (is.null(V.offset)) V.offset <- rep(0, nrow(V))
+  # Identify missing values in det covs
+  has_na_obs <- row_has_na(cbind(X_det, Z_det))
+  has_na_obs <- matrix(has_na_obs, M, J, byrow=TRUE)
+  has_na_obs <- has_na_obs %*% umf@obsToY > 0
 
-    return(list(y = y, X = X, X.offset = X.offset, V = V,
-                V.offset = V.offset,
-                Z_state = Z_state, Z_det = Z_det,
-                removed.sites = removed.sites))
+  # Combine missing value information
+  has_na <- has_na_site | has_na_obs
+  stopifnot(identical(dim(y), dim(has_na)))
+  y[has_na] <- NA
+  drop_sites <- row_all_na(y)
+
+  # Drop sites with all NAs if requested
+  if(na.rm & any(drop_sites)){
+    warning("Site(s) ", paste(which(drop_sites), collapse = ","),
+            " dropped due to missing values", call.=FALSE)
+    y <- y[!drop_sites,,drop=FALSE]
+    X_state <- X_state[!drop_sites,,drop=FALSE]
+    offset_state <- offset_state[!drop_sites]
+    Z_state <- Z_state[!drop_sites,,drop=FALSE]
+    
+    drop_sites_obs <- rep(drop_sites, each = J)
+    X_det <- X_det[!drop_sites_obs,,drop=FALSE]
+    offset_det <- offset_det[!drop_sites_obs]
+    Z_det <- Z_det[!drop_sites_obs,,drop=FALSE]
+  }
+
+  list(y = y, 
+       X = X_state, X.offset = offset_state, Z_state = Z_state,
+       V = X_det, V.offset = offset_det, Z_det = Z_det,
+       removed.sites = which(drop_sites))
 })
-
-
-setMethod("handleNA", "unmarkedFrame",
-          function(umf, X, X.offset, V, V.offset, Z_state, Z_det)
-{
-    obsToY <- obsToY(umf)
-    if(is.null(obsToY)) stop("obsToY cannot be NULL to clean data.")
-
-    J <- numY(umf)
-    R <- obsNum(umf)
-    M <- numSites(umf)
-
-    X.long <- X[rep(1:M, each = J),]
-    X.long.na <- is.na(X.long)
-
-    V.long.na <- apply(V, 2, function(x) {
-        x.mat <- matrix(x, M, R, byrow = TRUE)
-        x.mat <- is.na(x.mat)
-        x.mat <- x.mat %*% obsToY
-        x.long <- as.vector(t(x.mat))
-        x.long > 0
-        })
-    V.long.na <- apply(V.long.na, 1, any)
-
-    y.long <- as.vector(t(getY(umf)))
-    y.long.na <- is.na(y.long)
-
-    covs.na <- apply(cbind(X.long.na, V.long.na), 1, any)
-
-    ## are any NA in covs not in y already?
-    y.new.na <- covs.na & !y.long.na
-
-    if(sum(y.new.na) > 0) {
-        y.long[y.new.na] <- NA
-        warning("Some observations have been discarded because corresponding covariates were missing.", call. = FALSE)
-    }
-
-    y <- matrix(y.long, M, J, byrow = TRUE)
-    sites.to.remove <- apply(y, 1, function(x) all(is.na(x)))
-
-    num.to.remove <- sum(sites.to.remove)
-    if(num.to.remove > 0) {
-        y <- y[!sites.to.remove, ,drop = FALSE]
-        X <- X[!sites.to.remove, ,drop = FALSE]
-        X.offset <- X.offset[!sites.to.remove]
-        V <- V[!sites.to.remove[rep(1:M, each = R)], ,drop = FALSE]
-        V.offset <- V.offset[!sites.to.remove[rep(1:M, each = R)], ]
-        if(nrow(Z_state)>0) Z_state <- Z_state[!sites.to.remove, , drop=FALSE]
-        if(nrow(Z_det)>0) Z_det <- Z_det[!sites.to.remove[rep(1:M, each = R)],,drop=FALSE]
-        warning(paste(num.to.remove,"sites have been discarded because of missing data."), call. = FALSE)
-        }
-
-    list(y = y, X = X, X.offset = X.offset, V = V, V.offset = V.offset,
-         Z_state = Z_state, Z_det = Z_det,
-        removed.sites = which(sites.to.remove))
-    })
 
 
 # unmarkedFrameOccuFP
