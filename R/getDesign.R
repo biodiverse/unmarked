@@ -112,11 +112,10 @@ setMethod("getDesign", "unmarkedFrame",
 setMethod("getDesign", "unmarkedFrameOccuFP",
   function(umf, detformula, FPformula, Bformula, stateformula, na.rm = TRUE){
 
+  # Process state and true detection with generic umf method
   # Combine detection and state formulas
   comb_form <- list(as.name("~"), detformula, stateformula[[2]])
   comb_form <- as.formula(as.call(comb_form))
- 
-  # Process state and true detection with generic umf method
   out <- methods::callNextMethod(umf, formula = comb_form, na.rm = FALSE)
  
   M <- numSites(umf)
@@ -174,170 +173,77 @@ setMethod("getDesign", "unmarkedFrameOccuFP",
 
 
 # UnmarkedMultFrame
-
-
-
-
+# used by colext and others
 setMethod("getDesign", "unmarkedMultFrame",
-    function(umf, formula, na.rm = TRUE) {
+  function(umf, formula, na.rm = TRUE){
 
-    aschar1 <- as.character(formula)
-    aschar2 <- as.character(formula[[2]])
-    aschar3 <- as.character(formula[[2]][[2]])
+  psiformula <- as.formula(formula[[2]][[2]][[2]])  
+  gamformula <- as.formula(as.call(list(as.name("~"), formula[[2]][[2]][[3]])))
+  epsformula <- as.formula(as.call(list(as.name("~"), formula[[2]][[3]])))
+  detformula <- as.formula(as.call(list(as.name("~"), formula[[3]])))
+ 
+  # Process state and detection with generic umf method  
+  comb_form <- list(as.name("~"), detformula, psiformula[[2]])
+  comb_form <- as.formula(as.call(comb_form))
+  out <- methods::callNextMethod(umf, formula = comb_form, na.rm = FALSE)
+ 
+  M <- numSites(umf)
+  R <- obsNum(umf)
+  T <- umf@numPrimary
+  J <- R / T
 
-    detformula <- as.formula(paste(aschar1[1], aschar1[3]))
-    epsformula <- as.formula(paste(aschar2[1], aschar2[3]))
-    gamformula <- as.formula(paste(aschar3[1], aschar3[3]))
-    psiformula <- as.formula(formula[[2]][[2]][[2]])
+  y <- out$y
 
-    detVars <- all.vars(detformula)
+  # Process covariates
+  # Note drop_final = TRUE to remove unused factor levels
+  # The rows are actually dropped in colext()
+  covs <- clean_up_covs(umf, drop_final = TRUE)
 
-    M <- numSites(umf)
-    R <- obsNum(umf)
-    nY <- umf@numPrimary
-    J <- R / nY
+  # add observation number if not present for backwards compatibility
+  if(!("obsNum" %in% names(covs$obs_covs))) {
+    covs$obs_covs$obsNum <- as.factor(rep(1:R, M))
+  }
 
-    ## Compute phi design matrices
-    if(is.null(umf@yearlySiteCovs)) {
-        yearlySiteCovs <- data.frame(placeHolder = rep(1, M*nY))
-    } else {
-        yearlySiteCovs <- umf@yearlySiteCovs
-    }
-    ## add siteCovs in so they can be used as well
-    if(!is.null(umf@siteCovs)) {
-        sC <- umf@siteCovs[rep(1:M, each = nY),,drop=FALSE]
-        yearlySiteCovs <- cbind(yearlySiteCovs, sC)
-        }
+  # Model matrix for colonization
+  X_col <- get_model_matrix(gamformula, covs$yearly_site_covs)
+  offset_col <- get_offset(gamformula, covs$yearly_site_covs)
 
-    ## Compute site-level design matrix for psi
-    if(is.null(siteCovs(umf)))
-        siteCovs <- data.frame(placeHolder = rep(1, M))
-    else
-        siteCovs <- siteCovs(umf)
+  # Model matrix for extinction
+  X_ext <- get_model_matrix(epsformula, covs$yearly_site_covs)
+  offset_ext <- get_offset(epsformula, covs$yearly_site_covs)
 
-    W.mf <- model.frame(psiformula, siteCovs, na.action = NULL)
-    if(!is.null(model.offset(W.mf)))
-        stop("offsets not currently allowed in colext", call.=FALSE)
-    W <- model.matrix(psiformula, W.mf)
+  # Error if any offsets specified
+  if(any(c(offset_col, offset_ext, out$X.offset, out$V.offset) != 0)){
+    stop("Offsets not allowed in colext", call.=FALSE)
+  }
 
+  # Check missing values
+  has_na <- row_has_na(cbind(X_col, X_ext))
+  has_na <- rep(has_na, each = J) # expand to match observation dims
+  has_na <- matrix(has_na, M, R, byrow=TRUE)
+  has_na[1:M, ((T-1)*J+1):R] <- FALSE # last period isn't actually missing
+  stopifnot(identical(dim(y), dim(has_na)))
+  y[has_na] <- NA
+  drop_sites <- row_all_na(y)
 
-    ## Compute detection design matrix
-    if(is.null(obsCovs(umf)))
-        obsCovs <- data.frame(placeHolder = rep(1, M*R))
-    else
-        obsCovs <- obsCovs(umf)
+  # Remove missing sites if requested
+  if(na.rm & any(drop_sites)){
+    warning("Site(s) ", paste(which(drop_sites), collapse = ","),
+            " dropped due to missing values", call.=FALSE)
+    y <- y[!drop_sites,,drop=FALSE]
+    out$X <- out$X[!drop_sites,,drop=FALSE]
+    drop_sites_per <- rep(drop_sites, each = T)
+    X_col <- X_col[!drop_sites_per,,drop=FALSE]
+    X_ext <- X_ext[!drop_sites_per,,drop=FALSE]
+    drop_sites_obs <- rep(drop_sites, each = R)
+    out$V <- out$V[!drop_sites_obs,,drop=FALSE]
+  }
 
-    ## add site and yearlysite covariates, which contain siteCovs
-    cnames <- c(colnames(obsCovs), colnames(yearlySiteCovs))
-    obsCovs <- cbind(obsCovs, yearlySiteCovs[rep(1:(M*nY), each = J),])
-    colnames(obsCovs) <- cnames
-
-    ## add observation number if not present
-    if(!("obsNum" %in% names(obsCovs)))
-        obsCovs <- cbind(obsCovs, obsNum = as.factor(rep(1:R, M)))
-
-    V.mf <- model.frame(detformula, obsCovs, na.action = NULL)
-    if(!is.null(model.offset(V.mf)))
-        stop("offsets not currently allowed in colext", call.=FALSE)
-    V <- model.matrix(detformula, V.mf)
-
-    ## in order to drop factor levels that only appear in last year,
-    ## replace last year with NAs and use drop=TRUE
-    yearlySiteCovs[seq(nY,M*nY,by=nY),] <- NA
-    yearlySiteCovs <- as.data.frame(lapply(yearlySiteCovs, function(x) {
-        x[,drop = TRUE]
-        }))
-
-    X.mf.gam <- model.frame(gamformula, yearlySiteCovs, na.action = NULL)
-    if(!is.null(model.offset(X.mf.gam)))
-        stop("offsets not currently allowed in colext", call.=FALSE)
-    X.gam <- model.matrix(gamformula, X.mf.gam)
-    X.mf.eps <- model.frame(epsformula, yearlySiteCovs, na.action = NULL)
-    if(!is.null(model.offset(X.mf.eps)))
-        stop("offsets not currently allowed in colext", call.=FALSE)
-    X.eps <- model.matrix(epsformula, X.mf.eps)
-
-    if(na.rm)
-        out <- handleNA(umf, X.gam, X.eps, W, V)
-    else
-        out <- list(y=getY(umf), X.gam=X.gam, X.eps=X.eps, W=W, V=V,
-            removed.sites=integer(0))
-
-    return(list(y = out$y, X.eps = out$X.eps, X.gam = out$X.gam, W = out$W,
-        V = out$V, removed.sites = out$removed.sites))
+  # Combine outputs
+  list(y = y, W = out$X, X.gam = X_col, X.eps = X_ext, V = out$V,
+       removed.sites = which(drop_sites))
 })
 
-
-
-
-
-
-setMethod("handleNA", "unmarkedMultFrame",
-    function(umf, X.gam, X.eps, W, V)
-{
-    obsToY <- obsToY(umf)
-    if(is.null(obsToY)) stop("obsToY cannot be NULL to clean data.")
-
-    R <- obsNum(umf)
-    M <- numSites(umf)
-    nY <- umf@numPrimary
-    J <- numY(umf) / nY
-
-    ## treat both X's #######no: and W together
-#    X <- cbind(X.gam, X.eps, W[rep(1:M, each = nY), ])
-    X <- cbind(X.gam, X.eps)
-
-    X.na <- is.na(X)
-    X.na[seq(nY,M*nY,by=nY),] <- FALSE  ## final years are unimportant.
-                                        ## not true for W covs!!!
-    W.expand <- W[rep(1:M, each=nY),,drop=FALSE]
-    W.na <- is.na(W.expand)
-    X.na <- cbind(X.na, W.na) # NAs in siteCovs results in removed site
-
-    X.long.na <- X.na[rep(1:(M*nY), each = J),]
-
-    V.long.na <- apply(V, 2, function(x) {
-        x.mat <- matrix(x, M, R, byrow = TRUE)
-        x.mat <- is.na(x.mat)
-        x.mat <- x.mat %*% obsToY
-        x.long <- as.vector(t(x.mat))
-        x.long > 0
-    })
-    V.long.na <- apply(V.long.na, 1, any)
-
-    y.long <- as.vector(t(getY(umf)))
-    y.long.na <- is.na(y.long)
-
-    # It doesn't make sense to combine X.gam/eps with W here b/c
-    # a X.eps does not map correctly to y
-    covs.na <- apply(cbind(X.long.na, V.long.na), 1, any)
-
-    ## are any NA in covs not in y already?
-    y.new.na <- covs.na & !y.long.na
-
-    if(sum(y.new.na) > 0) {
-        y.long[y.new.na] <- NA
-        warning("Some observations have been discarded because correspoding covariates were missing.", call. = FALSE)
-        }
-
-    y <- matrix(y.long, M, numY(umf), byrow = TRUE)
-    sites.to.remove <- apply(y, 1, function(x) all(is.na(x)))
-#    Perhaps we need to remove sites that have no data in T=1
-#    noDataT1 <- apply(is.na(y[,1:J]), 1, all) #
-#    sites.to.remove <- sites.to.remove | noDataT1
-
-    num.to.remove <- sum(sites.to.remove)
-    if(num.to.remove > 0) {
-        y <- y[!sites.to.remove, ,drop = FALSE]
-        X.gam <- X.gam[!sites.to.remove[rep(1:M, each = nY)],,drop = FALSE]
-        X.eps <- X.eps[!sites.to.remove[rep(1:M, each = nY)],,drop = FALSE]
-        W <- W[!sites.to.remove,, drop = FALSE] # !!! Recent bug fix
-        V <- V[!sites.to.remove[rep(1:M, each = R)], ,drop = FALSE]
-        warning(paste(num.to.remove,"sites have been discarded because of missing data."), call. = FALSE)
-    }
-    list(y = y, X.gam = X.gam, X.eps = X.eps, W = W, V = V,
-        removed.sites = which(sites.to.remove))
-})
 
 # occuMulti
 

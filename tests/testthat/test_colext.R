@@ -111,18 +111,18 @@ test_that("colext handles missing values",{
   umf2@y[1,3] <- NA
 
   fm1 <- colext(~1, ~1, ~1, ~1, umf2)
-  expect_is(fm1, "unmarkedFitColExt")
+  expect_equal(fm1@AIC, 50.48498, tol=1e-4)
 
   umf3 <- umf1
   umf3@y[1,] <- NA
   expect_warning(fm2 <- colext(~1, ~1, ~1, ~1, umf3))
-  expect_is(fm2, "unmarkedFitColExt")
+  expect_equal(fm2@AIC, 41.87926, tol=1e-4)
   expect_equal(fm2@sitesRemoved, 1)
 
   umf4 <- umf1
   umf4@y[1,3:4] <- NA
   fm3 <- colext(~1, ~1, ~1, ~1, umf4)
-  expect_is(fm3, "unmarkedFitColExt")
+  expect_equal(fm3@AIC, 47.74454, tol=1e-4)
 
   umf5 <- umf1
   umf5@siteCovs$sc1[2] <- NA
@@ -181,4 +181,13 @@ test_that("colext methods work",{
   nd <- data.frame(sc1=c(0,1))
   pr4 <- predict(fm1, 'psi', newdata=nd)
   expect_equal(nrow(pr4), 2)
+})
+
+test_that("Missing primary periods are handled correctly", {
+  #https://github.com/biodiverse/unmarked/pull/40
+  y <- readRDS("data/colext_missing_periods.Rds")
+  umf <- unmarkedMultFrame(y = y, numPrimary = 9)
+  fit <- colext(data = umf)
+  expect_equal(round(unname(coef(fit)), 4),
+               c(-0.0254, -2.1375, -2.0540, 0.8759))
 })
