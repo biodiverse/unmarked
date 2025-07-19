@@ -237,10 +237,11 @@ setMethod("ranef_internal", "unmarkedFitGOccu", function(object, ...){
   p_array <- array(t(p), c(J, T, M))
   
   Z <- ZZ <- 0:1
-  post <- array(0, c(M, 2, 1))
+  post <- array(NA, c(M, 2, 1))
   colnames(post) <- Z
 
   for(i in 1:M) {
+    if(i %in% object@sitesRemoved) next
     f <- dbinom(Z, 1, psi[i])
     
     ghi <- rep(0, 2)

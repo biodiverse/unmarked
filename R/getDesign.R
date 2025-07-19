@@ -106,7 +106,7 @@ setMethod("getDesign", "unmarkedFrame",
 })
 
 
-# unmarkedFrameOccuFP
+# unmarkedFrameOccuFP, used by occuFP
 # there are 3 observation formula which are stored in V (true positive detections),
 # U (false positive detections), and W (b or probability detetion is certain)
 setMethod("getDesign", "unmarkedFrameOccuFP",
@@ -173,7 +173,7 @@ setMethod("getDesign", "unmarkedFrameOccuFP",
 
 
 # UnmarkedMultFrame
-# used by colext and others
+# used by colext
 setMethod("getDesign", "unmarkedMultFrame",
   function(umf, formula, na.rm = TRUE){
 
@@ -241,6 +241,69 @@ setMethod("getDesign", "unmarkedMultFrame",
 
   # Combine outputs
   list(y = y, W = out$X, X.gam = X_col, X.eps = X_ext, V = out$V,
+       removed.sites = which(drop_sites))
+})
+
+
+# unmarkedFrameG3 (gpcount, gmultmix, gdistsamp, goccu)
+setMethod("getDesign", "unmarkedFrameG3",
+  function(umf, formula, na.rm = TRUE){
+
+  lamformula <- as.formula(formula[[2]][[2]])  
+  phiformula <- as.formula(as.call(list(as.name("~"), formula[[2]][[3]])))
+  detformula <- as.formula(as.call(list(as.name("~"), formula[[3]])))
+ 
+  # Process state and detection with generic umf method  
+  comb_form <- list(as.name("~"), detformula, lamformula[[2]])
+  comb_form <- as.formula(as.call(comb_form))
+  getDesign_generic <- methods::getMethod("getDesign", "unmarkedFrame")
+  out <- getDesign_generic(umf, formula = comb_form, na.rm = FALSE)
+ 
+  M <- numSites(umf)
+  R <- obsNum(umf)
+  T <- umf@numPrimary
+  J <- numY(umf) / T
+
+  y <- out$y
+
+  # Process covariates
+  covs <- clean_up_covs(umf)
+  # add observation number if not present for backwards compatibility
+  if(!("obsNum" %in% names(covs$obs_covs))) {
+    covs$obs_covs$obsNum <- as.factor(rep(1:R, M))
+  }
+
+  # Model matrix for availability
+  X_phi <- get_model_matrix(phiformula, covs$yearly_site_covs)
+  offset_phi <- get_offset(phiformula, covs$yearly_site_covs)
+
+  # Check missing values
+  has_na <- row_has_na(X_phi)
+  has_na <- rep(has_na, each = J) # expand to match observation dims
+  has_na <- matrix(has_na, M, numY(umf), byrow=TRUE)
+  stopifnot(identical(dim(y), dim(has_na)))
+  y[has_na] <- NA
+  drop_sites <- row_all_na(y)
+
+  # Remove missing sites if requested
+  if(na.rm & any(drop_sites)){
+    warning("Site(s) ", paste(which(drop_sites), collapse = ","),
+            " dropped due to missing values", call.=FALSE)
+    y <- y[!drop_sites,,drop=FALSE]
+    out$X <- out$X[!drop_sites,,drop=FALSE]
+    out$X.offset <- out$X.offset[!drop_sites]
+    drop_sites_per <- rep(drop_sites, each = T)
+    X_phi <- X_phi[!drop_sites_per,,drop=FALSE]
+    offset_phi <- offset_phi[!drop_sites_per]
+    drop_sites_obs <- rep(drop_sites, each = R)
+    out$V <- out$V[!drop_sites_obs,,drop=FALSE]
+    out$V.offset <- out$V.offset[!drop_sites_obs]
+  }
+
+  # Combine outputs
+  test = list(y = y, Xlam = out$X, Xlam.offset = out$X.offset,
+       Xphi = X_phi, Xphi.offset = offset_phi,
+       Xdet = out$V, Xdet.offset = out$V.offset,
        removed.sites = which(drop_sites))
 })
 
@@ -1189,153 +1252,3 @@ setMethod("handleNA", "unmarkedFrameDSO",
              Xiota.offset=Xiota.offset, delta = delta,
              removed.sites = sites.to.remove)
 })
-
-
-# UnmarkedFrameGMN
-
-setMethod("getDesign", "unmarkedFrameG3",
-    function(umf, formula, na.rm = TRUE)
-{
-    ac1 <- as.character(formula)
-    ac2 <- as.character(formula[[2]])
-
-    detformula <- as.formula(paste(ac1[1], ac1[3]))
-    phiformula <- as.formula(paste(ac2[1], ac2[3]))
-    lamformula <- as.formula(formula[[2]][[2]])
-
-    detVars <- all.vars(detformula)
-
-    M <- numSites(umf)
-    T <- umf@numPrimary
-    R <- obsNum(umf) # 2*T for double observer sampling
-                     # 1*T for distance sampling
-                     # nPasses*T for removal sampling
-
-    ## Compute phi design matrices
-    if(is.null(umf@yearlySiteCovs)) {
-        yearlySiteCovs <- data.frame(placeHolder = rep(1, M*T))
-    } else yearlySiteCovs <- umf@yearlySiteCovs
-
-    # add siteCovs in so they can be used as well
-    if(!is.null(umf@siteCovs)) {
-        sC <- umf@siteCovs[rep(1:M, each = T),,drop=FALSE]
-        yearlySiteCovs <- cbind(yearlySiteCovs, sC)
-        }
-
-    Xphi.mf <- model.frame(phiformula, yearlySiteCovs, na.action = NULL)
-    Xphi <- model.matrix(phiformula, Xphi.mf)
-    Xphi.offset <- as.vector(model.offset(Xphi.mf))
-    if(!is.null(Xphi.offset)) Xphi.offset[is.na(Xphi.offset)] <- 0
-
-    # Compute site-level design matrix for lambda
-    if(is.null(siteCovs(umf))) {
-        siteCovs <- data.frame(placeHolder = rep(1, M))
-    } else siteCovs <- siteCovs(umf)
-    Xlam.mf <- model.frame(lamformula, siteCovs, na.action = NULL)
-    Xlam <- model.matrix(lamformula, Xlam.mf)
-    Xlam.offset <- as.vector(model.offset(Xlam.mf))
-    if(!is.null(Xlam.offset)) Xlam.offset[is.na(Xlam.offset)] <- 0
-
-    # Compute detection design matrix
-    if(is.null(obsCovs(umf))) {
-        obsCovs <- data.frame(placeHolder = rep(1, M*R))
-    } else obsCovs <- obsCovs(umf)
-
-    # add site and yearlysite covariates, which contain siteCovs
-    cnames <- c(colnames(obsCovs), colnames(yearlySiteCovs))
-    obsCovs <- cbind(obsCovs, yearlySiteCovs[rep(1:(M*T), each = R/T),])
-    colnames(obsCovs) <- cnames
-
-    # add observation number if not present
-    if(!("obsNum" %in% names(obsCovs)))
-        obsCovs <- cbind(obsCovs, obsNum = as.factor(rep(1:R, M)))
-
-    Xdet.mf <- model.frame(detformula, obsCovs, na.action = NULL)
-    Xdet <- model.matrix(detformula, Xdet.mf)
-    Xdet.offset <- as.vector(model.offset(Xdet.mf))
-    if(!is.null(Xdet.offset)) Xdet.offset[is.na(Xdet.offset)] <- 0
-
-    if(na.rm)
-        out <- handleNA(umf, Xlam, Xlam.offset, Xphi, Xphi.offset, Xdet,
-            Xdet.offset)
-    else
-        out <- list(y=getY(umf), Xlam=Xlam, Xlam.offset = Xlam.offset,
-            Xphi=Xphi, Xphi.offset = Xphi.offset, Xdet=Xdet,
-				    removed.sites=integer(0))
-
-    return(list(y = out$y, Xlam = out$Xlam, Xphi = out$Xphi,
-                Xdet = out$Xdet,
-                Xlam.offset = out$Xlam.offset,
-                Xphi.offset = out$Xphi.offset,
-                Xdet.offset = out$Xdet.offset,
-                removed.sites = out$removed.sites))
-})
-
-
-
-
-
-setMethod("handleNA", "unmarkedFrameG3",
-    function(umf, Xlam, Xlam.offset, Xphi, Xphi.offset, Xdet, Xdet.offset)
-{
-
-#    browser()
-
-    obsToY <- obsToY(umf)
-    if(is.null(obsToY)) stop("obsToY cannot be NULL to clean data.")
-
-    M <- numSites(umf)
-    T <- umf@numPrimary
-    R <- obsNum(umf)
-    J <- numY(umf)/T
-
-    # treat Xphi and Xlam together
-    X <- cbind(Xphi, Xlam[rep(1:M, each = T), ])
-
-    X.na <- is.na(X)
-    X.long.na <- X.na[rep(1:(M*T), each = J),]
-
-    Xdet.long.na <- apply(Xdet, 2, function(x) {
-        x.mat <- matrix(x, M, R, byrow = TRUE)
-        x.mat <- is.na(x.mat)
-        x.mat <- x.mat %*% obsToY
-        x.long <- as.vector(t(x.mat))
-        x.long > 0
-        })
-
-    Xdet.long.na <- apply(Xdet.long.na, 1, any)
-
-    y.long <- as.vector(t(getY(umf)))
-    y.long.na <- is.na(y.long)
-
-    covs.na <- apply(cbind(X.long.na, Xdet.long.na), 1, any)
-
-    ## are any NA in covs not in y already?
-    y.new.na <- covs.na & !y.long.na
-
-    if(sum(y.new.na) > 0) {
-        y.long[y.new.na] <- NA
-        warning("Some observations have been discarded because correspoding covariates were missing.", call. = FALSE)
-    }
-
-    y <- matrix(y.long, M, numY(umf), byrow = TRUE)
-    sites.to.remove <- apply(y, 1, function(x) all(is.na(x)))
-
-    num.to.remove <- sum(sites.to.remove)
-    if(num.to.remove > 0) {
-        y <- y[!sites.to.remove,, drop = FALSE]
-        Xlam <- Xlam[!sites.to.remove,, drop = FALSE]
-        Xlam.offset <- Xlam.offset[!sites.to.remove]
-        Xphi <- Xphi[!sites.to.remove[rep(1:M, each = T)],, drop = FALSE]
-        Xphi.offset <- Xphi.offset[!sites.to.remove[rep(1:M, each = T)]]
-        Xdet <- Xdet[!sites.to.remove[rep(1:M, each = R)],,
-                     drop=FALSE]
-        Xdet.offset <- Xdet.offset[!sites.to.remove[rep(1:M, each=R)]]
-        warning(paste(num.to.remove,
-                      "sites have been discarded because of missing data."), call.=FALSE)
-    }
-    list(y = y, Xlam = Xlam, Xlam.offset = Xlam.offset, Xphi = Xphi,
-        Xphi.offset = Xphi.offset, Xdet = Xdet, Xdet.offset = Xdet.offset,
-        removed.sites = which(sites.to.remove))
-})
-

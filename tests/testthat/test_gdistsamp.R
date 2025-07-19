@@ -647,12 +647,19 @@ test_that("gdistsamp handles NAs",{
                           tlength=rep(transect.length, R), numPrimary=T)
 
   # Fit the model
-  expect_warning(fm1 <- gdistsamp(~1, ~1, ~cov1, umf, keyfun="exp", output="density", se=FALSE))
+  fm1 <- gdistsamp(~1, ~1, ~cov1, umf, keyfun="exp", output="density", se=FALSE)
 
   # Check that getP works
   gp <- getP(fm1)
   expect_equivalent(dim(gp), c(R, T*J))
   expect_true(all(is.na(gp[1,11:15])))
+
+  # Check when site dropped
+  siteCovs(umf) <- data.frame(x = rnorm(30))
+  umf@siteCovs$x[30] <- NA
+  expect_warning(fm1 <- gdistsamp(~x, ~1, ~cov1, umf, keyfun="exp", output="density", se=FALSE))
+  expect_equal(fm1@sitesRemoved, 30)
+  expect_equal(fm1@AIC, 659.9704, tol=1e-4)
 })
 
 test_that("gdistsamp simulate method works",{
