@@ -1,43 +1,7 @@
-
-
+# The getDesign function creates design matrices and handles missing values
+# Many unmarked fitting functions have bespoke getDesign methods
+# Some methods do other things like creating indices, etc.
 setGeneric("getDesign", function(umf, ...) standardGeneric("getDesign"))
-setGeneric("handleNA", function(umf, ...) standardGeneric("handleNA"))
-
-# Utility functions used in several methods------------------------------------
-get_model_matrix <- function(formula, covs){
-  miss_vars <- all.vars(formula)[!all.vars(formula) %in% names(covs)]
-  if(length(miss_vars) > 0){
-    stop(paste("Variable(s)", paste(miss_vars, collapse=", "), 
-                "not found in siteCovs"), call.=FALSE)
-  }
-
-  formula <- reformulas::nobars(formula)
-
-  X_mf <- model.frame(formula, covs, na.action = stats::na.pass)
-  model.matrix(formula, X_mf)
-}
-
-get_offset <- function(formula, covs){
-  formula <- reformulas::nobars(formula)
-  X_mf <- model.frame(formula, covs, na.action = stats::na.pass)
-  offset <- as.vector(model.offset(X_mf))
-  if (!is.null(offset)) {
-    offset[is.na(offset)] <- 0
-  } else {
-    offset <- rep(0, nrow(X_mf)) 
-  }
-  offset
-}
-
-row_has_na <- function(mat){
-  apply(mat, 1, function(x) any(is.na(x))) 
-}
-
-row_all_na <- function(mat){
-  apply(mat, 1, function(x) all(is.na(x))) 
-}
-
-# getDesign methods------------------------------------------------------------
 
 # generic method for unmarkedFrame
 # used by distsamp, multinomPois, occu, occuPEN, occuRN, pcount, pcount.spHDS, IDS
@@ -54,10 +18,6 @@ setMethod("getDesign", "unmarkedFrame",
 
   # Process covariates
   covs <- clean_up_covs(umf)
-  # add observation number if not present for backwards compatibility
-  if(!("obsNum" %in% names(covs$obs_covs))) {
-    covs$obs_covs$obsNum <- as.factor(rep(1:J, M))
-  }
   
   # Model matrices and offset for state submodel
   X_state <- get_model_matrix(stateformula, covs$site_covs)
@@ -76,6 +36,8 @@ setMethod("getDesign", "unmarkedFrame",
   # Identify missing values in det covs
   has_na_obs <- row_has_na(cbind(X_det, Z_det))
   has_na_obs <- matrix(has_na_obs, M, J, byrow=TRUE)
+  # Multiplying by obsToY handles models where the number of estimated parameters
+  # is not the same as the number of observations, such as double-observer models
   has_na_obs <- has_na_obs %*% umf@obsToY > 0
 
   # Combine missing value information
@@ -124,10 +86,6 @@ setMethod("getDesign", "unmarkedFrameOccuFP",
   
   # Process covariates
   covs <- clean_up_covs(umf)
-  # add observation number if not present for backwards compatibility
-  if(!("obsNum" %in% names(covs$obs_covs))) {
-    covs$obs_covs$obsNum <- as.factor(rep(1:J, M))
-  }
   
   # Model matrix and offset for false positives
   X_fp <- get_model_matrix(FPformula, covs$obs_covs)
@@ -137,7 +95,7 @@ setMethod("getDesign", "unmarkedFrameOccuFP",
   X_b <- get_model_matrix(Bformula, covs$obs_covs)
   offset_b <- get_offset(Bformula, covs$obs_covs)
 
-  # Check missing values
+  # Check missing values in FP and b
   has_na <- row_has_na(cbind(X_fp, X_b))
   has_na <- matrix(has_na, M, J, byrow=TRUE)
   has_na <- has_na %*% umf@obsToY > 0
@@ -199,11 +157,6 @@ setMethod("getDesign", "unmarkedMultFrame",
   # The rows are actually dropped in colext()
   covs <- clean_up_covs(umf, drop_final = TRUE)
 
-  # add observation number if not present for backwards compatibility
-  if(!("obsNum" %in% names(covs$obs_covs))) {
-    covs$obs_covs$obsNum <- as.factor(rep(1:R, M))
-  }
-
   # Model matrix for colonization
   X_col <- get_model_matrix(gamformula, covs$yearly_site_covs)
   offset_col <- get_offset(gamformula, covs$yearly_site_covs)
@@ -217,11 +170,13 @@ setMethod("getDesign", "unmarkedMultFrame",
     stop("Offsets not allowed in colext", call.=FALSE)
   }
 
-  # Check missing values
+  # Check missing values in transition parameters
   has_na <- row_has_na(cbind(X_col, X_ext))
   has_na <- rep(has_na, each = J) # expand to match observation dims
   has_na <- matrix(has_na, M, R, byrow=TRUE)
-  has_na[1:M, ((T-1)*J+1):R] <- FALSE # last period isn't actually missing
+  # We don't care about any missing values during the last period
+  # since they are not used in the model. Force has_na to be FALSE for those.
+  has_na[1:M, ((T-1)*J+1):R] <- FALSE
   stopifnot(identical(dim(y), dim(has_na)))
   y[has_na] <- NA
   drop_sites <- row_all_na(y)
@@ -256,6 +211,7 @@ setMethod("getDesign", "unmarkedFrameG3",
   # Process state and detection with generic umf method  
   comb_form <- list(as.name("~"), detformula, lamformula[[2]])
   comb_form <- as.formula(as.call(comb_form))
+  # Have to use getMethod because this inherits from unmarkedMultFrame
   getDesign_generic <- methods::getMethod("getDesign", "unmarkedFrame")
   out <- getDesign_generic(umf, formula = comb_form, na.rm = FALSE)
  
@@ -268,16 +224,12 @@ setMethod("getDesign", "unmarkedFrameG3",
 
   # Process covariates
   covs <- clean_up_covs(umf)
-  # add observation number if not present for backwards compatibility
-  if(!("obsNum" %in% names(covs$obs_covs))) {
-    covs$obs_covs$obsNum <- as.factor(rep(1:R, M))
-  }
 
   # Model matrix for availability
   X_phi <- get_model_matrix(phiformula, covs$yearly_site_covs)
   offset_phi <- get_offset(phiformula, covs$yearly_site_covs)
 
-  # Check missing values
+  # Check missing values in availability
   has_na <- row_has_na(X_phi)
   has_na <- rep(has_na, each = J) # expand to match observation dims
   has_na <- matrix(has_na, M, numY(umf), byrow=TRUE)
@@ -346,7 +298,7 @@ setMethod("getDesign", "unmarkedFrameDailMadsen",
   X_iota <- get_model_matrix(iotaformula, ysc_drop)
   offset_iota <- get_offset(iotaformula, ysc_drop)
 
-  # Detection
+  # Detection, which differs by model type
   det_covs <- covs$obs_covs
   if(inherits(umf, "unmarkedFrameDSO")){
     # Distance sampling detection model uses yearly site covs
@@ -370,11 +322,12 @@ setMethod("getDesign", "unmarkedFrameDailMadsen",
   # the effect is that a missing value for a yearly site cov in the first period actually
   # results in missing y for period 2
   has_na_trans <- cbind(matrix(FALSE, M, J), has_na_trans)
-  #has_na_trans[1:M, ((T-1)*J+1):nY] <- FALSE # last period isn't actually missing
 
   # Identify missing values in det covs
   has_na_obs <- row_has_na(X_det)
   if(inherits(umf, "unmarkedFrameDSO")){
+    # Since DSO detection model matrix is based on yearly site covs, we
+    # need to expand this to match the dimensions of y
     has_na_obs <- rep(has_na_obs, each = R / T)
   }
   has_na_obs <- matrix(has_na_obs, M, R, byrow=TRUE)
@@ -386,6 +339,7 @@ setMethod("getDesign", "unmarkedFrameDailMadsen",
   y[has_na] <- NA
 
   # For DSO, if there are any NAs in a period, the whole period becomes NA
+  # NOTE: It's not certain this is actually necessary
   if(inherits(umf, "unmarkedFrameDSO")){
     ymat <- array(y, c(M,J,T))
     obs_any_na <- apply(ymat, c(1,3), function(x) any(is.na(x)))
@@ -478,7 +432,6 @@ setMethod("getDesign", "unmarkedFrameDailMadsen",
 
 
 # occuMulti
-
 setMethod("getDesign", "unmarkedFrameOccuMulti",
     function(umf, detformulas, stateformulas, maxOrder, na.rm=TRUE, warn=FALSE,
              newdata=NULL, type="state")
@@ -661,8 +614,8 @@ setMethod("getDesign", "unmarkedFrameOccuMulti",
          "dStart","dStop","y","yStart","yStop","Iy0","z","nOP","nP","paramNames"))
 })
 
-## occuMS
 
+# occuMS
 setMethod("getDesign", "unmarkedFrameOccuMS",
     function(umf, psiformulas, phiformulas, detformulas, prm, na.rm=TRUE,
              newdata=NULL, type="psi")
@@ -908,3 +861,101 @@ setMethod("getDesign", "unmarkedFrameOccuMS",
          "dm_det","det_ind","param_names","removed.sites"))
 
 })
+
+
+# Utility functions used in several methods------------------------------------
+
+# Convert NULL data frames to dummy data frames of proper dimension
+# Add site covs to yearlysitecovs, ysc to obs covs, etc.
+# Drop final year of ysc if necessary
+# Add observation number (for backwards compatibility)
+clean_up_covs <- function(object, drop_final=FALSE, addObsNum = TRUE){
+  M <- numSites(object)
+  R <- obsNum(object)
+  T <- 1
+  J <- R
+  is_mult <- methods::.hasSlot(object, "numPrimary")
+  if(is_mult){
+    T <- object@numPrimary
+    J <- R/T
+  }
+
+  sc <- siteCovs(object)
+  if(is.null(sc)) sc <- data.frame(.dummy=rep(1,M))
+  out <- list(site_covs=sc)
+
+  if(is_mult){
+    ysc <- yearlySiteCovs(object)
+    if(is.null(ysc)) ysc <- data.frame(.dummy2=rep(1,M*T))
+    ysc <- cbind(ysc, sc[rep(1:M, each=T),,drop=FALSE])
+  }
+
+  if(methods::.hasSlot(object, "obsCovs")){
+    oc <- obsCovs(object)
+    if(is.null(oc)) oc <- data.frame(.dummy3=rep(1,M*T*J))
+    if(is_mult){
+      oc <- cbind(oc, ysc[rep(1:(M*T), each=J),,drop=FALSE])
+    } else {
+      oc <- cbind(oc, sc[rep(1:M, each=J),,drop=FALSE])
+    }
+
+    # Add observation number (mainly for backwards compatibility)
+    if(addObsNum & !"obsNum" %in% names(oc)){
+      oc$obsNum <- as.factor(rep(1:R, M))
+    }
+
+    out$obs_covs=oc
+  }
+
+  if(is_mult){
+    if(drop_final & (T > 1)){
+      # Drop final year of data at each site
+      # Also drop factor levels only found in last year of data
+      ysc <- drop_final_year(ysc, M, T)
+    }
+    out$yearly_site_covs <- ysc
+  }
+
+  out
+}
+
+#Remove data in final year of yearlySiteCovs (replacing with NAs)
+#then drop factor levels found only in that year
+drop_final_year <- function(dat, nsites, nprimary){
+  dat[seq(nprimary, nsites*nprimary, by=nprimary), ] <- NA
+  dat <- lapply(dat, function(x) x[,drop = TRUE])
+  as.data.frame(dat)
+}
+
+get_model_matrix <- function(formula, covs){
+  miss_vars <- all.vars(formula)[!all.vars(formula) %in% names(covs)]
+  if(length(miss_vars) > 0){
+    stop(paste("Variable(s)", paste(miss_vars, collapse=", "), 
+                "not found in siteCovs"), call.=FALSE)
+  }
+
+  formula <- reformulas::nobars(formula)
+
+  X_mf <- model.frame(formula, covs, na.action = stats::na.pass)
+  model.matrix(formula, X_mf)
+}
+
+get_offset <- function(formula, covs){
+  formula <- reformulas::nobars(formula)
+  X_mf <- model.frame(formula, covs, na.action = stats::na.pass)
+  offset <- as.vector(model.offset(X_mf))
+  if (!is.null(offset)) {
+    offset[is.na(offset)] <- 0
+  } else {
+    offset <- rep(0, nrow(X_mf)) 
+  }
+  offset
+}
+
+row_has_na <- function(mat){
+  apply(mat, 1, function(x) any(is.na(x))) 
+}
+
+row_all_na <- function(mat){
+  apply(mat, 1, function(x) all(is.na(x))) 
+}

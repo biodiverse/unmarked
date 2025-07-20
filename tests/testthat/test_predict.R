@@ -34,7 +34,8 @@ test_that("clean_up_covs works with dynamic model data",{
                                                  sc1=c(1,NA,2,NA,3,NA)))
   expect_equivalent(dr$obs_covs, data.frame(oc1=1:12, ysc1=rep(1:6, each=2),
                                        ysc2=factor(rep(c("a","b"), each=2)),
-                                       sc1=rep(1:3, each=4)))
+                                       sc1=rep(1:3, each=4),
+                                       obsNum=factor(rep(1:4,3))))
 
   no_drop <- unmarked:::clean_up_covs(umf)
   expect_equivalent(no_drop$yearly_site_covs, data.frame(ysc1=1:6,
@@ -45,7 +46,8 @@ test_that("clean_up_covs works with dynamic model data",{
 
   cc <- unmarked:::clean_up_covs(umf, drop_final=TRUE)
   expect_equivalent(cc$obs_covs,
-                    data.frame(.dummy3=rep(1,12), .dummy2=rep(1,12), .dummy1=rep(1,12)))
+                    data.frame(.dummy3=rep(1,12), .dummy2=rep(1,12), .dummy1=rep(1,12),
+                               obsNum=factor(rep(1:4, 3))))
 })
 
 test_that("clean_up_covs works with single-season models",{
@@ -55,7 +57,8 @@ test_that("clean_up_covs works with single-season models",{
   cc <- unmarked:::clean_up_covs(umf)
   expect_equal(names(cc), c("site_covs","obs_covs"))
   expect_equivalent(cc$site_covs, data.frame(sc1=1:3))
-  expect_equivalent(cc$obs_covs, data.frame(oc1=1:6, sc1=rep(1:3, each=2)))
+  expect_equivalent(cc$obs_covs, data.frame(oc1=1:6, sc1=rep(1:3, each=2),
+                                            obsNum = factor(rep(1:2, 3))))
   cc2 <- unmarked:::clean_up_covs(umf, drop_final=TRUE)
   expect_equal(cc, cc2)
 })
@@ -72,7 +75,7 @@ test_that("clean_up_covs works with models with no obs covs",{
 
   cc <- unmarked:::clean_up_covs(ltUMF)
   expect_equal(names(cc), c("site_covs", "obs_covs"))
-  expect_equal(dim(cc$obs_covs), c(12,4))
+  expect_equal(dim(cc$obs_covs), c(12,5))
 })
 
 test_that("clean_up_covs works with models where length(y) != length(p)",{
@@ -97,7 +100,8 @@ test_that("clean_up_covs works with models where length(y) != length(p)",{
   cc <- unmarked:::clean_up_covs(umf)
   expect_equivalent(cc$site_covs, data.frame(sc=1:3))
   expect_equivalent(cc$obs_covs, data.frame(observer=factor(c(rep(c("A","B"), 3))),
-                                            sc1=rep(1:3, each=2)))
+                                            sc1=rep(1:3, each=2),
+                                            obsNum=factor(rep(1:2, 3))))
 
 })
 

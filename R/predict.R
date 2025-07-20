@@ -172,62 +172,6 @@ setMethod("get_orig_data", "unmarkedFit", function(object, type, ...){
   clean_covs[[datatype]]
 })
 
-# Convert NULL data frames to dummy data frames of proper dimension
-# Add site covs to yearlysitecovs, ysc to obs covs, etc.
-# Drop final year of ysc if necessary
-clean_up_covs <- function(object, drop_final=FALSE){
-  M <- numSites(object)
-  R <- obsNum(object)
-  T <- 1
-  J <- R
-  is_mult <- methods::.hasSlot(object, "numPrimary")
-  if(is_mult){
-    T <- object@numPrimary
-    J <- R/T
-  }
-
-  sc <- siteCovs(object)
-  if(is.null(sc)) sc <- data.frame(.dummy=rep(1,M))
-  out <- list(site_covs=sc)
-
-  if(is_mult){
-    ysc <- yearlySiteCovs(object)
-    if(is.null(ysc)) ysc <- data.frame(.dummy2=rep(1,M*T))
-    ysc <- cbind(ysc, sc[rep(1:M, each=T),,drop=FALSE])
-  }
-
-  if(methods::.hasSlot(object, "obsCovs")){
-    oc <- obsCovs(object)
-    if(is.null(oc)) oc <- data.frame(.dummy3=rep(1,M*T*J))
-    if(is_mult){
-      oc <- cbind(oc, ysc[rep(1:(M*T), each=J),,drop=FALSE])
-    } else {
-      oc <- cbind(oc, sc[rep(1:M, each=J),,drop=FALSE])
-    }
-    out$obs_covs=oc
-  }
-
-  if(is_mult){
-    if(drop_final & (T > 1)){
-      # Drop final year of data at each site
-      # Also drop factor levels only found in last year of data
-      ysc <- drop_final_year(ysc, M, T)
-    }
-    out$yearly_site_covs <- ysc
-  }
-
-  out
-}
-
-#Remove data in final year of yearlySiteCovs (replacing with NAs)
-#then drop factor levels found only in that year
-drop_final_year <- function(dat, nsites, nprimary){
-  dat[seq(nprimary, nsites*nprimary, by=nprimary), ] <- NA
-  dat <- lapply(dat, function(x) x[,drop = TRUE])
-  as.data.frame(dat)
-}
-
-
 # Take inputs (most importantly model matrix and offsets) and generate prediction
 # done in chunks for speed, 70 was optimal after tests
 setGeneric("predict_by_chunk", function(object, ...){
