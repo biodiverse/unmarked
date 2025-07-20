@@ -237,6 +237,7 @@ test_that("distsampOpen works with NAs", {
 
   expect_warning(fm <- distsampOpen(~x1, ~x2, ~1, ~1, data=umf, K=7, keyfun="halfnorm"))
   expect_equivalent(coef(fm), c(1.3058,-0.2966,-7.9133,-7.9281,8.6582,3.3108), tol=1e-4)
+  expect_equal(fm@sitesRemoved, 3)
 
   ft <- fitted(fm)
   expect_true(all(is.na(ft[3,])))
