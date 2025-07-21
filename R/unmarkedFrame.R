@@ -122,11 +122,6 @@ setClass("unmarkedFrameMPois",
 setClass("unmarkedFrameG3",
          contains = "unmarkedMultFrame")
 
-
-setClass("unmarkedFramePCO",
-         representation(primaryPeriod = "matrix"),
-         contains = "unmarkedMultFrame")
-
 setClass("unmarkedFrameGMM",
     representation(
         piFun = "character",
@@ -144,15 +139,64 @@ setClass("unmarkedFrameGDS",
 setClass("unmarkedFrameGPC",
     contains = "unmarkedFrameG3")
 
+setClass("unmarkedFrameDailMadsen",
+         representation(primaryPeriod = "matrix"),
+         contains = "unmarkedMultFrame")
+
+setClass("unmarkedFramePCO",
+         contains = "unmarkedFrameDailMadsen")
 
 setClass("unmarkedFrameMMO",
-         representation(primaryPeriod = "matrix"),
-         contains = "unmarkedFrameGMM")
+    representation(
+        piFun = "character",
+        samplingMethod = "character"),
+    contains = "unmarkedFrameDailMadsen")
 
-## Andy 12/27/2015
 setClass("unmarkedFrameDSO",
-         representation(primaryPeriod = "matrix"),
-         contains = "unmarkedFrameGDS")
+    representation(
+        dist.breaks = "numeric",
+        tlength = "numeric",
+        survey = "character",
+        unitsIn = "character"),
+    contains = "unmarkedFrameDailMadsen")
+
+setClass("unmarkedFrameGDR",
+  representation(
+    yDistance = "matrix",
+    yRemoval = "matrix",
+    survey = "character",
+    dist.breaks = "numeric",
+    unitsIn = "character",
+    period.lengths = "numeric"
+  ),
+  contains="unmarkedMultFrame"
+)
+
+setClass(
+  "unmarkedFrameOccuCOP",
+  representation(L = "matrix"),
+  contains = "unmarkedFrame",
+  validity = function(object) {
+    errors <- character(0)
+    M <- nrow(object@y)
+    J <- ncol(object@y)
+    y_integers = sapply(object@y, check.integer, na.ignore = T)
+    if (!all(y_integers)) {
+      errors <- c(errors,
+                  paste(
+                    "Count detection should be integers. Non-integer values:",
+                    paste(object@y[which(!y_integers)], collapse = ', ')
+                  ))
+    }
+    if (!all(all(dim(object@L) == dim(object@y)))){
+      errors <- c( errors, paste(
+        "L should be a matrix of the same dimension as y, with M =", M,
+        "rows (sites) and J =", J, "columns (sampling occasions)."
+      ))}
+    if (length(errors) == 0) TRUE
+    else errors
+  }
+)
 
 
 # ------------------------------- CONSTRUCTORS ---------------------------
@@ -749,12 +793,14 @@ unmarkedFrameMMO <- function(y, siteCovs = NULL, obsCovs = NULL,
     if(!all(apply(primaryPeriod, 1, increasing)))
         stop("primaryPeriod values must increase over time for each site")
 
-    umf <- unmarkedFrameGMM(y, siteCovs, obsCovs, numPrimary, yearlySiteCovs,
+    check <- unmarkedFrameGMM(y, siteCovs, obsCovs, numPrimary, yearlySiteCovs,
                             type)
-    umf <- as(umf, "unmarkedFrameMMO")
-    umf@primaryPeriod <- primaryPeriod
 
-    umf
+    new("unmarkedFrameMMO", y = check@y, siteCovs = check@siteCovs, 
+        yearlySiteCovs = check@yearlySiteCovs, obsCovs = check@obsCovs, 
+        numPrimary = check@numPrimary, primaryPeriod = primaryPeriod,
+        piFun = check@piFun, samplingMethod = check@samplingMethod,
+        obsToY = check@obsToY)
 }
 
 

@@ -5,14 +5,6 @@ setClass("unmarkedFitGOccu",
 
 setClass("unmarkedFrameGOccu", contains = "unmarkedFrameG3")
 
-setMethod("getDesign", "unmarkedFrameGOccu",
-  function(umf, formula, na.rm=TRUE){
-  out <- methods::callNextMethod(umf, formula=formula, na.rm=na.rm)
-  names(out)[2] <- "Xpsi"
-  names(out)[5] <- "Xpsi.offset"
-  out
-})
-
 unmarkedFrameGOccu <- function(y, siteCovs=NULL, obsCovs=NULL, numPrimary,
                              yearlySiteCovs=NULL) {
   y[y > 1] <- 1
@@ -48,7 +40,7 @@ goccu <- function(psiformula, phiformula, pformula, data,
   gd <- getDesign(data, formula = formula)
 
   y <- gd$y
-  Xpsi <- gd$Xpsi
+  Xpsi <- gd$Xlam # The G3 getDesign method identifies state as lam
   Xphi <- gd$Xphi
   Xp <- gd$Xdet
 
@@ -175,7 +167,7 @@ goccu <- function(psiformula, phiformula, pformula, data,
 setMethod("predict_inputs_from_umf", "unmarkedFitGOccu",
   function(object, type, newdata, na.rm, re.form=NA){
   designMats <- getDesign(newdata, object@formula, na.rm=na.rm)
-  X_idx <- switch(type, psi="Xpsi", phi="Xphi", det="Xdet")
+  X_idx <- switch(type, psi="Xlam", phi="Xphi", det="Xdet") # Xlam = state design matrix
   off_idx <- paste0(X_idx, ".offset")
   list(X=designMats[[X_idx]], offset=NULL)
 })
@@ -205,8 +197,9 @@ setMethod("fitted_internal", "unmarkedFitGOccu", function(object){
   M <- numSites(object@data)
   JT <- obsNum(object@data)  
   gd <- getDesign(object@data, object@formula, na.rm=FALSE)
+  Xpsi <- gd$Xlam
 
-  psi <- drop(plogis(gd$Xpsi %*% coef(object, "psi")))
+  psi <- drop(plogis(Xpsi %*% coef(object, "psi")))
   psi <- matrix(psi, nrow=M, ncol=JT)
 
   phi <- drop(plogis(gd$Xphi %*% coef(object, "phi")))
@@ -228,19 +221,21 @@ setMethod("ranef_internal", "unmarkedFitGOccu", function(object, ...){
   J <- JT / T
 
   gd <- getDesign(object@data, object@formula, na.rm=FALSE)
-  y_array <- array(t(gd$y), c(J, T, M)) 
+  y_array <- array(t(gd$y), c(J, T, M))
+  Xpsi <- gd$Xlam
 
-  psi <- drop(plogis(gd$Xpsi %*% coef(object, "psi")))
+  psi <- drop(plogis(Xpsi %*% coef(object, "psi")))
   phi <- drop(plogis(gd$Xphi %*% coef(object, "phi")))
   phi <- matrix(phi, nrow=M, ncol=T, byrow=TRUE)
   p <- getP(object)
   p_array <- array(t(p), c(J, T, M))
   
   Z <- ZZ <- 0:1
-  post <- array(0, c(M, 2, 1))
+  post <- array(NA, c(M, 2, 1))
   colnames(post) <- Z
 
   for(i in 1:M) {
+    if(i %in% object@sitesRemoved) next
     f <- dbinom(Z, 1, psi[i])
     
     ghi <- rep(0, 2)

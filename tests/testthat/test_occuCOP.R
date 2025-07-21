@@ -493,11 +493,11 @@ test_that("occuCOP can fit and predict models with covariates", {
     na.rm=TRUE
   ))
 
-  expect_warning(ft <- fitted(umfit))
+  ft <- fitted(umfit)
   expect_equal(dim(ft), c(100,5))
   expect_true(is.na(ft[2,1]))
 
-  expect_warning(gp <- getP(umfit))
+  gp <- getP(umfit)
   expect_equal(dim(gp), dim(umfit@data@y))
   expect_true(is.na(gp[2,1]))
 

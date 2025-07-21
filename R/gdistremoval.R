@@ -1,14 +1,4 @@
-setClass("unmarkedFrameGDR",
-  representation(
-    yDistance = "matrix",
-    yRemoval = "matrix",
-    survey = "character",
-    dist.breaks = "numeric",
-    unitsIn = "character",
-    period.lengths = "numeric"
-  ),
-  contains="unmarkedMultFrame"
-)
+
 
 unmarkedFrameGDR <- function(yDistance, yRemoval, numPrimary=1,
                                      siteCovs=NULL, obsCovs=NULL,
@@ -175,84 +165,6 @@ setMethod("[", c("unmarkedFrameGDR", "missing", "numeric", "missing"),
   umf
 })
 
-
-setMethod("getDesign", "unmarkedFrameGDR",
-  function(umf, formula, na.rm=TRUE, return.frames=FALSE){
-
-  M <- numSites(umf)
-  T <- umf@numPrimary
-  Rdist <- ncol(umf@yDistance)
-  Jdist <- Rdist/T
-  Rrem <- ncol(umf@yRemoval)
-  Jrem <- Rrem/T
-  yRem <- as.vector(t(umf@yRemoval))
-  yDist <- as.vector(t(umf@yDistance))
-
-  sc <- siteCovs(umf)
-  oc <- obsCovs(umf)
-  ysc <- yearlySiteCovs(umf)
-
-  if(is.null(sc)) sc <- data.frame(.dummy=rep(0, M))
-  if(is.null(ysc)) ysc <- data.frame(.dummy=rep(0, M*T))
-  if(is.null(oc)) oc <- data.frame(.dummy=rep(0, M*Rrem))
-
-  ysc <- cbind(ysc, sc[rep(1:M, each=T),,drop=FALSE])
-  oc <- cbind(oc, ysc[rep(1:nrow(ysc), each=Jrem),,drop=FALSE])
-
-  if(return.frames) return(list(sc=sc, ysc=ysc, oc=oc))
-
-  lam_fixed <- reformulas::nobars(formula$lambdaformula)
-  Xlam <- model.matrix(lam_fixed,
-            model.frame(lam_fixed, sc, na.action=NULL))
-
-  phi_fixed <- reformulas::nobars(formula$phiformula)
-  Xphi <- model.matrix(phi_fixed,
-            model.frame(phi_fixed, ysc, na.action=NULL))
-
-  dist_fixed <- reformulas::nobars(formula$distanceformula)
-  Xdist <- model.matrix(dist_fixed,
-            model.frame(dist_fixed, ysc, na.action=NULL))
-
-  rem_fixed <- reformulas::nobars(formula$removalformula)
-  Xrem <- model.matrix(rem_fixed,
-            model.frame(rem_fixed, oc, na.action=NULL))
-
-  Zlam <- get_Z(formula$lambdaformula, sc)
-  Zphi <- get_Z(formula$phiformula, ysc)
-  Zdist <- get_Z(formula$distanceformula, ysc)
-  Zrem <- get_Z(formula$removalformula, oc)
- 
-  # Check if there are missing yearlySiteCovs
-  ydist_mat <- apply(matrix(yDist, nrow=M*T, byrow=TRUE), 1, function(x) any(is.na(x)))
-  yrem_mat <- apply(matrix(yRem, nrow=M*T, byrow=TRUE), 1, function(x) any(is.na(x)))
-  ok_missing_phi_covs <- ydist_mat | yrem_mat
-  missing_phi_covs <- apply(Xphi, 1, function(x) any(is.na(x)))  
-  if(!all(which(missing_phi_covs) %in% which(ok_missing_phi_covs))){
-    stop("Missing yearlySiteCovs values for some observations that are not missing", call.=FALSE)
-  }
-
-  # Check if there are missing dist covs
-  missing_dist_covs <- apply(Xdist, 1, function(x) any(is.na(x)))
-  ok_missing_dist_covs <- ydist_mat
-  if(!all(which(missing_dist_covs) %in% which(ok_missing_dist_covs))){
-    stop("Missing yearlySiteCovs values for some distance observations that are not missing", call.=FALSE)
-  }
-
-  # Check if there are missing rem covs
-  missing_obs_covs <- apply(Xrem, 1, function(x) any(is.na(x)))
-  missing_obs_covs <- apply(matrix(missing_obs_covs, nrow=M*T, byrow=TRUE), 1, function(x) any(x))
-  ok_missing_obs_covs <- yrem_mat
-  if(!all(which(missing_obs_covs) %in% which(ok_missing_obs_covs))){
-    stop("Missing obsCovs values for some removal observations that are not missing", call.=FALSE)
-  }
-    
-  if(any(is.na(Xlam))){
-    stop("gdistremoval does not currently handle missing values in siteCovs", call.=FALSE)
-  }
-
-  list(yDist=yDist, yRem=yRem, Xlam=Xlam, Xphi=Xphi, Xdist=Xdist, Xrem=Xrem,
-       Zlam=Zlam, Zphi=Zphi, Zdist=Zdist, Zrem=Zrem)
-})
 
 setClass("unmarkedFitGDR", contains = "unmarkedFitGDS")
 
