@@ -415,14 +415,6 @@ truncateToBinary <- function(y) {
 }
 
 
-getSS <- function(phi) {
-    ev.length <- nrow(phi)
-    ev <- tryCatch(eigen(t(phi))$vectors[,1],
-                   error = function(x) rep(NA, ev.length))
-    ev/sum(ev)
-}
-
-
 lambda2psi <- function(lambda)
 {
 if(any(lambda < 0))
