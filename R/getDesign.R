@@ -453,8 +453,9 @@ setMethod("getDesign", "unmarkedFrameGDR",
 
 
 # occuCOP
-setMethod(
-  "getDesign", "unmarkedFrameOccuCOP",
+#setMethod(
+#  "getDesign", "unmarkedFrameOccuCOP",
+gd_old <-
   function(umf, formlist, na.rm = TRUE) {
     
     "
@@ -580,7 +581,7 @@ setMethod(
       Zlambda = Zlambda,
       removed_obs = removed_obs
     ))
-  })
+  }
 
 
 # occuFP

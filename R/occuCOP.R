@@ -173,18 +173,22 @@ setMethod("[", c("unmarkedFrameOccuCOP", "missing", "numeric", "missing"),
 
 ## fl_getY ----
 setMethod("fl_getY", "unmarkedFitOccuCOP", function(fit, ...){
-  getDesign(getData(fit), fit@formlist)$y
+  fl <- fit@formlist
+  comb_form <- list(as.name("~"), fl$lambdaformula, fl$psiformula[[2]])
+  getDesign(getData(fit), comb_form)$y
 })
 
 
 ## predict_inputs_from_umf ----
 setMethod("predict_inputs_from_umf", "unmarkedFitOccuCOP",
           function(object, type, newdata, na.rm, re.form = NULL) {
+            fl <- object@formlist
+            comb_form <- list(as.name("~"), fl$lambdaformula, fl$psiformula[[2]])
             designMats = getDesign(umf = newdata,
-                                   formlist = object@formlist,
+                                   formula = comb_form,
                                    na.rm = na.rm)
-            if (type == "psi") list_els <- c("Xpsi", "Zpsi")
-            if (type == "lambda") list_els <- c("Xlambda", "Zlambda")
+            if (type == "psi") list_els <- c("X", "Z_state")
+            if (type == "lambda") list_els <- c("V", "Z_det")
             X <- designMats[[list_els[1]]]
             if (is.null(re.form)) X <- cbind(X, designMats[[list_els[2]]])
             return(list(X = X, offset = NULL))
@@ -222,12 +226,14 @@ setMethod("fitted_internal", "unmarkedFitOccuCOP", function(object) {
   data <- object@data
   M = nrow(getY(data))
   J = ncol(getY(data))
-  des <- getDesign(data, object@formlist, na.rm = FALSE)
+  fl <- object@formlist
+  comb_form <- list(as.name("~"), fl$lambdaformula, fl$psiformula[[2]])
+  des <- getDesign(data, comb_form, na.rm = FALSE)
   estim_psi = as.numeric(do.call(object["psi"]@invlink,
-                                 list(as.matrix(des$Xpsi %*% coef(object, 'psi')))))
+                                 list(as.matrix(des$X %*% coef(object, 'psi')))))
   estim_lambda = do.call(object["lambda"]@invlink, 
                          list(matrix(
-                           as.numeric(des$Xlambda %*% coef(object, 'lambda')),
+                           as.numeric(des$V %*% coef(object, 'lambda')),
                            nrow = M, ncol = J, byrow = T)))
   return(estim_psi * estim_lambda)
 })
@@ -522,13 +528,15 @@ occuCOP <- function(data,
   
   # Get the design matrix (calling the getDesign method for unmarkedFrame)
   # For more informations, see: getMethod("getDesign", "unmarkedFrameOccuCOP")
-  designMats <- getDesign(umf = data, formlist = formlist, na.rm = na.rm)
+  comb_form <- list(as.name("~"), lambdaformula, psiformula[[2]])
+  designMats <- getDesign(umf = data, formula = comb_form, na.rm = TRUE)
   
   # y is the count detection data (matrix of size M sites x J observations)
-  y <- getY(data)
+  y <- designMats$y
   
   # L is the length of observations (matrix of size M sites x J observations)
   L <- getL(data)
+  L <- L[!1:nrow(L) %in% designMats$removed.sites,,drop=FALSE]
   if (!L1) {
     if (!any(is.na(L))) {
       if (all(L == 1)) {
@@ -544,20 +552,20 @@ occuCOP <- function(data,
   }
   
   # Xpsi is the fixed effects design matrix for occupancy
-  Xpsi <- designMats$Xpsi
+  Xpsi <- designMats$X
   
   # Xlambda is the fixed effects design matrix for detection rate
-  Xlambda <- designMats$Xlambda
+  Xlambda <- designMats$V
   
   # Zpsi is the random effects design matrix for occupancy
-  Zpsi <- designMats$Zpsi
+  Zpsi <- designMats$Z_state
   
   # Zlambda is the random effects design matrix for detection rate
-  Zlambda <- designMats$Zlambda
+  Zlambda <- designMats$Z_det
   
   # removed_obs is a M x J matrix of the observations removed from the analysis
-  removed_obs <- designMats$removed_obs
-  sitesRemoved <- unname(which(apply(removed_obs, 1, function(x) all(x))))
+  removed_obs <- is.na(y)
+  sitesRemoved <- designMats$removed.sites
   
   # Number of sites
   M <- nrow(y)
