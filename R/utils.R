@@ -809,25 +809,6 @@ dzip <- function(x, lambda, psi) {
   den
 }
 
-# Expected value of log lambda when there is a random intercept
-E_loglam <- function(log_lam, object, name){
-
-  if(!methods::.hasSlot(object, "TMB") || is.null(object@TMB)){
-    return(log_lam)
-  }
-  sig <- sigma(object)
-  if(! name %in% sig$Model) return(log_lam)
-
-  sig <- sig[sig$Model==name,]
-  can_calculate <- (nrow(sig) == 1) & (sig$Name[1] == "(Intercept)")
-  if(! can_calculate){
-    stop("No support for models with > 1 random effect", call.=FALSE)
-  }
-  v <- sig$sigma^2
-  ll <- log_lam + v/2
-  ll
-}
-
 sapply2 <- function(X, FUN, ..., cl = NULL){
   if(requireNamespace("pbapply", quietly=TRUE)){
     return(pbapply::pbsapply(X=X, FUN=FUN, ..., cl = cl))
