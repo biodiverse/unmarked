@@ -473,15 +473,6 @@ formatDistData <- function (distData, distCol, transectNameCol, dist.breaks, occ
 }
 
 
-## Sight distance to perpendicular distance
-
-sight2perpdist <- function(sightdist, sightangle)
-{
-    if(any(0 > sightangle | sightangle > 180))
-        stop("sightangle must be degrees in [0, 180]")
-    sightdist * sin(sightangle * pi / 180)
-}
-
 #Sum of squared errors method
 setGeneric("SSE", function(fit, ...) standardGeneric("SSE"))
 
