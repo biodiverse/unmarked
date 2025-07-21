@@ -46,24 +46,6 @@ logistic.grad <- function(x) {
   exp(-x)/(exp(-x)+1)^2
 }
 
-
-# This function causes check failures on CRAN because CRAN thinks it's
-# a method for the log function. I don't think it's actually used in the package?
-#log.grad <- function(x) { # duh! (but for clarity)
-#  1/x
-#}
-
-
-explink <- function(x) exp(x)
-
-exp1 <- function(x) exp(x) + 1
-
-
-identLink <- function(x) x
-
-
-identLinkGrad <- function(x) 1
-
 #Complimentary log log link
 cloglog <- function(x){
   1-exp(-exp(x))
