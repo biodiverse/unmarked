@@ -68,6 +68,10 @@ rowProds <- function(x, na.rm = FALSE)
 csvToUMF <-
 function(filename, long=FALSE, type, species = NULL, ...)
 {
+  .Deprecated("csvToUMF", package=NULL, 
+              msg = paste("csvToUMF will be deprecated in the next version."),
+             old = as.character(sys.call(sys.parent()))[1L])
+
   dfin <- read.csv(filename, stringsAsFactors=TRUE)
 
   if(long == TRUE) return(formatLong(dfin, species, type = type, ...))
@@ -112,6 +116,9 @@ dateToObs <- function(dfin)
 # response, one column
 # obs vars, one per column
 formatLong <- function(dfin, species = NULL, type, ...) {
+  .Deprecated("formatLong", package=NULL, 
+              msg = paste("formatLong will be deprecated in the next version."),
+             old = as.character(sys.call(sys.parent()))[1L])
   if (type %in% c("umarkedFrameMPois", "unmarkedFrameGMM"))
     stop("Multinomial data sets are not supported.")
   if(missing(type)) stop("type must be supplied")
@@ -280,6 +287,9 @@ formatWide <- function(dfin, sep = ".", obsToY, type, ...) {
 
 formatMult <- function(df.in)
 {
+  .Deprecated("formatMult", package=NULL, 
+              msg = paste("formatMult will be deprecated in the next version."),
+             old = as.character(sys.call(sys.parent()))[1L])
     years <- sort(unique(df.in[[1]]))
     nY <- length(years)
     df.obs <- list()
@@ -399,6 +409,9 @@ truncateToBinary <- function(y) {
 
 lambda2psi <- function(lambda)
 {
+.Deprecated("lambda2psi", package=NULL, 
+              msg = paste("lambda2psi will be deprecated in the next version."),
+             old = as.character(sys.call(sys.parent()))[1L])
 if(any(lambda < 0))
     stop("lambda must be >= 0")
 as.numeric(1 - exp(-lambda))
@@ -410,6 +423,9 @@ as.numeric(1 - exp(-lambda))
 
 formatDistData <- function (distData, distCol, transectNameCol, dist.breaks, occasionCol,effortMatrix)
 {
+  .Deprecated("formatDistData", package=NULL, 
+              msg = paste("formatDistData will be deprecated in the next version."),
+             old = as.character(sys.call(sys.parent()))[1L])
   if (!is.numeric(distData[, distCol]))
     stop("The distances must be numeric")
   transects <- distData[, transectNameCol]
