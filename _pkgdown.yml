@@ -122,7 +122,6 @@ reference:
       - optimizePenalty-methods
       - getFP-methods
       - getP
-      - imputeMissing
       - lambda2psi
       - makePiFuns
       - piFuns
