@@ -93,28 +93,9 @@ wt <- unmarkedFrameOccu(y = y, siteCovs = siteCovs, obsCovs = obsCovs)
 summary(wt)
 ```
 
-Alternatively, the convenience function `csvToUMF` can be used
-
-```{r}
-wt <- csvToUMF(system.file("csv","widewt.csv", package="unmarked"),
-               long = FALSE, type = "unmarkedFrameOccu")
-```
-
-If not all sites have the same numbers of observations, then manual
-importation of data in long format can be tricky.  `csvToUMF`
-seamlessly handles this situation.
-
-```{r}
-pcru <- csvToUMF(system.file("csv","frog2001pcru.csv", package="unmarked"),
-                 long = TRUE, type = "unmarkedFrameOccu")
-```
-
 To help stabilize the numerical optimization algorithm, we recommend
 standardizing the covariates.
-
-```{r}
-obsCovs(pcru) <- scale(obsCovs(pcru))
-```
+The best way to do this is to use the `r scale()` function on covariates inside your formulas.
 
 ## Fitting models
 
