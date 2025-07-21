@@ -160,6 +160,45 @@ setClass("unmarkedFrameDSO",
         unitsIn = "character"),
     contains = "unmarkedFrameDailMadsen")
 
+setClass("unmarkedFrameGDR",
+  representation(
+    yDistance = "matrix",
+    yRemoval = "matrix",
+    survey = "character",
+    dist.breaks = "numeric",
+    unitsIn = "character",
+    period.lengths = "numeric"
+  ),
+  contains="unmarkedMultFrame"
+)
+
+setClass(
+  "unmarkedFrameOccuCOP",
+  representation(L = "matrix"),
+  contains = "unmarkedFrame",
+  validity = function(object) {
+    errors <- character(0)
+    M <- nrow(object@y)
+    J <- ncol(object@y)
+    y_integers = sapply(object@y, check.integer, na.ignore = T)
+    if (!all(y_integers)) {
+      errors <- c(errors,
+                  paste(
+                    "Count detection should be integers. Non-integer values:",
+                    paste(object@y[which(!y_integers)], collapse = ', ')
+                  ))
+    }
+    if (!all(all(dim(object@L) == dim(object@y)))){
+      errors <- c( errors, paste(
+        "L should be a matrix of the same dimension as y, with M =", M,
+        "rows (sites) and J =", J, "columns (sampling occasions)."
+      ))}
+    if (length(errors) == 0) TRUE
+    else errors
+  }
+)
+
+
 # ------------------------------- CONSTRUCTORS ---------------------------
 
 #Convert covs provided as list of matrices/dfs to data frame

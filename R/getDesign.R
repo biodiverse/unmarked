@@ -68,70 +68,8 @@ setMethod("getDesign", "unmarkedFrame",
 })
 
 
-# unmarkedFrameOccuFP, used by occuFP
-# there are 3 observation formula which are stored in V (true positive detections),
-# U (false positive detections), and W (b or probability detetion is certain)
-setMethod("getDesign", "unmarkedFrameOccuFP",
-  function(umf, detformula, FPformula, Bformula, stateformula, na.rm = TRUE){
-
-  # Process state and true detection with generic umf method
-  # Combine detection and state formulas
-  comb_form <- list(as.name("~"), detformula, stateformula[[2]])
-  comb_form <- as.formula(as.call(comb_form))
-  out <- methods::callNextMethod(umf, formula = comb_form, na.rm = FALSE)
- 
-  M <- numSites(umf)
-  J <- obsNum(umf)
-  y <- out$y
-  
-  # Process covariates
-  covs <- clean_up_covs(umf)
-  
-  # Model matrix and offset for false positives
-  X_fp <- get_model_matrix(FPformula, covs$obs_covs)
-  offset_fp <- get_offset(FPformula, covs$obs_covs)
-
-  # Model matrices and offset for b (prob detection is certain)
-  X_b <- get_model_matrix(Bformula, covs$obs_covs)
-  offset_b <- get_offset(Bformula, covs$obs_covs)
-
-  # Check missing values in FP and b
-  has_na <- row_has_na(cbind(X_fp, X_b))
-  has_na <- matrix(has_na, M, J, byrow=TRUE)
-  has_na <- has_na %*% umf@obsToY > 0
-  stopifnot(identical(dim(y), dim(has_na)))
-  y[has_na] <- NA
-  drop_sites <- row_all_na(y)
-
-  # Remove missing sites if requested
-  if(na.rm & any(drop_sites)){
-    warning("Site(s) ", paste(which(drop_sites), collapse = ","),
-            " dropped due to missing values", call.=FALSE)
-    y <- y[!drop_sites,,drop=FALSE]
-
-    out$X <- out$X[!drop_sites,,drop=FALSE]
-    out$X.offset <- out$X.offset[!drop_sites]
-    drop_sites_obs <- rep(drop_sites, each = J)
-    out$V <- out$V[!drop_sites_obs,,drop=FALSE]
-    out$V.offset <- out$V.offset[!drop_sites_obs]
-
-    X_fp <- X_fp[!drop_sites_obs,,drop=FALSE]
-    offset_fp <- offset_fp[!drop_sites_obs]
-    X_b <- X_b[!drop_sites_obs,,drop=FALSE]
-    offset_b <- offset_b[!drop_sites_obs]
-  }
-
-  # Combine outputs
-  new_out <- list(U = X_fp, U.offset = offset_fp, W = X_b, W.offset = offset_b)
-  out <- c(out, new_out)
-  out$y <- y
-  out$removed.sites <- which(drop_sites)
-  out
-})
-
-
 # UnmarkedMultFrame
-# used by colext
+# used by colext and base class for G3 and DailMadsen
 setMethod("getDesign", "unmarkedMultFrame",
   function(umf, formula, na.rm = TRUE){
 
@@ -260,6 +198,7 @@ setMethod("getDesign", "unmarkedFrameG3",
 })
 
 
+# unmarkedFrameDailMadsen (pcountOpen, multmixOpen, distsampOpen)
 setMethod("getDesign", "unmarkedFrameDailMadsen",
   function(umf, formula, na.rm = TRUE){
 
@@ -431,187 +370,278 @@ setMethod("getDesign", "unmarkedFrameDailMadsen",
 })
 
 
-# occuMulti
-setMethod("getDesign", "unmarkedFrameOccuMulti",
-    function(umf, detformulas, stateformulas, maxOrder, na.rm=TRUE, warn=FALSE,
-             newdata=NULL, type="state")
-{
+# Methods for specific function types------------------------------------------
 
-  #Format formulas
-  #Workaround for parameters fixed at 0
-  fixed0 <- stateformulas %in% c("~0","0")
-  stateformulas[fixed0] <- "~1"
+# gdistremoval
+setMethod("getDesign", "unmarkedFrameGDR",
+  function(umf, formula, na.rm=TRUE, return.frames=FALSE){
 
-  stateformulas <- lapply(stateformulas,as.formula)
-  detformulas <- lapply(detformulas,as.formula)
+  M <- numSites(umf)
+  T <- umf@numPrimary
+  Rdist <- ncol(umf@yDistance)
+  Jdist <- Rdist/T
+  Rrem <- ncol(umf@yRemoval)
+  Jrem <- Rrem/T
+  yRem <- as.vector(t(umf@yRemoval))
+  yDist <- as.vector(t(umf@yDistance))
 
-  #Generate some indices
-  S <- length(umf@ylist) # of species
-  if(missing(maxOrder)){
-    maxOrder <- S
+  sc <- siteCovs(umf)
+  oc <- obsCovs(umf)
+  ysc <- yearlySiteCovs(umf)
+
+  if(is.null(sc)) sc <- data.frame(.dummy=rep(0, M))
+  if(is.null(ysc)) ysc <- data.frame(.dummy=rep(0, M*T))
+  if(is.null(oc)) oc <- data.frame(.dummy=rep(0, M*Rrem))
+
+  ysc <- cbind(ysc, sc[rep(1:M, each=T),,drop=FALSE])
+  oc <- cbind(oc, ysc[rep(1:nrow(ysc), each=Jrem),,drop=FALSE])
+
+  if(return.frames) return(list(sc=sc, ysc=ysc, oc=oc))
+
+  lam_fixed <- reformulas::nobars(formula$lambdaformula)
+  Xlam <- model.matrix(lam_fixed,
+            model.frame(lam_fixed, sc, na.action=NULL))
+
+  phi_fixed <- reformulas::nobars(formula$phiformula)
+  Xphi <- model.matrix(phi_fixed,
+            model.frame(phi_fixed, ysc, na.action=NULL))
+
+  dist_fixed <- reformulas::nobars(formula$distanceformula)
+  Xdist <- model.matrix(dist_fixed,
+            model.frame(dist_fixed, ysc, na.action=NULL))
+
+  rem_fixed <- reformulas::nobars(formula$removalformula)
+  Xrem <- model.matrix(rem_fixed,
+            model.frame(rem_fixed, oc, na.action=NULL))
+
+  Zlam <- get_Z(formula$lambdaformula, sc)
+  Zphi <- get_Z(formula$phiformula, ysc)
+  Zdist <- get_Z(formula$distanceformula, ysc)
+  Zrem <- get_Z(formula$removalformula, oc)
+ 
+  # Check if there are missing yearlySiteCovs
+  ydist_mat <- apply(matrix(yDist, nrow=M*T, byrow=TRUE), 1, function(x) any(is.na(x)))
+  yrem_mat <- apply(matrix(yRem, nrow=M*T, byrow=TRUE), 1, function(x) any(is.na(x)))
+  ok_missing_phi_covs <- ydist_mat | yrem_mat
+  missing_phi_covs <- apply(Xphi, 1, function(x) any(is.na(x)))  
+  if(!all(which(missing_phi_covs) %in% which(ok_missing_phi_covs))){
+    stop("Missing yearlySiteCovs values for some observations that are not missing", call.=FALSE)
   }
-  z <- expand.grid(rep(list(1:0),S))[,S:1] # z matrix
-  colnames(z) <- names(umf@ylist)
-  M <- nrow(z) # of possible z states
 
-  # f design matrix
-  if(maxOrder == 1){
-    dmF <- as.matrix(z)
-  } else {
-    dmF <- model.matrix(as.formula(paste0("~.^",maxOrder,"-1")),z)
-  }
-  nF <- ncol(dmF) # of f parameters
-
-  J <- ncol(umf@ylist[[1]]) # max # of samples at a site
-  N <- nrow(umf@ylist[[1]]) # of sites
-
-  #Check formulas
-  if(length(stateformulas) != nF)
-    stop(paste(nF,"formulas are required in stateformulas list"))
-  if(length(detformulas) != S)
-    stop(paste(S,"formulas are required in detformulas list"))
-
-  if(is.null(siteCovs(umf))) {
-    site_covs <- data.frame(placeHolderSite = rep(1, N))
-  } else {
-    site_covs <- siteCovs(umf)
+  # Check if there are missing dist covs
+  missing_dist_covs <- apply(Xdist, 1, function(x) any(is.na(x)))
+  ok_missing_dist_covs <- ydist_mat
+  if(!all(which(missing_dist_covs) %in% which(ok_missing_dist_covs))){
+    stop("Missing yearlySiteCovs values for some distance observations that are not missing", call.=FALSE)
   }
 
-  if(is.null(obsCovs(umf))) {
-    obs_covs <- data.frame(placeHolderObs = rep(1, J*N))
-  } else {
-    obs_covs <- obsCovs(umf)
+  # Check if there are missing rem covs
+  missing_obs_covs <- apply(Xrem, 1, function(x) any(is.na(x)))
+  missing_obs_covs <- apply(matrix(missing_obs_covs, nrow=M*T, byrow=TRUE), 1, function(x) any(x))
+  ok_missing_obs_covs <- yrem_mat
+  if(!all(which(missing_obs_covs) %in% which(ok_missing_obs_covs))){
+    stop("Missing obsCovs values for some removal observations that are not missing", call.=FALSE)
+  }
+    
+  if(any(is.na(Xlam))){
+    stop("gdistremoval does not currently handle missing values in siteCovs", call.=FALSE)
   }
 
-  #Add site covs to obs covs if we aren't predicting with newdata
-  # Record future column names for obsCovs
-  col_names <- c(colnames(obs_covs), colnames(site_covs))
+  list(yDist=yDist, yRem=yRem, Xlam=Xlam, Xphi=Xphi, Xdist=Xdist, Xrem=Xrem,
+       Zlam=Zlam, Zphi=Zphi, Zdist=Zdist, Zrem=Zrem)
+})
 
-  # add site covariates at observation-level
-  obs_covs <- cbind(obs_covs, site_covs[rep(1:N, each = J),])
-  colnames(obs_covs) <- col_names
 
-  #Re-format ylist
-  index <- 1
-  ylong <- lapply(umf@ylist, function(x) {
-                   colnames(x) <- 1:J
-                   x <- cbind(x,site=1:N,species=index)
-                   index <<- index+1
-                   x
-          })
-  ylong <- as.data.frame(do.call(rbind,ylong))
-  ylong <- reshape(ylong, idvar=c("site", "species"), varying=list(1:J),
-                   v.names="value", direction="long")
-  ylong <- reshape(ylong, idvar=c("site","time"), v.names="value",
-                    timevar="species", direction="wide")
-  ylong <- ylong[order(ylong$site, ylong$time), ]
-
-  #Remove missing values
-  if(na.rm){
-    naSiteCovs <- which(apply(site_covs, 1, function(x) any(is.na(x))))
-    if(length(naSiteCovs>0)){
-      stop(paste("Missing site covariates at sites:",
-                 paste(naSiteCovs,collapse=", ")))
+# occuCOP
+setMethod(
+  "getDesign", "unmarkedFrameOccuCOP",
+  function(umf, formlist, na.rm = TRUE) {
+    
+    "
+    getDesign convert the information in the unmarkedFrame to a format
+    usable by the likelihood function:
+    - It creates model design matrices for fixed effects (X) for each parameter (here lambda, psi) 
+    - It creates model design matrices for random effects (Z) for each parameter (here lambda, psi)
+    - It handles missing data
+    "
+    
+    # Retrieve useful informations from umf
+    M <- numSites(umf)
+    J <- obsNum(umf)
+    y <- getY(umf)
+    L <- getL(umf)
+    
+    # Occupancy submodel -------------------------------------------------------
+    # Retrieve the fixed-effects part of the formula
+    psiformula <- reformulas::nobars(as.formula(formlist$psiformula))
+    psiVars <- all.vars(psiformula)
+    
+    # Retrieve the site covariates
+    sc <- siteCovs(umf)
+    if(is.null(sc)) {
+      sc <- data.frame(.dummy = rep(0, M))
+    }
+    
+    # Check for missing variables
+    psiMissingVars <- psiVars[!(psiVars %in% names(sc))]
+    if (length(psiMissingVars) > 0) {
+      stop(paste0(
+        "Variable(s) '",
+        paste(psiMissingVars, collapse = "', '"),
+        "' not found in siteCovs"
+      ), call. = FALSE)
     }
 
-    naY <- apply(ylong, 1, function(x) any(is.na(x)))
-    naCov <- apply(obs_covs, 1, function(x) any(is.na(x)))
-    navec <- naY | naCov
-
-    sites_with_missingY <- unique(ylong$site[naY])
-    sites_with_missingCov <- unique(ylong$site[naCov])
-
-    ylong <- ylong[!navec,,drop=FALSE]
-    obs_covs <- obs_covs[!navec,,drop=FALSE]
-
-    no_data_sites <- which(! 1:N %in% ylong$site)
-    if(length(no_data_sites>0)){
-      stop(paste("All detections and/or detection covariates are missing at sites:",
-                  paste(no_data_sites,collapse=", ")))
+    # State model matrix for fixed effects
+    Xpsi <- model.matrix(
+      psiformula,
+      model.frame(psiformula, sc, na.action = NULL)
+    )
+    # State model matrix for random effects
+    Zpsi <- get_Z(formlist$psiformula, sc)
+    
+    # Detection submodel -------------------------------------------------------
+    
+    # Retrieve the fixed-effects part of the formula
+    lambdaformula <- reformulas::nobars(as.formula(formlist$lambdaformula))
+    lambdaVars <- all.vars(lambdaformula)
+    
+    # Retrieve the observation covariates
+    oc <- obsCovs(umf)
+    if(is.null(oc)) {
+      oc <- data.frame(.dummy = rep(0, M*J))
     }
-
-    if(sum(naY)>0&warn){
-      warning(paste("Missing detections at sites:",
-                    paste(sites_with_missingY,collapse=", ")))
+    
+    # Check for missing variables
+    lambdaMissingVars <- lambdaVars[!(lambdaVars %in% names(oc))]
+    if (length(lambdaMissingVars) > 0) {
+      stop(paste(
+        "Variable(s)",
+        paste(lambdaMissingVars, collapse = ", "),
+        "not found in obsCovs"
+      ), call. = FALSE)
     }
-    if(sum(naCov)>0&warn){
-      warning(paste("Missing detection covariate values at sites:",
-                    paste(sites_with_missingCov,collapse=", ")))
+    
+    # Detection model matrix for fixed effects
+    Xlambda <- model.matrix(
+      lambdaformula,
+      model.frame(lambdaformula, oc, na.action = NULL)
+    )
+    # Detection model matrix for random effects
+    Zlambda <- get_Z(formlist$lambdaformula, oc)
+    
+    # Missing data -------------------------------------------------------------
+    
+    # Missing count data
+    missing_y <- is.na(y)
+    
+    # Missing site covariates
+    # (TRUE if at least one site covariate is missing in a site)
+    missing_sc <- apply(Xpsi, 1, function(x) any(is.na(x)))
+    
+    # Missing observation covariates
+    # (TRUE if at least one observation covariate is missing in a sampling occasion in a site)
+    missing_oc <- apply(Xlambda, 1, function(x) any(is.na(x)))
+    
+    # Matrix MxJ of values to not use because there is some data missing
+    removed_obs <- 
+      # If there is count data missing in site i and obs j
+      missing_y | 
+      # If there is any site covariate missing in site i
+      replicate(n = J, missing_sc) |
+      # If there is any observation covariate missing in site i and obs j
+      matrix(missing_oc, M, J, byrow = T)
+    
+    if (any(removed_obs)) {
+      #if (na.rm) {
+        nb_missing_sites <- sum(rowSums(!removed_obs) == 0)
+        nb_missing_observations <- sum(is.na(removed_obs))
+        warning("There is missing data: ",
+                sum(missing_y), " missing count data, ",
+                sum(missing_sc), " missing site covariate(s), ",
+                sum(missing_oc), " missing observation covariate(s). ",
+                "Data from only ", (M*J)-sum(removed_obs), " observations out of ", (M*J), " are used, ",
+                "from ", M-nb_missing_sites, " sites out of ", M, ".\n\t"
+        )
+      #} else {
+      #  stop("na.rm=FALSE and there is missing data :\n\t",
+      #       sum(missing_y), " missing count data (y)\n\t",
+      #       sum(missing_sc), " missing site covariates (siteCovs)\n\t",
+      #       sum(missing_oc), " missing observation covariates (obsCovs)")
+      #}
     }
+    
+    # Output -------------------------------------------------------------------
+    return(list(
+      y = y,
+      Xpsi = Xpsi,
+      Zpsi = Zpsi,
+      Xlambda = Xlambda,
+      Zlambda = Zlambda,
+      removed_obs = removed_obs
+    ))
+  })
 
+
+# occuFP
+# there are 3 observation formula which are stored in V (true positive detections),
+# U (false positive detections), and W (b or probability detetion is certain)
+setMethod("getDesign", "unmarkedFrameOccuFP",
+  function(umf, detformula, FPformula, Bformula, stateformula, na.rm = TRUE){
+
+  # Process state and true detection with generic umf method
+  # Combine detection and state formulas
+  comb_form <- list(as.name("~"), detformula, stateformula[[2]])
+  comb_form <- as.formula(as.call(comb_form))
+  out <- methods::callNextMethod(umf, formula = comb_form, na.rm = FALSE)
+ 
+  M <- numSites(umf)
+  J <- obsNum(umf)
+  y <- out$y
+  
+  # Process covariates
+  covs <- clean_up_covs(umf)
+  
+  # Model matrix and offset for false positives
+  X_fp <- get_model_matrix(FPformula, covs$obs_covs)
+  offset_fp <- get_offset(FPformula, covs$obs_covs)
+
+  # Model matrices and offset for b (prob detection is certain)
+  X_b <- get_model_matrix(Bformula, covs$obs_covs)
+  offset_b <- get_offset(Bformula, covs$obs_covs)
+
+  # Check missing values in FP and b
+  has_na <- row_has_na(cbind(X_fp, X_b))
+  has_na <- matrix(has_na, M, J, byrow=TRUE)
+  has_na <- has_na %*% umf@obsToY > 0
+  stopifnot(identical(dim(y), dim(has_na)))
+  y[has_na] <- NA
+  drop_sites <- row_all_na(y)
+
+  # Remove missing sites if requested
+  if(na.rm & any(drop_sites)){
+    warning("Site(s) ", paste(which(drop_sites), collapse = ","),
+            " dropped due to missing values", call.=FALSE)
+    y <- y[!drop_sites,,drop=FALSE]
+
+    out$X <- out$X[!drop_sites,,drop=FALSE]
+    out$X.offset <- out$X.offset[!drop_sites]
+    drop_sites_obs <- rep(drop_sites, each = J)
+    out$V <- out$V[!drop_sites_obs,,drop=FALSE]
+    out$V.offset <- out$V.offset[!drop_sites_obs]
+
+    X_fp <- X_fp[!drop_sites_obs,,drop=FALSE]
+    offset_fp <- offset_fp[!drop_sites_obs]
+    X_b <- X_b[!drop_sites_obs,,drop=FALSE]
+    offset_b <- offset_b[!drop_sites_obs]
   }
 
-  #Start-stop indices for sites
-  yStart <- c(1,1+which(diff(ylong$site)!=0))
-  yStop <- c(yStart[2:length(yStart)]-1,nrow(ylong))
-
-  y <- as.matrix(ylong[,3:ncol(ylong)])
-
-  #Indicator matrix for no detections at a site
-  Iy0 <- do.call(cbind, lapply(umf@ylist,
-                               function(x) as.numeric(rowSums(x, na.rm=T)==0)))
-
-  #Save formatted covariate frames for use in model frames
-  #For predicting with formulas etc
-  site_ref <- site_covs
-  obs_ref <- obs_covs
-
-  #Assign newdata as the covariate frame if it is provided
-  if(!is.null(newdata)){
-    if(type == "state"){
-      site_covs <- newdata
-    } else if(type == "det"){
-      obs_covs <- newdata
-    }
-  }
-
-  #Design matrices + parameter counts
-  #For f/occupancy
-  fInd <- c()
-  sf_no0 <- stateformulas[!fixed0]
-  var_names <- colnames(dmF)[!fixed0]
-  dmOcc <- lapply(seq_along(sf_no0),function(i){
-                    fac_col <- site_ref[, sapply(site_ref, is.factor), drop=FALSE]
-                    mf <- model.frame(sf_no0[[i]], site_ref)
-                    xlevs <- lapply(fac_col, levels)
-                    xlevs <- xlevs[names(xlevs) %in% names(mf)]
-                    out <- model.matrix(sf_no0[[i]],
-                                        model.frame(stats::terms(mf), site_covs, na.action=stats::na.pass, xlev=xlevs))
-                    colnames(out) <- paste('[',var_names[i],'] ',
-                                           colnames(out), sep='')
-                    fInd <<- c(fInd,rep(i,ncol(out)))
-                    out
-          })
-  fStart <- c(1,1+which(diff(fInd)!=0))
-  fStop <- c(fStart[2:length(fStart)]-1,length(fInd))
-  occParams <- unlist(lapply(dmOcc,colnames))
-  nOP <- length(occParams)
-
-  #For detection
-  dInd <- c()
-  dmDet <- lapply(seq_along(detformulas),function(i){
-                    fac_col <- obs_ref[, sapply(obs_ref, is.factor), drop=FALSE]
-                    mf <- model.frame(detformulas[[i]], obs_ref)
-                    xlevs <- lapply(fac_col, levels)
-                    xlevs <- xlevs[names(xlevs) %in% names(mf)]
-                    out <- model.matrix(detformulas[[i]],
-                                        model.frame(stats::terms(mf), obs_covs, na.action=stats::na.pass, xlev=xlevs))
-                    colnames(out) <- paste('[',names(umf@ylist)[i],'] ',
-                                           colnames(out),sep='')
-                    dInd <<- c(dInd,rep(i,ncol(out)))
-                    out
-          })
-  dStart <- c(1,1+which(diff(dInd)!=0)) + nOP
-  dStop <- c(dStart[2:length(dStart)]-1,length(dInd)+nOP)
-  detParams <- unlist(lapply(dmDet,colnames))
-  #nD <- length(detParams)
-
-  #Combined
-  paramNames <- c(occParams,detParams)
-  nP <- length(paramNames)
-
-  mget(c("N","S","J","M","nF","fStart","fStop","fixed0","dmF","dmOcc","dmDet",
-         "dStart","dStop","y","yStart","yStop","Iy0","z","nOP","nP","paramNames"))
+  # Combine outputs
+  new_out <- list(U = X_fp, U.offset = offset_fp, W = X_b, W.offset = offset_b)
+  out <- c(out, new_out)
+  out$y <- y
+  out$removed.sites <- which(drop_sites)
+  out
 })
 
 
@@ -860,6 +890,190 @@ setMethod("getDesign", "unmarkedFrameOccuMS",
          "dm_phi","phi_ind","nPP",
          "dm_det","det_ind","param_names","removed.sites"))
 
+})
+
+
+# occuMulti
+setMethod("getDesign", "unmarkedFrameOccuMulti",
+    function(umf, detformulas, stateformulas, maxOrder, na.rm=TRUE, warn=FALSE,
+             newdata=NULL, type="state")
+{
+
+  #Format formulas
+  #Workaround for parameters fixed at 0
+  fixed0 <- stateformulas %in% c("~0","0")
+  stateformulas[fixed0] <- "~1"
+
+  stateformulas <- lapply(stateformulas,as.formula)
+  detformulas <- lapply(detformulas,as.formula)
+
+  #Generate some indices
+  S <- length(umf@ylist) # of species
+  if(missing(maxOrder)){
+    maxOrder <- S
+  }
+  z <- expand.grid(rep(list(1:0),S))[,S:1] # z matrix
+  colnames(z) <- names(umf@ylist)
+  M <- nrow(z) # of possible z states
+
+  # f design matrix
+  if(maxOrder == 1){
+    dmF <- as.matrix(z)
+  } else {
+    dmF <- model.matrix(as.formula(paste0("~.^",maxOrder,"-1")),z)
+  }
+  nF <- ncol(dmF) # of f parameters
+
+  J <- ncol(umf@ylist[[1]]) # max # of samples at a site
+  N <- nrow(umf@ylist[[1]]) # of sites
+
+  #Check formulas
+  if(length(stateformulas) != nF)
+    stop(paste(nF,"formulas are required in stateformulas list"))
+  if(length(detformulas) != S)
+    stop(paste(S,"formulas are required in detformulas list"))
+
+  if(is.null(siteCovs(umf))) {
+    site_covs <- data.frame(placeHolderSite = rep(1, N))
+  } else {
+    site_covs <- siteCovs(umf)
+  }
+
+  if(is.null(obsCovs(umf))) {
+    obs_covs <- data.frame(placeHolderObs = rep(1, J*N))
+  } else {
+    obs_covs <- obsCovs(umf)
+  }
+
+  #Add site covs to obs covs if we aren't predicting with newdata
+  # Record future column names for obsCovs
+  col_names <- c(colnames(obs_covs), colnames(site_covs))
+
+  # add site covariates at observation-level
+  obs_covs <- cbind(obs_covs, site_covs[rep(1:N, each = J),])
+  colnames(obs_covs) <- col_names
+
+  #Re-format ylist
+  index <- 1
+  ylong <- lapply(umf@ylist, function(x) {
+                   colnames(x) <- 1:J
+                   x <- cbind(x,site=1:N,species=index)
+                   index <<- index+1
+                   x
+          })
+  ylong <- as.data.frame(do.call(rbind,ylong))
+  ylong <- reshape(ylong, idvar=c("site", "species"), varying=list(1:J),
+                   v.names="value", direction="long")
+  ylong <- reshape(ylong, idvar=c("site","time"), v.names="value",
+                    timevar="species", direction="wide")
+  ylong <- ylong[order(ylong$site, ylong$time), ]
+
+  #Remove missing values
+  if(na.rm){
+    naSiteCovs <- which(apply(site_covs, 1, function(x) any(is.na(x))))
+    if(length(naSiteCovs>0)){
+      stop(paste("Missing site covariates at sites:",
+                 paste(naSiteCovs,collapse=", ")))
+    }
+
+    naY <- apply(ylong, 1, function(x) any(is.na(x)))
+    naCov <- apply(obs_covs, 1, function(x) any(is.na(x)))
+    navec <- naY | naCov
+
+    sites_with_missingY <- unique(ylong$site[naY])
+    sites_with_missingCov <- unique(ylong$site[naCov])
+
+    ylong <- ylong[!navec,,drop=FALSE]
+    obs_covs <- obs_covs[!navec,,drop=FALSE]
+
+    no_data_sites <- which(! 1:N %in% ylong$site)
+    if(length(no_data_sites>0)){
+      stop(paste("All detections and/or detection covariates are missing at sites:",
+                  paste(no_data_sites,collapse=", ")))
+    }
+
+    if(sum(naY)>0&warn){
+      warning(paste("Missing detections at sites:",
+                    paste(sites_with_missingY,collapse=", ")))
+    }
+    if(sum(naCov)>0&warn){
+      warning(paste("Missing detection covariate values at sites:",
+                    paste(sites_with_missingCov,collapse=", ")))
+    }
+
+  }
+
+  #Start-stop indices for sites
+  yStart <- c(1,1+which(diff(ylong$site)!=0))
+  yStop <- c(yStart[2:length(yStart)]-1,nrow(ylong))
+
+  y <- as.matrix(ylong[,3:ncol(ylong)])
+
+  #Indicator matrix for no detections at a site
+  Iy0 <- do.call(cbind, lapply(umf@ylist,
+                               function(x) as.numeric(rowSums(x, na.rm=T)==0)))
+
+  #Save formatted covariate frames for use in model frames
+  #For predicting with formulas etc
+  site_ref <- site_covs
+  obs_ref <- obs_covs
+
+  #Assign newdata as the covariate frame if it is provided
+  if(!is.null(newdata)){
+    if(type == "state"){
+      site_covs <- newdata
+    } else if(type == "det"){
+      obs_covs <- newdata
+    }
+  }
+
+  #Design matrices + parameter counts
+  #For f/occupancy
+  fInd <- c()
+  sf_no0 <- stateformulas[!fixed0]
+  var_names <- colnames(dmF)[!fixed0]
+  dmOcc <- lapply(seq_along(sf_no0),function(i){
+                    fac_col <- site_ref[, sapply(site_ref, is.factor), drop=FALSE]
+                    mf <- model.frame(sf_no0[[i]], site_ref)
+                    xlevs <- lapply(fac_col, levels)
+                    xlevs <- xlevs[names(xlevs) %in% names(mf)]
+                    out <- model.matrix(sf_no0[[i]],
+                                        model.frame(stats::terms(mf), site_covs, na.action=stats::na.pass, xlev=xlevs))
+                    colnames(out) <- paste('[',var_names[i],'] ',
+                                           colnames(out), sep='')
+                    fInd <<- c(fInd,rep(i,ncol(out)))
+                    out
+          })
+  fStart <- c(1,1+which(diff(fInd)!=0))
+  fStop <- c(fStart[2:length(fStart)]-1,length(fInd))
+  occParams <- unlist(lapply(dmOcc,colnames))
+  nOP <- length(occParams)
+
+  #For detection
+  dInd <- c()
+  dmDet <- lapply(seq_along(detformulas),function(i){
+                    fac_col <- obs_ref[, sapply(obs_ref, is.factor), drop=FALSE]
+                    mf <- model.frame(detformulas[[i]], obs_ref)
+                    xlevs <- lapply(fac_col, levels)
+                    xlevs <- xlevs[names(xlevs) %in% names(mf)]
+                    out <- model.matrix(detformulas[[i]],
+                                        model.frame(stats::terms(mf), obs_covs, na.action=stats::na.pass, xlev=xlevs))
+                    colnames(out) <- paste('[',names(umf@ylist)[i],'] ',
+                                           colnames(out),sep='')
+                    dInd <<- c(dInd,rep(i,ncol(out)))
+                    out
+          })
+  dStart <- c(1,1+which(diff(dInd)!=0)) + nOP
+  dStop <- c(dStart[2:length(dStart)]-1,length(dInd)+nOP)
+  detParams <- unlist(lapply(dmDet,colnames))
+  #nD <- length(detParams)
+
+  #Combined
+  paramNames <- c(occParams,detParams)
+  nP <- length(paramNames)
+
+  mget(c("N","S","J","M","nF","fStart","fStop","fixed0","dmF","dmOcc","dmDet",
+         "dStart","dStop","y","yStart","yStop","Iy0","z","nOP","nP","paramNames"))
 })
 
 
