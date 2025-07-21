@@ -369,6 +369,35 @@ setMethod("getDesign", "unmarkedFrameDailMadsen",
        go.dims = go.dims)
 })
 
+# Calculate time intervals acknowledging gaps due to NAs
+# The first column indicates is time since first primary period + 1
+formatDelta <- function(d, yna)
+{
+    M <- nrow(yna)
+    T <- ncol(yna)
+    d <- d - min(d, na.rm=TRUE) + 1
+    dout <- matrix(NA, M, T)
+    dout[,1] <- d[,1]
+    dout[,2:T] <- t(apply(d, 1, diff))
+    for(i in 1:M) {
+        if(any(yna[i,]) & !all(yna[i,])) { # 2nd test for simulate
+            last <- max(which(!yna[i,]))
+            y.in <- yna[i, 1:last]
+            d.in <- d[i, 1:last]
+            if(any(y.in)) {
+                for(j in last:2) { # first will always be time since 1
+                    nextReal <- which(!yna[i, 1:(j-1)])
+                    if(length(nextReal) > 0)
+                        dout[i, j] <- d[i, j] - d[i, max(nextReal)]
+                    else
+                        dout[i, j] <- d[i, j] - 1
+                    }
+                }
+            }
+        }
+    return(dout)
+}
+
 
 # Methods for specific function types------------------------------------------
 

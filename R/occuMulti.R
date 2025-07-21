@@ -201,3 +201,27 @@ setMethod("optimizePenalty", "unmarkedFitOccuMulti",
   object@call$penalty <- max_cvp
   update(object, data=object@data, boot=boot)
 })
+
+
+#Converts names to indices for occuMulti() and methods
+name_to_ind <- function(x,name_list){
+
+  if(is.null(x)) return(x)
+
+  if(is.numeric(x)){
+    if(any(x>length(name_list))){
+      stop("Supplied species index is invalid")
+    }
+    return(x)
+  }
+
+  absent_adjust <- ifelse(grepl('^-',x),-1,1)
+  clean <- sub('-','',x)
+  if(!all(clean %in% name_list)){
+    stop("Supplied species name not found")
+  }
+  out <- match(clean,name_list)
+
+
+  out * absent_adjust
+}
