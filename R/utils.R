@@ -405,49 +405,6 @@ formatMult <- function(df.in)
     return(umf)
 }
 
-# function to take data of form
-# site  | species | count
-# to
-# site | spp1 | spp2 | ...
-
-#Not used anywhere
-#sppLongToWide <- function(df.in)
-#{
-#    df.m <- melt(df.in, id = c("site", "spp"))
-#    df.out <- dcast(df.m, site ~ spp, add.missing=T, fill = 0)
-#    df.out <- df.out[order(df.out$site),]
-#    df.out
-#}
-
-# get estimated psi from rn fit
-
-getPsi <-
-function(lam)
-{
-  1-exp(-lam)
-}
-
-# get estimatd p from rn fit (only for a null type model so far)
-
-getP.bar <-
-function(lam, r)
-{
-    K = 30
-    psi <- getPsi(lam)
-    pN.k <- dpois(0:K,lam)
-    pY.k <- 1 - (1 - r)^(0:30)
-    sum(pY.k * pN.k)
-}
-
-
-
-
-
-
-meanstate <- function(x) {
-    K <- length(x) - 1
-    sum(x*(0:K))
-}
 
 truncateToBinary <- function(y) {
     if(max(y, na.rm = TRUE) > 1) {
