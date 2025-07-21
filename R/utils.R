@@ -80,49 +80,6 @@ rowProds <- function(x, na.rm = FALSE)
   exp(rowSums(log(x), na.rm = na.rm))
 }
 
-## compute estimated asymptotic variances of parameter estimates
-## using the observed information matrix
-
-#sd.est <- function(fm) {
-#    sqrt(diag(solve(fm$hessian)))
-#}
-
-## delta method for variance of proportion given variance of its logistic-
-## transformed counterpart
-##' @nord
-#sd.prop <- function(est,sd.est) {
-#    exp(-est)/(1 + exp(-est))^2 * sd.est
-#}
-
-### track linked list of parameters using a data frame
-### add row to linked list
-addParm <- function(list.df, parm.name, parm.length) {
-    if(parm.length > 0) {
-        if(nrow(list.df) == 0) {
-            last.ind <- 0
-        } else {
-            last.ind <- list.df$end[nrow(list.df)]
-        }
-        parm.df <- data.frame(parameter = parm.name, start = last.ind + 1,
-                              end = last.ind + parm.length,
-                              stringsAsFactors = FALSE)
-        list.df <- rbind(list.df, parm.df)
-    }
-    return(list.df)
-}
-
-
-parmNames <- function(list.df) {
-    npar <- list.df$end[nrow(list.df)]
-    names <- character(npar)
-    for(i in 1:npar) {
-        which.par <- which(i >= list.df$start & i <= list.df$end)
-        names[i] <- list.df$parameter[which.par]
-    }
-    return(names)
-}
-
-
 # This function converts an appropriatedly formated comma-separated
 # values file (.csv) to a format usable by \emph{unmarked}'s fitting
 # functions (see \emph{Details}).
