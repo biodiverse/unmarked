@@ -277,6 +277,22 @@ setMethod("[", c("unmarkedFrameOccuMulti", "missing", "numericOrLogical", "missi
   x
 })
 
+setMethod("[", c("unmarkedFrameOccuCOP", "numericOrLogical", "missing", "missing"),
+  function(x, i){
+  keep <- process_site_index(x, i)
+  x <- methods::callNextMethod(x, i)
+  x@L <- x@L[keep,,drop=FALSE]
+  x
+})
+
+setMethod("[", c("unmarkedFrameOccuCOP", "missing", "numericOrLogical", "missing"),
+  function(x, i, j){
+  keep <- process_obs_index(x, j)
+  x <- methods::callNextMethod(x, i, j)
+  x@L <- x@L[,keep,drop=FALSE]
+  x
+})
+
 setMethod("head", "unmarkedFrame", function(x, n) {
   if(missing(n)) n <- 6
   x[1:n,]
