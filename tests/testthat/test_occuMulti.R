@@ -37,7 +37,8 @@ test_that("unmarkedFrameOccuMulti construction and methods work",{
   expect_equivalent(umf_sub[3,], umf[4,])
 
   keep <- c(FALSE, FALSE, TRUE, FALSE, TRUE)
-  expect_error(umf_sub <- umf[keep,]) # this should work
+  umf_sub <- umf[keep,]
+  expect_equal(umf_sub, umf[c(3,5),])
 
   umf_sub <- umf[,1:2]
   expect_equal(umf_sub@ylist[[1]], umf@ylist[[1]][,1:2])
