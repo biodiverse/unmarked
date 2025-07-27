@@ -293,6 +293,38 @@ setMethod("[", c("unmarkedFrameOccuCOP", "missing", "numericOrLogical", "missing
   x
 })
 
+setMethod("[", c("unmarkedFrameGDR", "numericOrLogical", "missing", "missing"),
+  function(x, i){
+  keep <- process_site_index(x, i)
+  x <- methods::callNextMethod(x, i)
+  x@yDistance <- x@yDistance[keep,,drop=FALSE]
+  x@yRemoval <- x@yRemoval[keep,,drop=FALSE]
+  x
+})
+
+setMethod("[", c("unmarkedFrameGDR", "missing", "numericOrLogical", "missing"),
+  function(x, i, j){
+  keep <- process_period_index(x, j)
+  T <- x@numPrimary
+  Jdist <- ncol(x@yDistance) / T
+  Jrem <- ncol(x@yRemoval) / T
+  x <- methods::callNextMethod(x, i, j)
+
+  # Subset y matrices
+  keep_per <- rep(1:T, each = Jdist)
+  yDistance <- lapply(keep, function(k){
+    x@yDistance[,keep_per == k,drop=FALSE]
+  })
+  x@yDistance <- do.call(cbind, yDistance)
+
+  keep_per <- rep(1:T, each = Jrem)
+  yRemoval <- lapply(keep, function(k){
+    x@yRemoval[,keep_per == k,drop=FALSE]
+  })
+  x@yRemoval <- do.call(cbind, yRemoval)
+  x
+})
+
 setMethod("head", "unmarkedFrame", function(x, n) {
   if(missing(n)) n <- 6
   x[1:n,]
