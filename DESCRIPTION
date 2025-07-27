@@ -1,6 +1,6 @@
 Package: unmarked
-Version: 1.5.0.9004
-Date: 2025-07-21
+Version: 1.5.0.9005
+Date: 2025-07-27
 Type: Package
 Title: Models for Data from Unmarked Animals
 Authors@R: c(
@@ -65,6 +65,7 @@ Collate: 'classes.R' 'unmarkedEstimate.R' 'unmarkedFrame.R'
     'occuCOP.R'
     'occuComm.R'
     'removed_functions.R'
+    'square_brackets.R'
     'RcppExports.R'
     'zzz.R'
 LinkingTo: 

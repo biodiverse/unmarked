@@ -423,7 +423,8 @@ test_that("occuCOP can fit and predict models with covariates", {
   )
 
   # Check subsetting with covariates
-  expect_error(umf_sub <- umf[c(8,8,9),]) # this should work
+  umf_sub <- umf[c(8,8,9),]
+  expect_equal(numSites(umf_sub), 3)
   
   # Fit ----
   expect_no_error(umfit <- occuCOP(

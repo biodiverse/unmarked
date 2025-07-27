@@ -24,7 +24,8 @@ test_that("unmarkedFramePCount subset works", {
   expect_equivalent(umf_sub[3,], umf[4,])
 
   keep <- c(FALSE, FALSE, TRUE, FALSE, TRUE)
-  expect_error(umf_sub <- umf[keep,]) # this should work
+  umf_sub <- umf[keep,]
+  expect_equal(umf_sub, umf[c(3,5),])
 })
 
 test_that("pcount can fit simple models",{
