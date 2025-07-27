@@ -100,67 +100,6 @@ setMethod("plot", c(x="unmarkedFrameOccuComm", y="missing"),
         labels=names(x@ylist), ...)
 })
 
-#[ Methods for community occupancy frames
-setMethod("[", c("unmarkedFrameOccuComm", "numeric", "missing", "missing"),
-    function(x, i){
-  if(length(i) == 0) return(x)
-  M <- numSites(x)
-  J <- obsNum(x)
-  S <- length(x@ylist)
-
-  ylist <- lapply(x@ylist,function(x) x[i,,drop=F])
- 
-  siteCovs <- siteCovs(x)
-  if (!is.null(siteCovs)) {
-    siteCovs <- siteCovs(x)[i, , drop = FALSE]
-  }
-
-  obsCovs <- obsCovs(x)
-  if (!is.null(obsCovs)) {
-    .site <- rep(1:M, each = J)
-    oc <- lapply(i, function(ind){
-      obsCovs[.site==ind,,drop=FALSE]
-    })
-    obsCovs <- do.call(rbind, oc)
-  }
-
-  # Species covs
-  spc <- x@speciesCovs
-  if(!is.null(spc)){
-    # length S covs are unchanged
-    spc_sp <- sapply(spc, function(x) identical(length(x), S))
-    spc_sp <- spc[spc_sp]
-
-    # M x S covs
-    spc_site <- sapply(spc, function(x) identical(dim(x), c(M, S))) 
-    spc_site <- spc[spc_site]
-    if(length(spc_site) > 0){
-      spc_site <- lapply(spc_site, function(x){
-        x[i,,drop=FALSE]
-      })
-    }
-    # M x J x S covs
-    spc_obs <- sapply(spc, function(x) identical(dim(x), c(M, J, S)))
-    spc_obs <- spc[spc_obs]
-    if(length(spc_obs) > 0){
-      spc_obs <- lapply(spc_obs, function(x){
-        x[i,,,drop=FALSE]
-      })
-    }
-    new_spc <- c(spc_site, spc_obs, spc_sp)
-  } else {
-    new_spc <- NULL
-  }
-
-  umf <- x
-  umf@y <- ylist[[1]]
-  umf@ylist <- ylist
-  umf@siteCovs <- siteCovs
-  umf@obsCovs <- obsCovs
-  umf@speciesCovs <- new_spc
-  umf
-})
-
 process_multispecies_umf <- function(umf, interact_covs){
   ylist <- umf@ylist
   M <- nrow(ylist[[1]])
