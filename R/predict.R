@@ -68,6 +68,7 @@ setMethod("predict_internal", "unmarkedFit",
 # This function makes sure factor levels in newdata match, and that
 # any functions in the formula are handled properly (e.g. scale)
 make_mod_matrix <- function(formula, data, newdata, re.form=NULL){
+  check_nested_formula_functions(formula)
   form_nobars <- reformulas::nobars(formula)
   mf <- model.frame(form_nobars, data, na.action=stats::na.pass)
   X.terms <- stats::terms(mf)
@@ -85,6 +86,17 @@ make_mod_matrix <- function(formula, data, newdata, re.form=NULL){
   list(X=X, offset=offset)
 }
 
+# Nested functions in formulas result in incorrect predictions.
+# This seems to be a problem with model.matrix and not something we can fix.
+check_nested_formula_functions <- function(formula){
+  check <- 
+    grepl("I(scale(", safeDeparse(formula), fixed=TRUE) |
+    grepl("scale(I(", safeDeparse(formula), fixed=TRUE)
+  if(check){
+    warning("Predictions based on a model with nested functions in the formula like I(scale(...)^2) are probably incorrect. Scale the covariates manually instead.", call.=FALSE)
+  }
+  invisible()
+}
 
 # Fit-type specific methods----------------------------------------------------
 

@@ -212,3 +212,18 @@ test_that("predicting from terra::rast works",{
   expect_is(predict(mod2, 'state', newdata=nd_raster), 'SpatRaster')
   expect_is(predict(mod2, 'state', newdata=nd_raster, re.form=NA), 'SpatRaster')
 })
+
+test_that("Warning when predicting and there are nested functions in formula", { 
+  nd <- data.frame(elev=c(0,1), group="B")
+  mod2 <- occu(~1~scale(elev)+group, umf)
+  expect_no_warning(predict(mod2, type='state', newdata=nd))
+
+  mod3 <- occu(~1~I(elev^2)+group, umf)
+  expect_no_warning(predict(mod3, type='state', newdata=nd))
+
+  mod4 <- occu(~1~I(scale(elev)^2)+group, umf)
+  expect_warning(predict(mod4, type='state', newdata=nd), "probably incorrect")
+
+  mod5 <- occu(~1~scale(I(elev^2))+group, umf)
+  expect_warning(predict(mod5, type='state', newdata=nd), "probably incorrect")
+})
