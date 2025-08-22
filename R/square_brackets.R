@@ -1,5 +1,3 @@
-setClassUnion("numericOrLogical", c("numeric", "logical"))
-
 # Square bracket selector methods (exported)-----------------------------------
 setMethod("[", c("unmarkedFrame", "numericOrLogical", "missing", "missing"),
   function(x, i){
@@ -19,8 +17,6 @@ setMethod("[", c("unmarkedFrame", "numericOrLogical", "numericOrLogical", "missi
 
 
 # Internal site-selector methods-----------------------------------------------
-
-setGeneric("subset_sites", function(umf, i) standardGeneric("subset_sites"))
 
 setMethod("subset_sites", c("unmarkedFrame", "numericOrLogical"),
   function(umf, i){
@@ -219,8 +215,6 @@ process_site_index <- function(umf, i){
 
 
 # Internal obs/period-selector methods-----------------------------------------
-
-setGeneric("subset_obs", function(umf, j) standardGeneric("subset_obs"))
 
 setMethod("subset_obs", c("unmarkedFrame", "numericOrLogical"),
   function(umf, j){

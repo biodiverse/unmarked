@@ -20,19 +20,9 @@
 #   lambda_ij = Detection rate of the observation j in site i
 #   L_ij = Length/Duration of the observation j in site i
 
-# CLASSES ----------------------------------------------------------------------
-
-## unmarkedFitOccuCOP class ----
-setClass("unmarkedFitOccuCOP",
-         representation(removed_obs = "matrix",
-                        formlist = "list"),
-         contains = "unmarkedFit")
-
-
 # Methods ----------------------------------------------------------------------
 
 ## getL method ----
-setGeneric("getL", function(object) standardGeneric("getL"))
 setMethod("getL", "unmarkedFrameOccuCOP", function(object) {
   return(object@L)
 })

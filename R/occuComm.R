@@ -1,10 +1,3 @@
-setClass("unmarkedFrameOccuComm",
-         representation(ylist = "list", speciesCovs="optionalList"),
-         contains = "unmarkedFrame")
-
-setClass("unmarkedFitOccuComm", contains="unmarkedFitOccu")
-
-
 unmarkedFrameOccuComm <- function(y, siteCovs=NULL, obsCovs=NULL, speciesCovs=NULL){
 
   if(is.array(y)){
@@ -323,7 +316,6 @@ setMethod("ranef_internal", "unmarkedFitOccuComm", function(object){
   })
 })
 
-setGeneric("richness", function(object, ...) standardGeneric("richness"))
 setMethod("richness", "unmarkedFitOccuComm", 
           function(object, nsims=100, posterior=FALSE){
   S <- length(object@data@ylist)

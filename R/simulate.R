@@ -13,10 +13,6 @@ setMethod("simulate", "unmarkedFrame",
   })
 })
 
-setGeneric("y_to_zeros", function(object, ...){
-  standardGeneric("y_to_zeros")
-})
-
 # Other fit-specific methods at the bottom of the file
 setMethod("y_to_zeros", "unmarkedFrame", function(object, ...){
   object@y[] <- 0
@@ -29,10 +25,7 @@ get_fit <- function(object, model, ...){
       control=list(maxit=0), se=FALSE)
 }
 
-setGeneric("get_fitting_function", function(object, model, ...){
-  standardGeneric("get_fitting_function")
-})
-
+# Get fitting function associated with an unmarkedFrame type
 # Other fit-specific methods at the bottom of the file
 setMethod("get_fitting_function", "unmarkedFrameOccu",
           function(object, model, ...){
@@ -254,9 +247,6 @@ setMethod("simulate", "unmarkedFit", function(object, nsim = 1, seed = NULL, ...
 })
 
 # Internal methods
-setGeneric("simulate_internal", function(object, nsim) standardGeneric("simulate_internal"))
-
-
 setMethod("simulate_internal", "unmarkedFitColExt",
   function(object, nsim){
     data <- object@data

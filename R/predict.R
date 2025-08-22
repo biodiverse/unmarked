@@ -11,8 +11,6 @@ setMethod("predict", "unmarkedFit",
                    level=level, re.form=re.form, ...)
 })
 
-setGeneric("predict_internal", function(object, ...) standardGeneric("predict_internal"))
-
 setMethod("predict_internal", "unmarkedFit",
   function(object, type, newdata, backTransform = TRUE, na.rm = TRUE,
            appendData = FALSE, level=0.95, re.form=NULL, ...){
@@ -109,10 +107,6 @@ check_nested_formula_functions <- function(formula){
 # 5. predict_by_chunk(): Take inputs and generate predictions
 # Basic methods are shown below; fit type-specific methods in their own sections
 
-setGeneric("check_predict_arguments", function(object, ...){
-  standardGeneric("check_predict_arguments")
-})
-
 setMethod("check_predict_arguments", "unmarkedFit",
   function(object, type, newdata, ...){
   # Check if type is supported (i.e., is it in names(object)?)
@@ -133,10 +127,6 @@ check_type <- function(mod, type){
 }
 
 # Get X and offset when newdata is umf
-setGeneric("predict_inputs_from_umf", function(object, ...){
-  standardGeneric("predict_inputs_from_umf")
-})
-
 setMethod("predict_inputs_from_umf", "unmarkedFit",
   function(object, type, newdata, na.rm, re.form){
   designMats <- getDesign(newdata, object@formula, na.rm = na.rm)
@@ -155,10 +145,6 @@ setMethod("predict_inputs_from_umf", "unmarkedFit",
 })
 
 # Get correct individual formula based on type
-setGeneric("get_formula", function(object, type, ...){
-  standardGeneric("get_formula")
-})
-
 setMethod("get_formula", "unmarkedFit", function(object, type, ...){
   if(type == "state"){
     return(as.formula(paste("~", object@formula[3], sep="")))
@@ -170,10 +156,6 @@ setMethod("get_formula", "unmarkedFit", function(object, type, ...){
 
 # When newdata is data.frame/raster, get original dataset
 # For use in building correct model frame
-setGeneric("get_orig_data", function(object, type, ...){
-  standardGeneric("get_orig_data")
-})
-
 # Note that by default, final year of yearlySiteCov data at each site is dropped
 # Because transition probabilities are not estimated for final year
 # this is appropriate for dynamic models but not temporary emigration models
@@ -186,10 +168,6 @@ setMethod("get_orig_data", "unmarkedFit", function(object, type, ...){
 
 # Take inputs (most importantly model matrix and offsets) and generate prediction
 # done in chunks for speed, 70 was optimal after tests
-setGeneric("predict_by_chunk", function(object, ...){
-  standardGeneric("predict_by_chunk")
-})
-
 setMethod("predict_by_chunk", "unmarkedFit",
   function(object, type, level, xmat, offsets, chunk_size, backTransform=TRUE,
            re.form=NULL, ...){

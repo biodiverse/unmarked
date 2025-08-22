@@ -1,204 +1,3 @@
-
-# ------------------------ VALIDATION FUNCTIONS --------------------------
-
-validunmarkedFrame <- function(object) {
-    errors <- character(0)
-    M <- nrow(object@y)
-    J <- ncol(object@y)
-    if(!is.null(object@siteCovs))
-        if(nrow(object@siteCovs) != M)
-            errors <- c(errors,
-               "siteCovData does not have same size number of sites as y.")
-    if(!is.null(obsCovs(object)) & !is.null(obsNum(object)))
-        if(nrow(object@obsCovs) != M*obsNum(object))
-            errors <- c(errors, "obsCovData does not have M*obsNum rows.")
-    if(length(errors) == 0)
-        TRUE
-    else
-        errors
-}
-
-# --------------------------- DATA CLASSES -------------------------------
-
-# Class to hold data for analyses in unmarked.
-setClass("unmarkedFrame",
-    representation(y = "matrix",
-        obsCovs = "optionalDataFrame",
-        siteCovs = "optionalDataFrame",
-        obsToY = "optionalMatrix"),
-    validity = validunmarkedFrame)
-
-## a class for multi-season data
-
-setClass("unmarkedMultFrame",
-    representation(numPrimary = "numeric",
-        #data frame in site-major, year-minor order describing siteCovs
-        yearlySiteCovs = "optionalDataFrame"),
-    contains="unmarkedFrame")
-
-
-
-## a class for distance sampling data
-setClass("unmarkedFrameDS",
-    representation(
-        dist.breaks = "numeric",
-        tlength = "numeric",
-        survey = "character",
-        unitsIn = "character"),
-    contains = "unmarkedFrame",
-    validity = function(object) {
-        errors <- character(0)
-        J <- numY(object)
-        db <- object@dist.breaks
-        if(J != length(db) - 1)
-            errors <- c(errors, "ncol(y) must equal length(dist.breaks)-1")
-        if(db[1] != 0)
-            errors <- c(errors, "dist.breaks[1] must equal 0")
-        if(!is.null(obsCovs(object)))
-            "obsCovs cannot be used with distsamp"
-        if(length(errors) == 0) TRUE
-        else errors
-        })
-
-
-setClass("unmarkedFrameOccu",
-		contains = "unmarkedFrame")
-
-setClass("unmarkedFrameOccuFP",
-         representation(
-           type = "numeric"),
-         contains = "unmarkedFrame")
-
-#Multi-state occupancy
-setClass('unmarkedFrameOccuMS',
-         representation(
-            numStates = "numeric",
-            phiOrder = "list"),
-         contains = "unmarkedMultFrame")
-
-#Time-to-detection occupancy
-setClass("unmarkedFrameOccuTTD",
-         representation(
-            surveyLength = "matrix"),
-          contains = "unmarkedMultFrame")
-
-setClass("unmarkedFrameOccuMulti",
-    representation(ylist = "list", fDesign = "matrix"),
-    contains = "unmarkedFrame",
-    validity = function(object) {
-      errors <- character(0)
-      M <- nrow(object@y)
-      J <- ncol(object@y)
-      Ms <- sapply(object@ylist,nrow)
-      Js <- sapply(object@ylist,ncol)
-      if(length(unique(Ms)) != 1)
-        errors <- c(errors, "All species must have same number of sites")
-      if(length(unique(Js)) != 1)
-        errors <- c(errors, "All species must have same number of observations")
-      if(!is.null(object@siteCovs))
-        if(nrow(object@siteCovs) != M)
-            errors <- c(errors,
-               "siteCovData does not have same size number of sites as y.")
-      if(!is.null(obsCovs(object)) & !is.null(obsNum(object)))
-        if(nrow(object@obsCovs) != M*obsNum(object))
-            errors <- c(errors, "obsCovData does not have M*obsNum rows.")
-      if(length(errors) == 0)
-        TRUE
-      else
-        errors
-      })
-
-setClass("unmarkedFramePCount",
-		contains = "unmarkedFrame")
-
-
-setClass("unmarkedFrameMPois",
-		representation(
-			samplingMethod = "character",
-			piFun = "character"),
-		contains = "unmarkedFrame")
-
-
-setClass("unmarkedFrameG3",
-         contains = "unmarkedMultFrame")
-
-setClass("unmarkedFrameGMM",
-    representation(
-        piFun = "character",
-        samplingMethod = "character"),
-    contains = "unmarkedFrameG3")
-
-setClass("unmarkedFrameGDS",
-    representation(
-        dist.breaks = "numeric",
-        tlength = "numeric",
-        survey = "character",
-        unitsIn = "character"),
-    contains = "unmarkedFrameG3")
-
-setClass("unmarkedFrameGPC",
-    contains = "unmarkedFrameG3")
-
-setClass("unmarkedFrameDailMadsen",
-         representation(primaryPeriod = "matrix"),
-         contains = "unmarkedMultFrame")
-
-setClass("unmarkedFramePCO",
-         contains = "unmarkedFrameDailMadsen")
-
-setClass("unmarkedFrameMMO",
-    representation(
-        piFun = "character",
-        samplingMethod = "character"),
-    contains = "unmarkedFrameDailMadsen")
-
-setClass("unmarkedFrameDSO",
-    representation(
-        dist.breaks = "numeric",
-        tlength = "numeric",
-        survey = "character",
-        unitsIn = "character"),
-    contains = "unmarkedFrameDailMadsen")
-
-setClass("unmarkedFrameGDR",
-  representation(
-    yDistance = "matrix",
-    yRemoval = "matrix",
-    survey = "character",
-    dist.breaks = "numeric",
-    unitsIn = "character",
-    period.lengths = "numeric"
-  ),
-  contains="unmarkedMultFrame"
-)
-
-setClass(
-  "unmarkedFrameOccuCOP",
-  representation(L = "matrix"),
-  contains = "unmarkedFrame",
-  validity = function(object) {
-    errors <- character(0)
-    M <- nrow(object@y)
-    J <- ncol(object@y)
-    y_integers = sapply(object@y, check.integer, na.ignore = T)
-    if (!all(y_integers)) {
-      errors <- c(errors,
-                  paste(
-                    "Count detection should be integers. Non-integer values:",
-                    paste(object@y[which(!y_integers)], collapse = ', ')
-                  ))
-    }
-    if (!all(all(dim(object@L) == dim(object@y)))){
-      errors <- c( errors, paste(
-        "L should be a matrix of the same dimension as y, with M =", M,
-        "rows (sites) and J =", J, "columns (sampling occasions)."
-      ))}
-    if (length(errors) == 0) TRUE
-    else errors
-  }
-)
-
-
 # ------------------------------- CONSTRUCTORS ---------------------------
 
 #Convert covs provided as list of matrices/dfs to data frame
@@ -849,20 +648,14 @@ setMethod("show", "unmarkedFrameOccuTTD", function(object)
 ############################ EXTRACTORS ##################################
 
 # Extractor for site level covariates
-setGeneric("siteCovs", function(object,...) standardGeneric("siteCovs"))
-
 setMethod("siteCovs", "unmarkedFrame", function(object) {
     return(object@siteCovs)
 })
 
-setGeneric("yearlySiteCovs", function(object,...)
-    standardGeneric("yearlySiteCovs"))
 setMethod("yearlySiteCovs", "unmarkedMultFrame", function(object) {
     return(object@yearlySiteCovs)
 })
 
-
-setGeneric("obsCovs", function(object,...) standardGeneric("obsCovs"))
 setMethod("obsCovs", "unmarkedFrame", function(object, matrices = FALSE) {
     M <- numSites(object)
     R <- obsNum(object)
@@ -879,24 +672,18 @@ setMethod("obsCovs", "unmarkedFrame", function(object, matrices = FALSE) {
 })
 
 
-setGeneric("obsNum", function(object) standardGeneric("obsNum"))
 setMethod("obsNum", "unmarkedFrame", function(object) nrow(object@obsToY))
 
 
-setGeneric("numSites", function(object) standardGeneric("numSites"))
 setMethod("numSites", "unmarkedFrame", function(object) nrow(object@y))
 
 
-setGeneric("numY", function(object) standardGeneric("numY"))
 setMethod("numY", "unmarkedFrame", function(object) ncol(object@y))
 
 
-setGeneric("obsToY", function(object) standardGeneric("obsToY"))
 setMethod("obsToY", "unmarkedFrame", function(object) object@obsToY)
 
 
-setGeneric("obsCovs<-", function(object, value)
-    standardGeneric("obsCovs<-"))
 setReplaceMethod("obsCovs", "unmarkedFrame", function(object, value) {
     if(inherits(object, "unmarkedFrameDS"))
         stop("unmarkedFrameDS objects cannot have obsCovs")
@@ -905,31 +692,24 @@ setReplaceMethod("obsCovs", "unmarkedFrame", function(object, value) {
 })
 
 
-setGeneric("siteCovs<-", function(object, value)
-    standardGeneric("siteCovs<-"))
 setReplaceMethod("siteCovs", "unmarkedFrame", function(object, value) {
     object@siteCovs <- as.data.frame(value)
     object
 })
 
 
-setGeneric("yearlySiteCovs<-",
-	function(object, value) standardGeneric("yearlySiteCovs<-"))
 setReplaceMethod("yearlySiteCovs", "unmarkedMultFrame",
     function(object, value) {
         object@yearlySiteCovs <- as.data.frame(value)
         object
     })
 
-setGeneric("obsToY<-", function(object, value) standardGeneric("obsToY<-"))
 setReplaceMethod("obsToY", "unmarkedFrame", function(object, value) {
     object@obsToY <- value
     object
 })
 
 
-
-setGeneric("getY", function(object) standardGeneric("getY"))
 setMethod("getY", "unmarkedFrame", function(object) object@y)
 setMethod("getY", "unmarkedFrameOccuMulti", function(object) object@ylist[[1]])
 

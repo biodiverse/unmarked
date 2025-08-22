@@ -1,17 +1,3 @@
-setClassUnion("unmarkedFrameOrNULL", members=c("unmarkedFrame", "NULL"))
-
-setClass("unmarkedFitIDS",
-    representation(
-        formlist = "list",
-        keyfun = "character",
-        K = "numeric",
-        dataPC = "unmarkedFrameOrNULL",
-        dataOC = "unmarkedFrameOrNULL",
-        maxDist = "list",
-        surveyDurations = "list",
-        unitsOut = "character"),
-        contains = "unmarkedFit")
-
 get_ds_info <- function(db){
   J <- length(db) - 1
   a <- u <- rep(NA, J)
@@ -447,9 +433,6 @@ setMethod("predict_internal", "unmarkedFitIDS", function(object, type, newdata,
   }
   out
 })
-
-# Get availability probability
-setGeneric("getAvail", function(object, ...) standardGeneric("getAvail"))
 
 # Get availability for each data type and site as a probability
 setMethod("getAvail", "unmarkedFitIDS", function(object, ...){

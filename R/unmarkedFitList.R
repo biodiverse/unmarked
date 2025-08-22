@@ -1,7 +1,5 @@
 #Get y (corrected for missing values) based on data and formulas
 #Approach for some fit functions is different, so this is now a method
-setGeneric("fl_getY", function(fit, ...) standardGeneric("fl_getY"))
-
 setMethod("fl_getY", "unmarkedFit", function(fit, ...){
   getDesign(getData(fit), fit@formula)$y
 })
@@ -21,25 +19,6 @@ setMethod("fl_getY", "unmarkedFitOccuFP", function(fit, ...){
   getDesign(getData(fit), fit@detformula, fit@FPformula,
             fit@Bformula, fit@stateformula)$y
 })
-
-setClass("unmarkedFitList",
-    representation(fits = "list"),
-    validity = function(object) {
-        fl <- object@fits
-        umf1 <- getData(fl[[1]])
-        y1 <- fl_getY(fl[[1]])
-        dataTest <- sapply(fl, function(x) isTRUE(all.equal(umf1, getData(x))))
-        yTest <- sapply(fl, function(x) isTRUE(all.equal(y1, fl_getY(x))))
-        if(!all(dataTest)) {
-            stop("Data are not the same among models. Make sure you use the same unmarkedFrame object for all models.")
-            }
-        else if(!all(yTest)) {
-            stop("Data are not the same among models due to missing covariate values. Consider removing NAs before analysis.")
-            }
-        TRUE
-        }
-    )
-
 
 # constructor of unmarkedFitList objects
 fitList <- function(..., fits, autoNames=c("object","formula")) {
@@ -212,23 +191,6 @@ nagR2 <- function(fit, nullfit)
     r2max <- 1 - exp(-1 * devN / n)
     return(r2 / r2max)
 }
-
-
-
-setGeneric("modSel",
-        def = function(object, ...) {
-            standardGeneric("modSel")
-            }
-        )
-
-setClass("unmarkedModSel",
-    representation(
-        Full = "data.frame",
-        Names = "matrix"
-        )
-    )
-
-
 
 # Model selection results from an unmarkedFitList
 setMethod("modSel", "unmarkedFitList",

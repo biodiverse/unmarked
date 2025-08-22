@@ -35,8 +35,6 @@ get_cov_seq <- function(covariate, object, type){
   }
 }
 
-setGeneric("plotEffectsData", function(object, ...) standardGeneric("plotEffectsData"))
-
 setMethod("plotEffectsData", "unmarkedFit",
   function(object, type, covariate, level=0.95, ...){
 
@@ -55,7 +53,6 @@ setMethod("plotEffectsData", "unmarkedFit",
   pr
 })
 
-setGeneric("plotEffects", function(object, ...) standardGeneric("plotEffects"))
 
 setMethod("plotEffects", "unmarkedFit",
   function(object, type, covariate, level=0.95, ...){

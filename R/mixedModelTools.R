@@ -271,9 +271,6 @@ setMethod("sigma", "unmarkedFit", function(object, type, level=0.95, ...){
 })
 
 
-setGeneric("randomTerms", function(object, ...) standardGeneric("randomTerms"))
-
-
 setMethod("randomTerms", "unmarkedEstimate", 
           function(object, level=0.95, addMean = FALSE, ...){
 
@@ -415,10 +412,6 @@ vcov_TMB <- function(object, type, fixedOnly){
 }
 
 # Check if various objects have random effects
-setGeneric("has_random", function(object){
-  standardGeneric("has_random")
-})
-
 setMethod("has_random", "unmarkedEstimate", function(object){
   methods::.hasSlot(object, "randomVarInfo") &&
     length(object@randomVarInfo) > 0
