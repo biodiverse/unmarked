@@ -20,15 +20,15 @@ pcount <- function(formula, data, K, mixture = c("P", "NB", "ZIP"), starts,
 
     # Generate design matrices-------------------------------------------------
     designMats <- getDesign(data, formula)
-    X <- designMats$X; V <- designMats$V; y <- designMats$y
-    X.offset <- designMats$X.offset; V.offset <- designMats$V.offset
+    X_state <- designMats$X_state; X_det <- designMats$X_det; y <- designMats$y
+    offset_state <- designMats$offset_state; offset_det <- designMats$offset_det
     Z_state <- designMats$Z_state; Z_det <- designMats$Z_det
 
     # Set up parameter names and indices---------------------------------------
-    lamParms <- colnames(X)
-    detParms <- colnames(V)
-    nDP <- ncol(V)
-    nAP <- ncol(X)
+    lamParms <- colnames(X_state)
+    detParms <- colnames(X_det)
+    nDP <- ncol(X_det)
+    nAP <- ncol(X_state)
     lamIdx <- 1:nAP
     pIdx <- (nAP+1):(nAP+nDP)
     n_param <- c(nAP, nDP, ifelse(mixture != "P", 1, 0))
@@ -59,8 +59,8 @@ pcount <- function(formula, data, K, mixture = c("P", "NB", "ZIP"), starts,
         ijk <- expand.grid(k = 0:K, j = 1:J, i = 1:M)
         ijk.to.ikj <- with(ijk, order(i, k, j))
         nll <- function(parms) {
-            theta.i <- exp(X %*% parms[lamIdx] + X.offset)
-            p.ij <- plogis(V %*% parms[pIdx] + V.offset)
+            theta.i <- exp(X_state %*% parms[lamIdx] + offset_state)
+            p.ij <- plogis(X_det %*% parms[pIdx] + offset_det)
             theta.ik <- rep(theta.i, each = K + 1)
             p.ijk <- rep(p.ij, each = K + 1)
 
@@ -83,7 +83,7 @@ pcount <- function(formula, data, K, mixture = c("P", "NB", "ZIP"), starts,
       }
     } else if(identical(engine, "C")) {
         nll <- function(parms) {
-          nll_pcount(parms, n_param, y, X, V, X.offset, V.offset, K, Kmin,
+          nll_pcount(parms, n_param, y, X_state, X_det, offset_state, offset_det, K, Kmin,
                      mixture_code, threads)
         }
     }
@@ -120,10 +120,10 @@ pcount <- function(formula, data, K, mixture = c("P", "NB", "ZIP"), starts,
       forms <- split_formula(formula)
       obs_all <- add_covariates(obsCovs(data), siteCovs(data), length(getY(data)))
       inps <- get_ranef_inputs(forms, list(det=obs_all, state=siteCovs(data)),
-                               list(V, X), designMats[c("Z_det","Z_state")])
+                               list(X_det, X_state), designMats[c("Z_det","Z_state")])
 
       tmb_dat <- c(list(y=y, K=K, Kmin=Kmin, mixture=mixture_code,
-                      offset_state=X.offset, offset_det=V.offset), inps$data)
+                      offset_state=offset_state, offset_det=offset_det), inps$data)
 
       tmb_param <- c(inps$pars, list(beta_scale=rep(0,0)))
       if(mixture_code > 1) tmb_param$beta_scale <- rep(0,1)

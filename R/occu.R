@@ -23,10 +23,10 @@ occu <- function(formula, data, knownOcc = numeric(0),
   # Format input data----------------------------------------------------------
   designMats <- getDesign(data, formula)
   y <- truncateToBinary(designMats$y)
-  X <- designMats$X; V <- designMats$V;
+  X_state <- designMats$X_state; X_det <- designMats$X_det;
   Z_state <- designMats$Z_state; Z_det <- designMats$Z_det
   removed <- designMats$removed.sites
-  X.offset <- designMats$X.offset; V.offset <- designMats$V.offset
+  offset_state <- designMats$offset_state; offset_det <- designMats$offset_det
 
   # Re-format some variables for C and R engines
   yvec <- as.numeric(t(y))
@@ -39,10 +39,10 @@ occu <- function(formula, data, knownOcc = numeric(0),
   if(length(removed)>0) knownOccLog <- knownOccLog[-removed]
 
   # Set up parameter names and indices-----------------------------------------
-  occParms <- colnames(X)
-  detParms <- colnames(V)
-  nDP <- ncol(V)
-  nOP <- ncol(X)
+  occParms <- colnames(X_state)
+  detParms <- colnames(X_det)
+  nDP <- ncol(X_det)
+  nOP <- ncol(X_state)
   nP <- nDP + nOP
   psiIdx <- 1:nOP
   pIdx <- (nOP+1):nP
@@ -53,8 +53,8 @@ occu <- function(formula, data, knownOcc = numeric(0),
       beta.psi <- params[1:nOP]
       beta.p <- params[(nOP+1):nP]
       nll_occu(
-        yvec, X, V, beta.psi, beta.p, nd, knownOccLog, navec,
-        X.offset, V.offset, linkPsi
+        yvec, X_state, X_det, beta.psi, beta.p, nd, knownOccLog, navec,
+        offset_state, offset_det, linkPsi
       )
     }
   } else if (identical(engine, "R")){
@@ -63,9 +63,9 @@ occu <- function(formula, data, knownOcc = numeric(0),
     M <- nrow(y)
 
     nll <- function(params) {
-      psi <- psiLinkFunc(X %*% params[1 : nOP] + X.offset)
+      psi <- psiLinkFunc(X_state %*% params[1 : nOP] + offset_state)
       psi[knownOccLog] <- 1
-      pvec <- plogis(V %*% params[(nOP + 1) : nP] + V.offset)
+      pvec <- plogis(X_det %*% params[(nOP + 1) : nP] + offset_det)
       cp <- (pvec^yvec) * ((1 - pvec)^(1 - yvec))
       cp[navec] <- 1 # so that NA's don't modify likelihood
       cpmat <- matrix(cp, M, J, byrow = TRUE) #
@@ -102,10 +102,10 @@ occu <- function(formula, data, knownOcc = numeric(0),
     forms <- split_formula(formula)
     obs_all <- add_covariates(obsCovs(data), siteCovs(data), length(getY(data)))
     inps <- get_ranef_inputs(forms, list(det=obs_all, state=siteCovs(data)),
-                             list(V, X), designMats[c("Z_det","Z_state")])
+                             list(X_det, X_state), designMats[c("Z_det","Z_state")])
 
     tmb_dat <- c(list(y=y, no_detect=nd, link=ifelse(linkPsi=="cloglog",1,0),
-                      offset_state=X.offset, offset_det=V.offset), inps$data)
+                      offset_state=offset_state, offset_det=offset_det), inps$data)
 
     # Fit model with TMB
     if(missing(starts)) starts <- NULL

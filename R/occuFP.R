@@ -17,7 +17,7 @@ occuFP <- function(detformula = ~ 1,FPformula = ~ 1,Bformula = ~ 1,stateformula 
     if(sum(type[2:3])==0)   stop("Only type 1 data. No data types with false positives. Use occu instead.")
 
     designMats <- getDesign(data, detformula,FPformula,Bformula,stateformula)
-    X <- designMats$X; V <- designMats$V; U <- designMats$U; W <- designMats$W;
+    X <- designMats$X_state; V <- designMats$X_det; U <- designMats$U; W <- designMats$W;
     y <- designMats$y
 
     if(any(type[1:2]>0)) if(any(y[,1:sum(type[1:2])]>1,na.rm = TRUE))   stop("Values of y for type 1 and type 2 data must be 0 or 1.")
@@ -25,7 +25,7 @@ occuFP <- function(detformula = ~ 1,FPformula = ~ 1,Bformula = ~ 1,stateformula 
 
 
     removed <- designMats$removed.sites
-    X.offset <- designMats$X.offset; V.offset <- designMats$V.offset; U.offset <- designMats$U.offset; W.offset <- designMats$W.offset
+    X.offset <- designMats$offset_state; V.offset <- designMats$offset_det; U.offset <- designMats$U.offset; W.offset <- designMats$W.offset
     if(is.null(X.offset)) {
         X.offset <- rep(0, nrow(X))
     }

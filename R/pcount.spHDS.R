@@ -22,23 +22,19 @@ function (formula, data, K, mixture = c("P", "NB", "ZIP"), starts,
         stop("ZIP mixture not available for engine='R'")
     designMats <- getDesign(data, formula)
 
-    X <- designMats$X
-    V <- designMats$V
+    X_state <- designMats$X_state
+    X_det <- designMats$X_det
     y <- designMats$y
-    X.offset <- designMats$X.offset
-    V.offset <- designMats$V.offset
+    offset_state <- designMats$offset_state
+    offset_det <- designMats$offset_det
 
-    if (is.null(X.offset))
-        X.offset <- rep(0, nrow(X))
-    if (is.null(V.offset))
-        V.offset <- rep(0, nrow(V))
     NAmat <- is.na(y)
     J <- ncol(y)
     M <- nrow(y)
-    lamParms <- colnames(X)
-    detParms <- colnames(V)
-    nDP <- ncol(V)
-    nAP <- ncol(X)
+    lamParms <- colnames(X_state)
+    detParms <- colnames(X_det)
+    nDP <- ncol(X_det)
+    nAP <- ncol(X_state)
     if (missing(K)) {
         K <- max(y, na.rm = TRUE) + 100
         warning("K was not specified and was set to ", K, ".")
@@ -68,9 +64,9 @@ function (formula, data, K, mixture = c("P", "NB", "ZIP"), starts,
             tmp.parms[1]<- -1*exp(tmp.parms[1])
             parms[(nAP + 1):(nAP + nDP)]<- tmp.parms
 
-            theta.i <- exp(X %*% parms[1:nAP] + X.offset)
-            p.ij <- 2*plogis(V %*% (parms[(nAP + 1):(nAP + nDP)]) +
-                V.offset)
+            theta.i <- exp(X_state %*% parms[1:nAP] + offset_state)
+            p.ij <- 2*plogis(X_det %*% (parms[(nAP + 1):(nAP + nDP)]) +
+                offset_det)
             theta.ik <- rep(theta.i, each = K + 1)
             p.ijk <- rep(p.ij, each = K + 1)
             bin.ijk <- dbinom(y.ijk, k.ijk, p.ijk)

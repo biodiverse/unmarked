@@ -130,10 +130,10 @@ check_type <- function(mod, type){
 setMethod("predict_inputs_from_umf", "unmarkedFit",
   function(object, type, newdata, na.rm, re.form){
   designMats <- getDesign(newdata, object@formula, na.rm = na.rm)
-  if(type == "state") list_els <- c("X","Z_state","X.offset")
-  if(type == "det") list_els <- c("V","Z_det","V.offset")
+  if(type == "state") list_els <- c("X_state","Z_state","offset_state")
+  if(type == "det") list_els <- c("X_det","Z_det","offset_det")
   if(type == "scale"){ # no covariates
-    n <- nrow(designMats$V)
+    n <- nrow(designMats$X_det)
     return(list(X = matrix(1, nrow=n, ncol=1), offset = rep(0, n)))
   }
 
@@ -347,7 +347,7 @@ setMethod("predict_inputs_from_umf", "unmarkedFitOccuFP",
   function(object, type, newdata, na.rm, re.form=NA){
   designMats <- getDesign(newdata, object@detformula, object@FPformula,
                           object@Bformula, object@stateformula, na.rm=na.rm)
-  X_idx <- switch(type, state="X", det="V", fp="U", b="W")
+  X_idx <- switch(type, state="X_state", det="X_det", fp="U", b="W")
   off_idx <- paste0(X_idx, ".offset")
   list(X=designMats[[X_idx]], offset=designMats[[off_idx]])
 })

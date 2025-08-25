@@ -9,23 +9,18 @@ multinomPois <- function(formula, data, starts, method = "BFGS",
     engine <- match.arg(engine, c("C", "R", "TMB"))
     if(any(sapply(split_formula(formula), has_random))) engine <- "TMB"
     designMats <- getDesign(data, formula)
-    X <- designMats$X; V <- designMats$V; y <- designMats$y
-    X.offset <- designMats$X.offset; V.offset <- designMats$V.offset
-    if (is.null(X.offset)) {
-        X.offset <- rep(0, nrow(X))
-        }
-    if (is.null(V.offset)) {
-        V.offset <- rep(0, nrow(V))
-        }
+    X_state <- designMats$X_state; X_det <- designMats$X_det; y <- designMats$y
+    offset_state <- designMats$offset_state; offset_det <- designMats$offset_det
+
     J <- ncol(y)
     R <- obsNum(data)
     M <- nrow(y)
     piFun <- data@piFun
 
-    lamParms <- colnames(X)
-    detParms <- colnames(V)
-    nDP <- ncol(V)
-    nAP <- ncol(X)
+    lamParms <- colnames(X_state)
+    detParms <- colnames(X_det)
+    nDP <- ncol(X_det)
+    nAP <- ncol(X_state)
     lamIdx <- 1:nAP
     pIdx <- (nAP+1):(nAP+nDP)
     nP <- nDP + nAP
@@ -36,8 +31,8 @@ multinomPois <- function(formula, data, starts, method = "BFGS",
     navec <- is.na(yvec)
 
     nll_R <- function(parms) {
-        lambda <- exp(X %*% parms[1 : nAP] + X.offset)
-        p <- plogis(V %*% parms[(nAP + 1) : nP] + V.offset)
+        lambda <- exp(X_state %*% parms[1 : nAP] + offset_state)
+        p <- plogis(X_det %*% parms[(nAP + 1) : nP] + offset_det)
         p.matrix <- matrix(p, M, R, byrow = TRUE)
         pi <- do.call(piFun, list(p = p.matrix))
         logLikeSite <- dpois(y, matrix(lambda, M, J) * pi, log = TRUE)
@@ -48,7 +43,7 @@ multinomPois <- function(formula, data, starts, method = "BFGS",
     nll_C <- function(params) {
         nll_multinomPois(
             params,piFun,
-            X, X.offset, V, V.offset,
+            X_state, offset_state, X_det, offset_det,
             yC, navecC, nP,nAP
         )
     }
@@ -86,15 +81,15 @@ multinomPois <- function(formula, data, starts, method = "BFGS",
       forms <- split_formula(formula)
       obs_all <- add_covariates(obsCovs(data), siteCovs(data), numSites(data)*obsNum(data))
       inps <- get_ranef_inputs(forms, list(det=obs_all, state=siteCovs(data)),
-                               list(V, X), designMats[c("Z_det","Z_state")])
+                               list(X_det, X_state), designMats[c("Z_det","Z_state")])
 
       if(!piFun%in%c('doublePiFun','removalPiFun','depDoublePiFun')){
         stop("Custom pi functions are not supported by TMB engine.")
       }
       pifun_type <- switch(piFun, removalPiFun={0}, doublePiFun={1},
                            depDoublePiFun={2})
-      tmb_dat <- c(list(y=y, pifun_type=pifun_type, offset_state=X.offset,
-                        offset_det=V.offset), inps$data)
+      tmb_dat <- c(list(y=y, pifun_type=pifun_type, offset_state=offset_state,
+                        offset_det=offset_det), inps$data)
 
       # Fit model in TMB
       if(missing(starts)) starts <- NULL

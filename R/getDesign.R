@@ -61,8 +61,8 @@ setMethod("getDesign", "unmarkedFrame",
   }
 
   list(y = y, 
-       X = X_state, X.offset = offset_state, Z_state = Z_state,
-       V = X_det, V.offset = offset_det, Z_det = Z_det,
+       X_state = X_state, offset_state = offset_state, Z_state = Z_state,
+       X_det = X_det, offset_det = offset_det, Z_det = Z_det,
        removed.sites = which(drop_sites))
 })
 
@@ -123,16 +123,16 @@ setMethod("getDesign", "unmarkedMultFrame",
     warning("Site(s) ", paste(which(drop_sites), collapse = ","),
             " dropped due to missing values", call.=FALSE)
     y <- y[!drop_sites,,drop=FALSE]
-    out$X <- out$X[!drop_sites,,drop=FALSE]
+    out$X_state <- out$X_state[!drop_sites,,drop=FALSE]
     drop_sites_per <- rep(drop_sites, each = T)
     X_col <- X_col[!drop_sites_per,,drop=FALSE]
     X_ext <- X_ext[!drop_sites_per,,drop=FALSE]
     drop_sites_obs <- rep(drop_sites, each = R)
-    out$V <- out$V[!drop_sites_obs,,drop=FALSE]
+    out$X_det <- out$X_det[!drop_sites_obs,,drop=FALSE]
   }
 
   # Combine outputs
-  list(y = y, W = out$X, X.gam = X_col, X.eps = X_ext, V = out$V,
+  list(y = y, W = out$X_state, X.gam = X_col, X.eps = X_ext, V = out$X_det,
        removed.sites = which(drop_sites))
 })
 
@@ -179,20 +179,20 @@ setMethod("getDesign", "unmarkedFrameG3",
     warning("Site(s) ", paste(which(drop_sites), collapse = ","),
             " dropped due to missing values", call.=FALSE)
     y <- y[!drop_sites,,drop=FALSE]
-    out$X <- out$X[!drop_sites,,drop=FALSE]
-    out$X.offset <- out$X.offset[!drop_sites]
+    out$X_state <- out$X_state[!drop_sites,,drop=FALSE]
+    out$offset_state <- out$offset_state[!drop_sites]
     drop_sites_per <- rep(drop_sites, each = T)
     X_phi <- X_phi[!drop_sites_per,,drop=FALSE]
     offset_phi <- offset_phi[!drop_sites_per]
     drop_sites_obs <- rep(drop_sites, each = R)
-    out$V <- out$V[!drop_sites_obs,,drop=FALSE]
-    out$V.offset <- out$V.offset[!drop_sites_obs]
+    out$X_det <- out$X_det[!drop_sites_obs,,drop=FALSE]
+    out$offset_det <- out$offset_det[!drop_sites_obs]
   }
 
   # Combine outputs
-  test = list(y = y, Xlam = out$X, Xlam.offset = out$X.offset,
+  test = list(y = y, Xlam = out$X_state, Xlam.offset = out$offset_state,
        Xphi = X_phi, Xphi.offset = offset_phi,
-       Xdet = out$V, Xdet.offset = out$V.offset,
+       Xdet = out$X_det, Xdet.offset = out$offset_det,
        removed.sites = which(drop_sites))
 })
 
@@ -521,11 +521,11 @@ setMethod("getDesign", "unmarkedFrameOccuFP",
             " dropped due to missing values", call.=FALSE)
     y <- y[!drop_sites,,drop=FALSE]
 
-    out$X <- out$X[!drop_sites,,drop=FALSE]
-    out$X.offset <- out$X.offset[!drop_sites]
+    out$X_state <- out$X_state[!drop_sites,,drop=FALSE]
+    out$offset_state <- out$offset_state[!drop_sites]
     drop_sites_obs <- rep(drop_sites, each = J)
-    out$V <- out$V[!drop_sites_obs,,drop=FALSE]
-    out$V.offset <- out$V.offset[!drop_sites_obs]
+    out$X_det <- out$X_det[!drop_sites_obs,,drop=FALSE]
+    out$offset_det <- out$offset_det[!drop_sites_obs]
 
     X_fp <- X_fp[!drop_sites_obs,,drop=FALSE]
     offset_fp <- offset_fp[!drop_sites_obs]
