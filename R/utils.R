@@ -490,8 +490,6 @@ formatDistData <- function (distData, distCol, transectNameCol, dist.breaks, occ
 
 
 #Sum of squared errors method
-setGeneric("SSE", function(fit, ...) standardGeneric("SSE"))
-
 setMethod("SSE", "unmarkedFit", function(fit, ...){
     sse <- sum(residuals(fit)^2, na.rm=TRUE)
     return(c(SSE=sse))

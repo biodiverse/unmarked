@@ -179,9 +179,6 @@ occuMultiLogLik <- function(fit, data){
 
 }
 
-setGeneric("optimizePenalty",
-           function(object, penalties=c(0,2^seq(-4,4)), k = 5, boot = 30, ...)
-           standardGeneric("optimizePenalty"))
 
 setMethod("optimizePenalty", "unmarkedFitOccuMulti",
           function(object, penalties=c(0,2^seq(-4,4)), k = 5, boot = 30, ...){

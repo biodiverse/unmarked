@@ -1,20 +1,9 @@
 # ----------------- Empirical Bayes Methods ------------------------------
 
-setGeneric("ranef",
-    function(object, ...) standardGeneric("ranef"))
-
-setClass("unmarkedRanef",
-    representation(post = "array"))
-
 # Overall exported function
 setMethod("ranef", "unmarkedFit", function(object, ...){
   ranef_internal(object, ...)
 })
-
-
-# Internal fit-type-specific function
-setGeneric("ranef_internal", function(object, ...) standardGeneric("ranef_internal"))
-
 
 setMethod("ranef_internal", "unmarkedFitColExt", function(object){
     data <- object@data
@@ -932,8 +921,6 @@ setMethod("ranef_internal", "unmarkedFitPCO", function(object, ...){
 })
 
 
-setGeneric("bup", function(object, stat=c("mean", "mode"), ...)
-    standardGeneric("bup"))
 setMethod("bup", "unmarkedRanef",
           function(object, stat=c("mean", "mode"), ...) {
     stat <- match.arg(stat)

@@ -21,14 +21,13 @@ setMethod("update", "unmarkedFit", function(object, ..., evaluate=TRUE){
   eval(cl)
 })
 
-# This method starts with a fitted model's saved call, and inserts
+# The rebuild_call method starts with a fitted model's saved call, and inserts
 # as much saved information from the object into the call as possible.
 # This avoids situations where the original call referenced e.g. a 
 # vector of formulas saved in the global environment, which would not be
 # available if updating the model later in a different environment.
 # In general we're just inserting everything from fit-specific slots
 # in the unmarkedFit object that is also an input argument.
-setGeneric("rebuild_call", function(object) standardGeneric("rebuild_call"))
 
 # This method is not actually used directly by any fitting function, instead
 # it's a base piece of the call for most of them.

@@ -1,7 +1,6 @@
 # The getDesign function creates design matrices and handles missing values
 # Many unmarked fitting functions have bespoke getDesign methods
 # Some methods do other things like creating indices, etc.
-setGeneric("getDesign", function(umf, ...) standardGeneric("getDesign"))
 
 # generic method for unmarkedFrame
 # used by distsamp, multinomPois, occu, occuPEN, occuRN, pcount, pcount.spHDS, IDS

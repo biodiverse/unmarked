@@ -1,10 +1,3 @@
-setClass("unmarkedFitGOccu",
-    representation(
-        formlist = "list"),
-    contains = "unmarkedFit")
-
-setClass("unmarkedFrameGOccu", contains = "unmarkedFrameG3")
-
 unmarkedFrameGOccu <- function(y, siteCovs=NULL, obsCovs=NULL, numPrimary,
                              yearlySiteCovs=NULL) {
   y[y > 1] <- 1

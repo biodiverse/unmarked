@@ -54,8 +54,6 @@ setAs("unmarkedFrameGDR", "data.frame", function(from){
   data.frame(yDistance, yRemoval, out)
 })
 
-setClass("unmarkedFitGDR", contains = "unmarkedFitGDS")
-
 gdistremoval <- function(lambdaformula=~1, phiformula=~1, removalformula=~1,
   distanceformula=~1, data, keyfun=c("halfnorm", "exp", "hazard", "uniform"),
   output=c("abund", "density"), unitsOut=c("ha", "kmsq"), mixture=c('P', 'NB', 'ZIP'),

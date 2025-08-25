@@ -4,10 +4,6 @@ setMethod("residuals", "unmarkedFit", function(object, ...){
 })
 
 # Internal method for specific fit types, not exported
-setGeneric("residuals_internal", function(object){
-  standardGeneric("residuals_internal")
-})
-
 setMethod("residuals_internal", "unmarkedFit", function(object) {
     y <- getY(object)
     e <- fitted(object)

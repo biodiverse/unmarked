@@ -1,14 +1,14 @@
+# fitted creates a matrix of fitted values, one per observation
+# So if the observed data are MxJ the result will be an MxJ matrix of fitted
+# values, which are usually calculated as something like 
+# state parameter * detection parameter
+
 # Method for all fit types, exported
+# This method applies to all unmarkedFit types, then internally
+# calls a specific method for each unmarkedFit type (minimizes documentation)
 setMethod("fitted", "unmarkedFit", function(object, ...){
   fitted_internal(object)
 })
-
-
-# Internal method for specific fit type, not exported
-setGeneric("fitted_internal", function(object){
-  standardGeneric("fitted_internal")
-})
-
 
 setMethod("fitted_internal", "unmarkedFit", function(object){
   state <- predict(object, type = "state", level=NULL, na.rm=FALSE)$Predicted
