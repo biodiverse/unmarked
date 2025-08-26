@@ -3,7 +3,7 @@ computeMPLElambda = function(formula, data, knownOcc = numeric(0), starts, metho
 
   engine <- match.arg(engine, c("C", "R"))
   designMats <- getDesign(data, formula)
-  X <- designMats$X; V <- designMats$V; y <- designMats$y
+  X_state <- designMats$X_state; X_det <- designMats$X_det; y <- designMats$y
   removed <- designMats$removed.sites
   y <- truncateToBinary(y)
 
@@ -13,18 +13,18 @@ computeMPLElambda = function(formula, data, knownOcc = numeric(0), starts, metho
   if(length(removed)>0)
      knownOccLog <- knownOccLog[-removed]
 
-  nDP <- ncol(V)
-  nOP <- ncol(X)
+  nDP <- ncol(X_det)
+  nOP <- ncol(X_state)
   nP <- nDP + nOP
   if(!missing(starts) && length(starts) != nP)
       stop(paste("The number of starting values should be", nP))
   if(missing(starts)) starts <- rep(0, nP)
 
-  LRparams = glm.fit(x=X,y=apply(y,1,max),family=binomial(),intercept=F,start=starts[1:nOP])
+  LRparams = glm.fit(x=X_state,y=apply(y,1,max),family=binomial(),intercept=F,start=starts[1:nOP])
   naiveOcc = mean(LRparams$fitted.values)
   occuOutMLE = occu(formula,data,knownOcc = knownOcc, starts = starts,
                  method = "BFGS", engine = engine, se = TRUE)
-  meanDet = mean((1+exp(-occuOutMLE[2]@estimates%*%t(V)))^-1)
+  meanDet = mean((1+exp(-occuOutMLE[2]@estimates%*%t(X_det)))^-1)
   MPLElambda = sqrt(sum(diag(occuOutMLE[2]@covMat)))*(1-(1-meanDet)^(dim(y)[2]))*(1-naiveOcc) # what if there are different numbers of visits to different sites?
   return(MPLElambda)
 }
@@ -49,7 +49,7 @@ occuPEN_CV <- function(formula, data, knownOcc = numeric(0), starts,
 
   engine <- match.arg(engine, c("C", "R"))
   designMats <- getDesign(data, formula)
-  X <- designMats$X; V <- designMats$V; y <- designMats$y
+  X_state <- designMats$X_state; X_det <- designMats$X_det; y <- designMats$y
   y <- truncateToBinary(y)
   J <- ncol(y)
   M <- nrow(y)
@@ -78,15 +78,15 @@ occuPEN_CV <- function(formula, data, knownOcc = numeric(0), starts,
           beta.psi <- params[1:nOP]
           beta.p <- params[(nOP+1):nP]
           nll_occu(
-                  yvec, X, V, beta.psi, beta.p, nd, knownOccLog, navec,
-                  X.offset, V.offset, "logit"
+                  yvec, X_state, X_det, beta.psi, beta.p, nd, knownOccLog, navec,
+                  offset_state, offset_det, "logit"
           )
       }
   } else {
     nll <- function(params) { # penalize this function
-        psi <- plogis(X %*% params[1 : nOP] + X.offset)
+        psi <- plogis(X_state %*% params[1 : nOP] + offset_state)
         psi[knownOccLog] <- 1
-        pvec <- plogis(V %*% params[(nOP + 1) : nP] + V.offset)
+        pvec <- plogis(X_det %*% params[(nOP + 1) : nP] + offset_det)
         cp <- (pvec^yvec) * ((1 - pvec)^(1 - yvec))
         cp[navec] <- 1 # so that NA's don't modify likelihood
         cpmat <- matrix(cp, M, J, byrow = TRUE) #
@@ -103,15 +103,9 @@ occuPEN_CV <- function(formula, data, knownOcc = numeric(0), starts,
     occuTest = data[which(foldAssignments==fold),] # test on this fold
 
     designMats <- getDesign(occuTest, formula)
-    X <- designMats$X; V <- designMats$V; y <- designMats$y
+    X_state <- designMats$X_state; X_det <- designMats$X_det; y <- designMats$y
     removed <- designMats$removed.sites
-    X.offset <- designMats$X.offset; V.offset <- designMats$V.offset
-    if(is.null(X.offset)) {
-        X.offset <- rep(0, nrow(X))
-    }
-    if(is.null(V.offset)) {
-        V.offset <- rep(0, nrow(V))
-    }
+    offset_state <- designMats$offset_state; offset_det <- designMats$offset_det
 
     y <- truncateToBinary(y)
     J <- ncol(y)
@@ -123,10 +117,10 @@ occuPEN_CV <- function(formula, data, knownOcc = numeric(0), starts,
     if(length(removed)>0)
         knownOccLog <- knownOccLog[-removed]
 
-    occParms <- colnames(X)
-    detParms <- colnames(V)
-    nDP <- ncol(V)
-    nOP <- ncol(X)
+    occParms <- colnames(X_state)
+    detParms <- colnames(X_det)
+    nDP <- ncol(X_det)
+    nOP <- ncol(X_state)
     nP <- nDP + nOP
 
     if(!missing(starts) && length(starts) != nP)
@@ -186,20 +180,14 @@ occuPEN <- function(formula, data, knownOcc = numeric(0), starts,
     engine <- match.arg(engine, c("C", "R"))
 
     designMats <- getDesign(data, formula)
-    X <- designMats$X; V <- designMats$V; y <- designMats$y
+    X_state <- designMats$X_state; X_det <- designMats$X_det; y <- designMats$y
 
-    if (ncol(X)==1 & pen.type=="MPLE") stop("MPLE requires occupancy covariates.")
+    if (ncol(X_state)==1 & pen.type=="MPLE") stop("MPLE requires occupancy covariates.")
 
-    if (ncol(X)==1 & ncol(V)==1 & pen.type=="Ridge") stop("Ridge requires covariates.")
+    if (ncol(X_state)==1 & ncol(X_det)==1 & pen.type=="Ridge") stop("Ridge requires covariates.")
 
     removed <- designMats$removed.sites
-    X.offset <- designMats$X.offset; V.offset <- designMats$V.offset
-    if(is.null(X.offset)) {
-        X.offset <- rep(0, nrow(X))
-    }
-    if(is.null(V.offset)) {
-        V.offset <- rep(0, nrow(V))
-    }
+    offset_state <- designMats$offset_state; offset_det <- designMats$offset_det
 
     y <- truncateToBinary(y)
     J <- ncol(y)
@@ -211,10 +199,10 @@ occuPEN <- function(formula, data, knownOcc = numeric(0), starts,
     if(length(removed)>0)
         knownOccLog <- knownOccLog[-removed]
 
-    occParms <- colnames(X)
-    detParms <- colnames(V)
-    nDP <- ncol(V)
-    nOP <- ncol(X)
+    occParms <- colnames(X_state)
+    detParms <- colnames(X_det)
+    nDP <- ncol(X_det)
+    nOP <- ncol(X_state)
 
     nP <- nDP + nOP
     if(!missing(starts) && length(starts) != nP)
@@ -226,11 +214,11 @@ occuPEN <- function(formula, data, knownOcc = numeric(0), starts,
     nd <- ifelse(rowSums(y,na.rm=TRUE) == 0, 1, 0) # no det at site i
 
     ## need to add offsets !!!!!!!!!!!!!!
-    ## and fix bug causing crash when NAs are in V
+    ## and fix bug causing crash when NAs are in X_det
 
     ## compute logistic regression MPLE targets and lambda:
     if (pen.type=="MPLE") {
-      LRparams = glm.fit(x=X,y=apply(y,1,max),family=binomial(),intercept=F,start=starts[1:nOP])
+      LRparams = glm.fit(x=X_state,y=apply(y,1,max),family=binomial(),intercept=F,start=starts[1:nOP])
       MPLElambda = computeMPLElambda(formula, data, knownOcc = numeric(0), starts, method = "BFGS", engine = engine)
       if (MPLElambda != lambda) warning("Supplied lambda does not match the computed value. Proceeding with the supplied lambda.")
     }
@@ -252,14 +240,14 @@ occuPEN <- function(formula, data, knownOcc = numeric(0), starts,
 	    } else {
 	      stop("pen.type not found")
 	    }
-        nll_occuPEN(yvec, X, V, beta.psi, beta.p, nd, knownOccLog, navec,
-                    X.offset, V.offset, penalty)
+        nll_occuPEN(yvec, X_state, X_det, beta.psi, beta.p, nd, knownOccLog, navec,
+                    offset_state, offset_det, penalty)
       }
     } else {
       nll <- function(params) { # penalize this function
-          psi <- plogis(X %*% params[1 : nOP] + X.offset)
+          psi <- plogis(X_state %*% params[1 : nOP] + offset_state)
           psi[knownOccLog] <- 1
-          pvec <- plogis(V %*% params[(nOP + 1) : nP] + V.offset)
+          pvec <- plogis(X_det %*% params[(nOP + 1) : nP] + offset_det)
           cp <- (pvec^yvec) * ((1 - pvec)^(1 - yvec))
           cp[navec] <- 1 # so that NA's don't modify likelihood
           cpmat <- matrix(cp, M, J, byrow = TRUE) #

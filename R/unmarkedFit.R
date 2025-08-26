@@ -473,14 +473,10 @@ setMethod("getFP", "unmarkedFitOccuFP", function(object, na.rm = TRUE)
   designMats <- getDesign(umf, detformula,FPformula,Bformula,stateformula, na.rm = na.rm)
   type = object@type
   y <- designMats$y
-  U <- designMats$U
-  U.offset <- designMats$U.offset
-  if (is.null(U.offset))
-    U.offset <- rep(0, nrow(U))
   M <- nrow(y)
   J <- ncol(y)
   fpars <- coef(object, type = "fp")
-  f <- plogis(U %*% fpars + U.offset)
+  f <- plogis(designMats$X_fp %*% fpars + designMats$offset_fp)
   f <- matrix(f, M, J, byrow = TRUE)
   if (type[1]!=0){
     f[,1:type[1]] = 0
@@ -498,16 +494,12 @@ setMethod("getB", "unmarkedFitOccuFP", function(object, na.rm = TRUE)
   umf <- object@data
   designMats <- getDesign(umf, detformula,FPformula,Bformula,stateformula, na.rm = na.rm)
   y <- designMats$y
-  W <- designMats$W
-  W.offset <- designMats$W.offset
-  if (is.null(W.offset))
-    W.offset <- rep(0, nrow(W))
   M <- nrow(y)
   J <- ncol(y)
   type = object@type
   if (type[3]!=0){
     bpars <- coef(object, type = "b")
-  b <- plogis(W %*% bpars + W.offset)
+  b <- plogis(designMats$X_b %*% bpars + designMats$offset_b)
   b <- matrix(b, M, J, byrow = TRUE)
   }
   if (type[3]==0){

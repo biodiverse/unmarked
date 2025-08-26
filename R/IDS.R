@@ -102,20 +102,20 @@ IDS <- function(lambdaformula = ~1,
   } 
   ds_hds <- get_ds_info(dataDS@dist.breaks)
   Xavail_ds <- matrix(0,0,0)
-  if(has_avail) Xavail_ds <- getDesign(dataDS, form_avail)$X
+  if(has_avail) Xavail_ds <- getDesign(dataDS, form_avail)$X_state
   if(is.null(durationDS)) durationDS <- rep(0,0)
 
-  gd_pc <- list(y=matrix(0,0,0), X=matrix(0,0,0), V=matrix(0,0,0))
+  gd_pc <- list(y=matrix(0,0,0), X_state=matrix(0,0,0), X_det=matrix(0,0,0))
   ds_pc <- list(total_area=0, db=c(0,0), a=0, w=0, u=0)
   Xavail_pc <- matrix(0,0,0)
   if(is.null(durationPC)) durationPC <- rep(0,0)
   if(!is.null(dataPC)){
     gd_pc <- getDesign(dataPC, form_pc)
     ds_pc <- get_ds_info(c(0, maxDistPC))
-    if(has_avail) Xavail_pc <- getDesign(dataPC, form_avail)$X
+    if(has_avail) Xavail_pc <- getDesign(dataPC, form_avail)$X_state
   }
 
-  gd_oc <- list(y=matrix(0,0,0), X=matrix(0,0,0), V=matrix(0,0,0))
+  gd_oc <- list(y=matrix(0,0,0), X_state=matrix(0,0,0), X_det=matrix(0,0,0))
   ds_oc <- list(total_area=0, db=c(0,0), a=0, w=0, u=0)
   Kmin_oc <- rep(0,0)
   Xavail_oc <- matrix(0,0,0)
@@ -124,7 +124,7 @@ IDS <- function(lambdaformula = ~1,
     gd_oc <- getDesign(dataOC, form_oc)
     ds_oc <- get_ds_info(c(0, maxDistOC))
     Kmin_oc <- apply(gd_oc$y, 1, max, na.rm=T)
-    if(has_avail) Xavail_oc <- getDesign(dataOC, form_avail)$X
+    if(has_avail) Xavail_oc <- getDesign(dataOC, form_avail)$X_state
   }
 
   # Density conversion and unequal area correction
@@ -143,13 +143,13 @@ IDS <- function(lambdaformula = ~1,
 
   # Parameter stuff------------------------------------------------------------
   pind_mat <- matrix(0, nrow=8, ncol=2)
-  pind_mat[1,] <- c(1, ncol(gd_hds$X))
-  pind_mat[2,] <- max(pind_mat) + c(1, ncol(gd_hds$V))
+  pind_mat[1,] <- c(1, ncol(gd_hds$X_state))
+  pind_mat[2,] <- max(pind_mat) + c(1, ncol(gd_hds$X_det))
   if(!is.null(detformulaPC) & !is.null(dataPC)){
-    pind_mat[3,] <- max(pind_mat) + c(1, ncol(gd_pc$V))
+    pind_mat[3,] <- max(pind_mat) + c(1, ncol(gd_pc$X_det))
   }
   if(!is.null(detformulaOC) & !is.null(dataOC)){
-    pind_mat[4,] <- max(pind_mat) + c(1, ncol(gd_oc$V))
+    pind_mat[4,] <- max(pind_mat) + c(1, ncol(gd_oc$X_det))
   }
   if(has_avail){
     pind_mat[5,] <- max(pind_mat) + c(1, ncol(Xavail_ds))
@@ -167,8 +167,8 @@ IDS <- function(lambdaformula = ~1,
 
   if(is.null(starts)){
     lam_init <- log(mean(apply(dataDS@y, 1, sum, na.rm=TRUE)) / lam_adjust[1])
-    params_tmb <- list(beta_lam = c(lam_init, rep(0, ncol(gd_hds$X)-1)),
-                     beta_hds = c(log(median(dataDS@dist.breaks)),rep(0, ncol(gd_hds$V)-1)),
+    params_tmb <- list(beta_lam = c(lam_init, rep(0, ncol(gd_hds$X_state)-1)),
+                     beta_hds = c(log(median(dataDS@dist.breaks)),rep(0, ncol(gd_hds$X_det)-1)),
                      beta_pc = rep(0,0),
                      beta_oc = rep(0,0),
                      beta_avail = rep(0,0),
@@ -179,11 +179,11 @@ IDS <- function(lambdaformula = ~1,
     if(keyfun == "hazard") params_tmb$beta_schds <- 0
     
     if(!is.null(detformulaPC) & !is.null(dataPC)){
-      params_tmb$beta_pc <- c(log(maxDistPC/2), rep(0, ncol(gd_pc$V)-1))
+      params_tmb$beta_pc <- c(log(maxDistPC/2), rep(0, ncol(gd_pc$X_det)-1))
       if(keyfun == "hazard") params_tmb$beta_scpc <- 0
     }
     if(!is.null(detformulaOC) & !is.null(dataOC)){
-      params_tmb$beta_oc <- c(log(maxDistOC/2), rep(0, ncol(gd_oc$V)-1))
+      params_tmb$beta_oc <- c(log(maxDistOC/2), rep(0, ncol(gd_oc$X_det)-1))
       if(keyfun == "hazard") params_tmb$beta_scoc <- 0
     }
     if(has_avail){
@@ -224,16 +224,16 @@ IDS <- function(lambdaformula = ~1,
     pind = pind_mat, lam_adjust = lam_adjust,
 
     # HDS data
-    y_hds = gd_hds$y, X_hds = gd_hds$X, V_hds = gd_hds$V, key_hds = keyidx,
+    y_hds = gd_hds$y, X_hds = gd_hds$X_state, V_hds = gd_hds$X_det, key_hds = keyidx,
     db_hds = dataDS@dist.breaks, a_hds = ds_hds$a, w_hds = ds_hds$w,
     u_hds = ds_hds$u,
 
     # PC data
-    y_pc = gd_pc$y, X_pc = gd_pc$X, V_pc = gd_pc$V, key_pc = keyidx,
+    y_pc = gd_pc$y, X_pc = gd_pc$X_state, V_pc = gd_pc$X_det, key_pc = keyidx,
     db_pc = c(0, maxDistPC), a_pc = ds_pc$a, w_pc = ds_pc$w, u_pc = ds_pc$u,
 
     # occ data
-    y_oc = gd_oc$y, X_oc = gd_oc$X, V_oc = gd_oc$V, key_oc = keyidx,
+    y_oc = gd_oc$y, X_oc = gd_oc$X_state, V_oc = gd_oc$X_det, key_oc = keyidx,
     db_oc = c(0, maxDistOC), a_oc = ds_oc$a, w_oc = ds_oc$w, u_oc = ds_oc$u,
     K_oc = K, Kmin_oc = Kmin_oc,
 
@@ -251,37 +251,37 @@ IDS <- function(lambdaformula = ~1,
 
   sdr <- TMB::sdreport(tmb_obj)
 
-  lam_coef <- get_coef_info(sdr, "lam", colnames(gd_hds$X),
+  lam_coef <- get_coef_info(sdr, "lam", colnames(gd_hds$X_state),
                                        pind_mat[1,1]:pind_mat[1,2])
 
   lam_est <- unmarkedEstimate(name="Density", short.name="lam",
-    estimates = lam_coef$ests, covMat = lam_coef$cov, fixed=1:ncol(gd_hds$X),
+    estimates = lam_coef$ests, covMat = lam_coef$cov, fixed=1:ncol(gd_hds$X_state),
     invlink = "exp", invlinkGrad = "exp")
 
-  dist_coef <- get_coef_info(sdr, "hds", colnames(gd_hds$V),
+  dist_coef <- get_coef_info(sdr, "hds", colnames(gd_hds$X_det),
                                        pind_mat[2,1]:pind_mat[2,2])
 
   dist_est <- unmarkedEstimate(name="Distance sampling detection", short.name="ds",
-    estimates = dist_coef$ests, covMat = dist_coef$cov, fixed=1:ncol(gd_hds$V),
+    estimates = dist_coef$ests, covMat = dist_coef$cov, fixed=1:ncol(gd_hds$X_det),
     invlink = "exp", invlinkGrad = "exp")
 
   est_list <- list(lam=lam_est, ds=dist_est)
 
   if(!is.null(detformulaPC) & !is.null(dataPC)){
-    pc_coef <- get_coef_info(sdr, "pc", colnames(gd_pc$V),
+    pc_coef <- get_coef_info(sdr, "pc", colnames(gd_pc$X_det),
                                         pind_mat[3,1]:pind_mat[3,2])
 
     pc_est <- unmarkedEstimate(name="Point count detection", short.name="pc",
-      estimates = pc_coef$ests, covMat = pc_coef$cov, fixed=1:ncol(gd_pc$V),
+      estimates = pc_coef$ests, covMat = pc_coef$cov, fixed=1:ncol(gd_pc$X_det),
       invlink = "exp", invlinkGrad = "exp")
     est_list <- c(est_list, list(pc=pc_est))
   }
 
   if(!is.null(detformulaOC) & !is.null(dataOC)){
-    oc_coef <- get_coef_info(sdr, "oc", colnames(gd_oc$V),
+    oc_coef <- get_coef_info(sdr, "oc", colnames(gd_oc$X_det),
                                         pind_mat[4,1]:pind_mat[4,2])
     oc_est <- unmarkedEstimate(name="Presence/absence detection", short.name="oc",
-      estimates = oc_coef$ests, covMat = oc_coef$cov, fixed=1:ncol(gd_oc$V),
+      estimates = oc_coef$ests, covMat = oc_coef$cov, fixed=1:ncol(gd_oc$X_det),
       invlink = "exp", invlinkGrad = "exp")
     est_list <- c(est_list, list(oc=oc_est))
   }

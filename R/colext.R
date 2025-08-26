@@ -8,23 +8,20 @@ colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
   formula <- list(psiformula = psiformula, gammaformula = gammaformula,
                   epsilonformula = epsilonformula, pformula = pformula)
   check_no_support(formula)
-  designMats <- getDesign(data, formula = as.formula(paste(unlist(formula), collapse=" ")))
-  X_psi <- designMats$W
-  X_gam <- designMats$X.gam
-  X_eps <- designMats$X.eps
-  X_det <- designMats$V
-  y <- designMats$y
+  dm <- getDesign(data, formula = as.formula(paste(unlist(formula), collapse=" ")))
+  X_psi <- dm$X_state; X_col <- dm$X_col; X_ext <- dm$X_ext
+  y <- dm$y
   M <- nrow(y)
   T <- data@numPrimary
   J <- ncol(y) / T
   psiParms <- colnames(X_psi)
-  gamParms <- colnames(X_gam)
-  epsParms <- colnames(X_eps)
-  detParms <- colnames(X_det)
+  colParms <- colnames(X_col)
+  extParms <- colnames(X_ext)
+  detParms <- colnames(dm$X_det)
 
   ## remove final year from transition prob design matrices
-  X_gam <- as.matrix(X_gam[-seq(T,M*T,by=T),])
-  X_eps <- as.matrix(X_eps[-seq(T,M*T,by=T),])
+  X_col <- as.matrix(X_col[-seq(T,M*T,by=T),])
+  X_ext <- as.matrix(X_ext[-seq(T,M*T,by=T),])
 
   # Determine which periods were sampled at each site
   site_sampled <- matrix(1, M, T)
@@ -55,18 +52,18 @@ colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
   # Parameter indices
   pind_mat <- matrix(0, 4, 2)
   pind_mat[1,] <- c(1, length(psiParms))
-  pind_mat[2,] <- max(pind_mat[1,]) + c(1, length(gamParms))
-  pind_mat[3,] <- max(pind_mat[2,]) + c(1, length(epsParms))
+  pind_mat[2,] <- max(pind_mat[1,]) + c(1, length(colParms))
+  pind_mat[3,] <- max(pind_mat[2,]) + c(1, length(extParms))
   pind_mat[4,] <- max(pind_mat[3,]) + c(1, length(detParms))
   
-  tmb_dat <- list(y = as.vector(t(y)), X_psi = X_psi, X_gam = X_gam, 
-                  X_eps = X_eps, X_det = X_det,
+  tmb_dat <- list(y = as.vector(t(y)), X_psi = X_psi, X_col = X_col, 
+                  X_ext = X_ext, X_det = dm$X_det,
                   M = M, T = T, J = J, 
                   site_sampled = site_sampled, nd = no_detects)
 
   tmb_pars <- list(beta_psi = rep(0, length(psiParms)), 
-                   beta_gam = rep(0, length(gamParms)),
-                   beta_eps = rep(0, length(epsParms)), 
+                   beta_col = rep(0, length(colParms)),
+                   beta_ext = rep(0, length(extParms)), 
                    beta_det = rep(0, length(detParms)))
 
   tmb_obj <- TMB::MakeADFun(data = c(model = "tmb_colext", tmb_dat), 
@@ -81,8 +78,8 @@ colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
   sdr <- TMB::sdreport(tmb_obj)
 
   psi_coef <- get_coef_info(sdr, "psi", psiParms, pind_mat[1,1]:pind_mat[1,2])
-  gam_coef <- get_coef_info(sdr, "gam", gamParms, pind_mat[2,1]:pind_mat[2,2])
-  eps_coef <- get_coef_info(sdr, "eps", epsParms, pind_mat[3,1]:pind_mat[3,2])
+  col_coef <- get_coef_info(sdr, "col", colParms, pind_mat[2,1]:pind_mat[2,2])
+  ext_coef <- get_coef_info(sdr, "ext", extParms, pind_mat[3,1]:pind_mat[3,2])
   det_coef <- get_coef_info(sdr, "det", detParms, pind_mat[4,1]:pind_mat[4,2])
   
   psi <- unmarkedEstimate(name = "Initial", short.name = "psi",
@@ -92,14 +89,14 @@ colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
                           invlinkGrad = "logistic.grad")
 
   col <- unmarkedEstimate(name = "Colonization", short.name = "col",
-                          estimates = gam_coef$ests,
-                          covMat = gam_coef$cov,
+                          estimates = col_coef$ests,
+                          covMat = col_coef$cov,
                           invlink = "logistic",
                           invlinkGrad = "logistic.grad")
 
   ext <- unmarkedEstimate(name = "Extinction", short.name = "ext",
-                          estimates = eps_coef$ests,
-                          covMat = eps_coef$cov,
+                          estimates = ext_coef$ests,
+                          covMat = ext_coef$cov,
                           invlink = "logistic",
                           invlinkGrad = "logistic.grad")
 
@@ -110,14 +107,14 @@ colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
                           invlinkGrad = "logistic.grad")
 
   estimateList <- unmarkedEstimateList(list(psi = psi, col = col,
-                                            ext = ext, det=det))
+                                            ext = ext, det = det))
   
   psis <- plogis(X_psi %*% psi_coef$ests)
 
   # Compute projected estimates
   phis <- array(NA,c(2,2,T-1,M))
-  phis[,1,,] <- plogis(X_gam %x% c(-1,1) %*% gam_coef$ests)
-  phis[,2,,] <- plogis(X_eps %x% c(-1,1) %*% -eps_coef$ests)
+  phis[,1,,] <- plogis(X_col %x% c(-1,1) %*% col_coef$ests)
+  phis[,2,,] <- plogis(X_ext %x% c(-1,1) %*% -ext_coef$ests)
 
   projected <- array(NA, c(2, T, M))
   projected[1,1,] <- 1 - psis
@@ -133,9 +130,9 @@ colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
 
   # Compute smoothed estimates
   smoothed <- calculate_smooth(y = y, psi = psis,
-                               gam = plogis(X_gam %*% gam_coef$ests),
-                               eps = plogis(X_eps %*% eps_coef$ests),
-                               p = plogis(X_det %*% det_coef$ests),
+                               col = plogis(X_col %*% col_coef$ests),
+                               ext = plogis(X_ext %*% ext_coef$ests),
+                               p = plogis(dm$X_det %*% det_coef$ests),
                                M = M, T = T, J = J)
   smoothed.mean <- apply(smoothed, 1:2, mean)
   rownames(smoothed.mean) <- c("unoccupied","occupied")
@@ -148,7 +145,7 @@ colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
                 gamformula = gammaformula,
                 epsformula = epsilonformula,
                 detformula = pformula,
-                data = data, sitesRemoved = designMats$removed.sites,
+                data = data, sitesRemoved = dm$removed.sites,
                 estimates = estimateList,
                 AIC = fmAIC, opt = opt, negLogLike = opt$value,
                 nllFun = tmb_obj$fn,
@@ -161,14 +158,14 @@ colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
 
 # Based on Weir, Fiske, Royle 2009 "TRENDS IN ANURAN OCCUPANCY"
 # Appendix 1
-calculate_smooth <- function(y, psi, gam, eps, p, M, T, J){
+calculate_smooth <- function(y, psi, col, ext, p, M, T, J){
 
   smoothed <- array(NA, c(2, T, M))
 
   # Turn parameters into matrices
   p <- matrix(p, M, T*J, byrow=TRUE)
-  gam <- matrix(gam, M, (T-1), byrow=TRUE)
-  eps <- matrix(eps, M, (T-1), byrow = TRUE)
+  col <- matrix(col, M, (T-1), byrow=TRUE)
+  ext <- matrix(ext, M, (T-1), byrow = TRUE)
 
   tind <- rep(1:T, each = J)
 
@@ -202,16 +199,16 @@ calculate_smooth <- function(y, psi, gam, eps, p, M, T, J){
       psub <- p[i, tind == t]
 
       if(all(is.na(ysub))){
-        alpha1[i,t] <- alpha0[i,t-1] * gam[i,t-1] + alpha1[i,t-1] * (1 - eps[i,t-1])
-        alpha0[i,t] <- alpha0[i,t-1] * (1-gam[i,t-1]) + alpha1[i,t-1] * eps[i,t-1]
+        alpha1[i,t] <- alpha0[i,t-1] * col[i,t-1] + alpha1[i,t-1] * (1 - ext[i,t-1])
+        alpha0[i,t] <- alpha0[i,t-1] * (1-col[i,t-1]) + alpha1[i,t-1] * ext[i,t-1]
       } else {
         # Case when z = 1
         cp <- prod(na.omit(dbinom(ysub, 1, psub)))
-        alpha1[i,t] <- (alpha0[i,t-1] * gam[i,t-1] + alpha1[i,t-1] * (1 - eps[i,t-1])) * cp  
+        alpha1[i,t] <- (alpha0[i,t-1] * col[i,t-1] + alpha1[i,t-1] * (1 - ext[i,t-1])) * cp  
 
         # Case when z = 0
         cp <- prod(na.omit(dbinom(ysub, 1, 0)))
-        alpha0[i,t] <- (alpha0[i,t-1] * (1-gam[i,t-1]) + alpha1[i,t-1] * eps[i,t-1]) * cp
+        alpha0[i,t] <- (alpha0[i,t-1] * (1-col[i,t-1]) + alpha1[i,t-1] * ext[i,t-1]) * cp
       }
     }
 
@@ -228,16 +225,16 @@ calculate_smooth <- function(y, psi, gam, eps, p, M, T, J){
       psub <- p[i, tind == t+1]
 
       if(all(is.na(ysub))){
-        beta1[i, t] <- eps[i,t] * beta0[i, t+1] + (1-eps[i,t]) * beta1[i, t+1]
-        beta0[i, t] <- (1-gam[i,t]) * beta0[i, t+1] + gam[i,t] * beta1[i, t+1]
+        beta1[i, t] <- ext[i,t] * beta0[i, t+1] + (1-ext[i,t]) * beta1[i, t+1]
+        beta0[i, t] <- (1-col[i,t]) * beta0[i, t+1] + col[i,t] * beta1[i, t+1]
       } else {
         cp1 <- prod(na.omit(dbinom(ysub, 1, psub)))
         cp0 <- prod(na.omit(dbinom(ysub, 1, 0)))
 
         # Case when z = 1
-        beta1[i, t] <- eps[i,t] * cp0 * beta0[i, t+1] + (1-eps[i,t]) * cp1 * beta1[i, t+1]
+        beta1[i, t] <- ext[i,t] * cp0 * beta0[i, t+1] + (1-ext[i,t]) * cp1 * beta1[i, t+1]
         # Case when z = 0
-        beta0[i, t] <- (1-gam[i,t]) * cp0 * beta0[i, t+1] + gam[i,t] * cp1 * beta1[i, t+1]
+        beta0[i, t] <- (1-col[i,t]) * cp0 * beta0[i, t+1] + col[i,t] * cp1 * beta1[i, t+1]
       }
     }
 

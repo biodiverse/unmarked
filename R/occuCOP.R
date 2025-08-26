@@ -96,8 +96,8 @@ setMethod("predict_inputs_from_umf", "unmarkedFitOccuCOP",
             designMats = getDesign(umf = newdata,
                                    formula = comb_form,
                                    na.rm = na.rm)
-            if (type == "psi") list_els <- c("X", "Z_state")
-            if (type == "lambda") list_els <- c("V", "Z_det")
+            if (type == "psi") list_els <- c("X_state", "Z_state")
+            if (type == "lambda") list_els <- c("X_det", "Z_det")
             X <- designMats[[list_els[1]]]
             if (is.null(re.form)) X <- cbind(X, designMats[[list_els[2]]])
             return(list(X = X, offset = NULL))
@@ -139,10 +139,10 @@ setMethod("fitted_internal", "unmarkedFitOccuCOP", function(object) {
   comb_form <- list(as.name("~"), fl$lambdaformula, fl$psiformula[[2]])
   des <- getDesign(data, comb_form, na.rm = FALSE)
   estim_psi = as.numeric(do.call(object["psi"]@invlink,
-                                 list(as.matrix(des$X %*% coef(object, 'psi')))))
+                                 list(as.matrix(des$X_state %*% coef(object, 'psi')))))
   estim_lambda = do.call(object["lambda"]@invlink, 
                          list(matrix(
-                           as.numeric(des$V %*% coef(object, 'lambda')),
+                           as.numeric(des$X_det %*% coef(object, 'lambda')),
                            nrow = M, ncol = J, byrow = T)))
   return(estim_psi * estim_lambda)
 })
@@ -461,10 +461,10 @@ occuCOP <- function(data,
   }
   
   # Xpsi is the fixed effects design matrix for occupancy
-  Xpsi <- designMats$X
+  Xpsi <- designMats$X_state
   
   # Xlambda is the fixed effects design matrix for detection rate
-  Xlambda <- designMats$V
+  Xlambda <- designMats$X_det
   
   # Zpsi is the random effects design matrix for occupancy
   Zpsi <- designMats$Z_state

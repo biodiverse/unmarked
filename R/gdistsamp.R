@@ -26,18 +26,10 @@ formlist <- list(lambdaformula = lambdaformula, phiformula = phiformula,
 check_no_support(formlist)
 form <- as.formula(paste(unlist(formlist), collapse=" "))
 D <- getDesign(data, formula = form)
+X_lambda <- D$X_state
+offset_lambda <- D$offset_state
 
-Xlam <- D$Xlam
-Xphi <- D$Xphi
-Xdet <- D$Xdet
 y <- D$y  # MxJT
-
-Xlam.offset <- D$Xlam.offset
-Xphi.offset <- D$Xphi.offset
-Xdet.offset <- D$Xdet.offset
-if(is.null(Xlam.offset)) Xlam.offset <- rep(0, nrow(Xlam))
-if(is.null(Xphi.offset)) Xphi.offset <- rep(0, nrow(Xphi))
-if(is.null(Xdet.offset)) Xdet.offset <- rep(0, nrow(Xdet))
 
 M <- nrow(y)
 T <- data@numPrimary
@@ -90,22 +82,22 @@ switch(unitsOut,
     kmsq = A <- A)
 
 
-lamPars <- colnames(Xlam)
+lamPars <- colnames(X_lambda)
 if(T==1) {
     phiPars <- character(0)
     nPP <- 0
     }
 else {
-    phiPars <- colnames(Xphi)
-    nPP <- ncol(Xphi)
+    phiPars <- colnames(D$X_phi)
+    nPP <- ncol(D$X_phi)
     }
 if(identical(keyfun, "uniform")) {
     nDP <- 0
     detPars <- character(0)
     }
 else {
-    nDP <- ncol(Xdet)
-    detPars <- colnames(Xdet)
+    nDP <- ncol(D$X_det)
+    detPars <- colnames(D$X_det)
     }
 if(identical(keyfun, "hazard")) {
     nSP <- 1
@@ -126,7 +118,7 @@ if(identical(mixture, "NB")) {
     nbPar <- character(0)
 }
 
-nLP <- ncol(Xlam)
+nLP <- ncol(X_lambda)
 nP  <- nLP + nPP + nDP + nSP + nOP
 
 cp <- array(as.numeric(NA), c(M, T, J+1))
@@ -150,24 +142,24 @@ for(i in 1:M) {
 
 switch(keyfun,
 halfnorm = {
-    altdetParms <- paste("sigma", colnames(Xdet), sep="")
+    altdetParms <- paste("sigma", colnames(D$X_det), sep="")
     if(missing(starts)) {
         starts <- rep(0, nP)
         starts[nLP+nPP+1] <- log(max(db))
         }
 
     nll_R <- function(pars) {
-        lambda <- exp(Xlam %*% pars[1:nLP] + Xlam.offset)
+        lambda <- exp(X_lambda %*% pars[1:nLP] + offset_lambda)
         if(identical(output, "density"))
             lambda <- lambda * A
 
         if(T==1)
             phi <- matrix(1, M, T)
         else {
-            phi <- plogis(Xphi %*% pars[(nLP+1):(nLP+nPP)] + Xphi.offset)
+            phi <- plogis(D$X_phi %*% pars[(nLP+1):(nLP+nPP)] + D$offset_phi)
             phi <- matrix(phi, M, T, byrow=TRUE)
             }
-        sigma <- exp(Xdet %*% pars[(nLP+nPP+1):(nLP+nPP+nDP)]+Xdet.offset)
+        sigma <- exp(D$X_det %*% pars[(nLP+nPP+1):(nLP+nPP+nDP)]+D$offset_det)
         sigma <- matrix(sigma, M, T, byrow=TRUE)
 
         switch(mixture,
@@ -220,23 +212,23 @@ halfnorm = {
         }
     },
 exp = {
-    altdetParms <- paste("rate", colnames(Xdet), sep="")
+    altdetParms <- paste("rate", colnames(D$X_det), sep="")
     if(missing(starts)) {
         starts <- rep(0, nP)
         starts[nLP+nPP+1] <- log(max(db))
         }
 
     nll_R <- function(pars) {
-        lambda <- exp(Xlam %*% pars[1:nLP] + Xlam.offset)
+        lambda <- exp(X_lambda %*% pars[1:nLP] + offset_lambda)
         if(identical(output, "density"))
             lambda <- lambda * A
         if(T==1)
             phi <- matrix(1, M, T)
         else {
-            phi <- plogis(Xphi %*% pars[(nLP+1):(nLP+nPP)] + Xphi.offset)
+            phi <- plogis(D$X_phi %*% pars[(nLP+1):(nLP+nPP)] + D$offset_phi)
             phi <- matrix(phi, M, T, byrow=TRUE)
             }
-        rate <- exp(Xdet %*% pars[(nLP+nPP+1):(nLP+nPP+nDP)] + Xdet.offset)
+        rate <- exp(D$X_det %*% pars[(nLP+nPP+1):(nLP+nPP+nDP)] + D$offset_det)
         rate <- matrix(rate, M, T, byrow=TRUE)
 
         switch(mixture,
@@ -290,22 +282,22 @@ exp = {
         }
     },
 hazard = {
-    altdetParms <- paste("shape", colnames(Xdet), sep="")
+    altdetParms <- paste("shape", colnames(D$X_det), sep="")
     if(missing(starts)) {
         starts <- rep(0, nP)
         }
     nll_R <- function(pars) {
-        lambda <- exp(Xlam %*% pars[1:nLP] + Xlam.offset)
+        lambda <- exp(X_lambda %*% pars[1:nLP] + offset_lambda)
         if(identical(output, "density"))
             lambda <- lambda * A
 
         if(T==1)
             phi <- matrix(1, M, T)
         else {
-            phi <- plogis(Xphi %*% pars[(nLP+1):(nLP+nPP)] + Xphi.offset)
+            phi <- plogis(D$X_phi %*% pars[(nLP+1):(nLP+nPP)] + D$offset_phi)
             phi <- matrix(phi, M, T, byrow=TRUE)
             }
-        shape <- exp(Xdet %*% pars[(nLP+nPP+1):(nLP+nPP+nDP)]+Xdet.offset)
+        shape <- exp(D$X_det %*% pars[(nLP+nPP+1):(nLP+nPP+nDP)]+D$offset_det)
         shape <- matrix(shape, M, T, byrow=TRUE)
 
         scale <- exp(pars[nLP+nPP+nDP+1])
@@ -364,13 +356,13 @@ uniform = {
         starts <- rep(0, nP)
         }
     nll_R <- function(pars) {
-        lambda <- exp(Xlam %*% pars[1:nLP] + Xlam.offset)
+        lambda <- exp(X_lambda %*% pars[1:nLP] + offset_lambda)
         if(identical(output, "density"))
             lambda <- lambda * A
         if(T==1)
             phi <- matrix(1, M, T)
         else {
-            phi <- plogis(Xphi %*% pars[(nLP+1):(nLP+nPP)] + Xphi.offset)
+            phi <- plogis(D$X_phi %*% pars[(nLP+1):(nLP+nPP)] + D$offset_phi)
             phi <- matrix(phi, M, T, byrow=TRUE)
             }
         p <- 1
@@ -418,7 +410,7 @@ if(engine =="C"){
 
   nll <- function(params){
     nll_gdistsamp(params, n_param, y_long, mixture_code, keyfun, survey,
-                  Xlam, Xlam.offset, A, Xphi, Xphi.offset, Xdet, Xdet.offset,
+                  X_lambda, offset_lambda, A, D$X_phi, D$offset_phi, D$X_det, D$offset_det,
                   db, a, t(u), w, k, lfac.k, lfac.kmytC, kmytC, Kmin, threads)
   }
 

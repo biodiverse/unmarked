@@ -7,8 +7,8 @@ Type tmb_colext(objective_function<Type>* obj) {
 
   DATA_VECTOR(y);
   DATA_MATRIX(X_psi);
-  DATA_MATRIX(X_gam);
-  DATA_MATRIX(X_eps);
+  DATA_MATRIX(X_col);
+  DATA_MATRIX(X_ext);
   DATA_MATRIX(X_det);
   DATA_INTEGER(M);
   DATA_INTEGER(T);
@@ -17,8 +17,8 @@ Type tmb_colext(objective_function<Type>* obj) {
   DATA_MATRIX(nd);
 
   PARAMETER_VECTOR(beta_psi);
-  PARAMETER_VECTOR(beta_gam);
-  PARAMETER_VECTOR(beta_eps);
+  PARAMETER_VECTOR(beta_col);
+  PARAMETER_VECTOR(beta_ext);
   PARAMETER_VECTOR(beta_det);
 
   Type loglik = 0.0;
@@ -26,11 +26,11 @@ Type tmb_colext(objective_function<Type>* obj) {
   vector<Type> psi = X_psi * beta_psi;
   psi = invlogit(psi);
 
-  vector<Type> gam = X_gam * beta_gam;
-  gam = invlogit(gam);
+  vector<Type> col = X_col * beta_col;
+  col = invlogit(col);
 
-  vector<Type> eps = X_eps * beta_eps;
-  eps = invlogit(eps);
+  vector<Type> ext = X_ext * beta_ext;
+  ext = invlogit(ext);
 
   vector<Type> p = X_det * beta_det;
   p = invlogit(p);
@@ -54,10 +54,10 @@ Type tmb_colext(objective_function<Type>* obj) {
     for (int t=0; t<(T-1); t++){
 
       phi = phi.setZero();
-      phi(0, 0) = 1 - eps(Tidx);
-      phi(0, 1) = eps(Tidx);
-      phi(1, 0) = gam(Tidx);
-      phi(1, 1) = 1 - gam(Tidx);
+      phi(0, 0) = 1 - ext(Tidx);
+      phi(0, 1) = ext(Tidx);
+      phi(1, 0) = col(Tidx);
+      phi(1, 1) = 1 - col(Tidx);
       Tidx += 1;
 
       if(site_sampled(i, t) == 1){

@@ -61,24 +61,24 @@ setMethod("getDesign", "unmarkedFrame",
   }
 
   list(y = y, 
-       X = X_state, X.offset = offset_state, Z_state = Z_state,
-       V = X_det, V.offset = offset_det, Z_det = Z_det,
+       X_state = X_state, offset_state = offset_state, Z_state = Z_state,
+       X_det = X_det, offset_det = offset_det, Z_det = Z_det,
        removed.sites = which(drop_sites))
 })
 
 
 # UnmarkedMultFrame
-# used by colext and base class for G3 and DailMadsen
+# used by colext, occuTTD, nmixTTD and base class for G3 and DailMadsen
 setMethod("getDesign", "unmarkedMultFrame",
   function(umf, formula, na.rm = TRUE){
 
-  psiformula <- as.formula(formula[[2]][[2]][[2]])  
+  stateformula <- as.formula(formula[[2]][[2]][[2]])  
   gamformula <- as.formula(as.call(list(as.name("~"), formula[[2]][[2]][[3]])))
   epsformula <- as.formula(as.call(list(as.name("~"), formula[[2]][[3]])))
   detformula <- as.formula(as.call(list(as.name("~"), formula[[3]])))
  
   # Process state and detection with generic umf method  
-  comb_form <- list(as.name("~"), detformula, psiformula[[2]])
+  comb_form <- list(as.name("~"), detformula, stateformula[[2]])
   comb_form <- as.formula(as.call(comb_form))
   out <- methods::callNextMethod(umf, formula = comb_form, na.rm = FALSE)
  
@@ -123,16 +123,16 @@ setMethod("getDesign", "unmarkedMultFrame",
     warning("Site(s) ", paste(which(drop_sites), collapse = ","),
             " dropped due to missing values", call.=FALSE)
     y <- y[!drop_sites,,drop=FALSE]
-    out$X <- out$X[!drop_sites,,drop=FALSE]
+    out$X_state <- out$X_state[!drop_sites,,drop=FALSE]
     drop_sites_per <- rep(drop_sites, each = T)
     X_col <- X_col[!drop_sites_per,,drop=FALSE]
     X_ext <- X_ext[!drop_sites_per,,drop=FALSE]
     drop_sites_obs <- rep(drop_sites, each = R)
-    out$V <- out$V[!drop_sites_obs,,drop=FALSE]
+    out$X_det <- out$X_det[!drop_sites_obs,,drop=FALSE]
   }
 
   # Combine outputs
-  list(y = y, W = out$X, X.gam = X_col, X.eps = X_ext, V = out$V,
+  list(y = y, X_state = out$X_state, X_col = X_col, X_ext = X_ext, X_det = out$X_det,
        removed.sites = which(drop_sites))
 })
 
@@ -141,12 +141,12 @@ setMethod("getDesign", "unmarkedMultFrame",
 setMethod("getDesign", "unmarkedFrameG3",
   function(umf, formula, na.rm = TRUE){
 
-  lamformula <- as.formula(formula[[2]][[2]])  
+  stateformula <- as.formula(formula[[2]][[2]])  
   phiformula <- as.formula(as.call(list(as.name("~"), formula[[2]][[3]])))
   detformula <- as.formula(as.call(list(as.name("~"), formula[[3]])))
  
   # Process state and detection with generic umf method  
-  comb_form <- list(as.name("~"), detformula, lamformula[[2]])
+  comb_form <- list(as.name("~"), detformula, stateformula[[2]])
   comb_form <- as.formula(as.call(comb_form))
   # Have to use getMethod because this inherits from unmarkedMultFrame
   getDesign_generic <- methods::getMethod("getDesign", "unmarkedFrame")
@@ -179,20 +179,20 @@ setMethod("getDesign", "unmarkedFrameG3",
     warning("Site(s) ", paste(which(drop_sites), collapse = ","),
             " dropped due to missing values", call.=FALSE)
     y <- y[!drop_sites,,drop=FALSE]
-    out$X <- out$X[!drop_sites,,drop=FALSE]
-    out$X.offset <- out$X.offset[!drop_sites]
+    out$X_state <- out$X_state[!drop_sites,,drop=FALSE]
+    out$offset_state <- out$offset_state[!drop_sites]
     drop_sites_per <- rep(drop_sites, each = T)
     X_phi <- X_phi[!drop_sites_per,,drop=FALSE]
     offset_phi <- offset_phi[!drop_sites_per]
     drop_sites_obs <- rep(drop_sites, each = R)
-    out$V <- out$V[!drop_sites_obs,,drop=FALSE]
-    out$V.offset <- out$V.offset[!drop_sites_obs]
+    out$X_det <- out$X_det[!drop_sites_obs,,drop=FALSE]
+    out$offset_det <- out$offset_det[!drop_sites_obs]
   }
 
   # Combine outputs
-  test = list(y = y, Xlam = out$X, Xlam.offset = out$X.offset,
-       Xphi = X_phi, Xphi.offset = offset_phi,
-       Xdet = out$V, Xdet.offset = out$V.offset,
+  list(y = y, X_state = out$X_state, offset_state = out$offset_state,
+       X_phi = X_phi, offset_phi = offset_phi,
+       X_det = out$X_det, offset_det = out$offset_det,
        removed.sites = which(drop_sites))
 })
 
@@ -359,11 +359,11 @@ setMethod("getDesign", "unmarkedFrameDailMadsen",
     }
   }
 
-	list(y = y, Xlam = X_lambda, Xlam.offset = offset_lambda,
-       Xgam = X_gamma, Xgam.offset = offset_gamma,
-       Xom = X_omega, Xom.offset = offset_omega,
-       Xiota = X_iota, Xiota.offset = offset_iota,
-       Xp = X_det, Xp.offset = offset_det, 
+	list(y = y, X_lambda = X_lambda, offset_lambda = offset_lambda,
+       X_gamma = X_gamma, offset_gamma = offset_gamma,
+       X_omega = X_omega, offset_omega = offset_omega,
+       X_iota = X_iota, offset_iota = offset_iota,
+       X_det = X_det, offset_det = offset_det, 
        delta = delta, removed.sites = which(drop_sites),
        go.dims = go.dims)
 })
@@ -427,56 +427,56 @@ setMethod("getDesign", "unmarkedFrameGDR",
   if(return.frames) return(list(sc=sc, ysc=ysc, oc=oc))
 
   lam_fixed <- reformulas::nobars(formula$lambdaformula)
-  Xlam <- model.matrix(lam_fixed,
+  X_lambda <- model.matrix(lam_fixed,
             model.frame(lam_fixed, sc, na.action=NULL))
 
   phi_fixed <- reformulas::nobars(formula$phiformula)
-  Xphi <- model.matrix(phi_fixed,
+  X_phi<- model.matrix(phi_fixed,
             model.frame(phi_fixed, ysc, na.action=NULL))
 
   dist_fixed <- reformulas::nobars(formula$distanceformula)
-  Xdist <- model.matrix(dist_fixed,
+  X_dist <- model.matrix(dist_fixed,
             model.frame(dist_fixed, ysc, na.action=NULL))
 
   rem_fixed <- reformulas::nobars(formula$removalformula)
-  Xrem <- model.matrix(rem_fixed,
+  X_rem <- model.matrix(rem_fixed,
             model.frame(rem_fixed, oc, na.action=NULL))
 
-  Zlam <- get_Z(formula$lambdaformula, sc)
-  Zphi <- get_Z(formula$phiformula, ysc)
-  Zdist <- get_Z(formula$distanceformula, ysc)
-  Zrem <- get_Z(formula$removalformula, oc)
+  Z_lambda <- get_Z(formula$lambdaformula, sc)
+  Z_phi <- get_Z(formula$phiformula, ysc)
+  Z_dist <- get_Z(formula$distanceformula, ysc)
+  Z_rem <- get_Z(formula$removalformula, oc)
  
   # Check if there are missing yearlySiteCovs
   ydist_mat <- apply(matrix(yDist, nrow=M*T, byrow=TRUE), 1, function(x) any(is.na(x)))
   yrem_mat <- apply(matrix(yRem, nrow=M*T, byrow=TRUE), 1, function(x) any(is.na(x)))
   ok_missing_phi_covs <- ydist_mat | yrem_mat
-  missing_phi_covs <- apply(Xphi, 1, function(x) any(is.na(x)))  
+  missing_phi_covs <- apply(X_phi, 1, function(x) any(is.na(x)))  
   if(!all(which(missing_phi_covs) %in% which(ok_missing_phi_covs))){
     stop("Missing yearlySiteCovs values for some observations that are not missing", call.=FALSE)
   }
 
   # Check if there are missing dist covs
-  missing_dist_covs <- apply(Xdist, 1, function(x) any(is.na(x)))
+  missing_dist_covs <- apply(X_dist, 1, function(x) any(is.na(x)))
   ok_missing_dist_covs <- ydist_mat
   if(!all(which(missing_dist_covs) %in% which(ok_missing_dist_covs))){
     stop("Missing yearlySiteCovs values for some distance observations that are not missing", call.=FALSE)
   }
 
   # Check if there are missing rem covs
-  missing_obs_covs <- apply(Xrem, 1, function(x) any(is.na(x)))
+  missing_obs_covs <- apply(X_rem, 1, function(x) any(is.na(x)))
   missing_obs_covs <- apply(matrix(missing_obs_covs, nrow=M*T, byrow=TRUE), 1, function(x) any(x))
   ok_missing_obs_covs <- yrem_mat
   if(!all(which(missing_obs_covs) %in% which(ok_missing_obs_covs))){
     stop("Missing obsCovs values for some removal observations that are not missing", call.=FALSE)
   }
     
-  if(any(is.na(Xlam))){
+  if(any(is.na(X_lambda))){
     stop("gdistremoval does not currently handle missing values in siteCovs", call.=FALSE)
   }
 
-  list(yDist=yDist, yRem=yRem, Xlam=Xlam, Xphi=Xphi, Xdist=Xdist, Xrem=Xrem,
-       Zlam=Zlam, Zphi=Zphi, Zdist=Zdist, Zrem=Zrem)
+  list(yDist=yDist, yRem=yRem, X_lambda=X_lambda, X_phi=X_phi, X_dist=X_dist, X_rem=X_rem,
+       Z_lambda=Z_lambda, Z_phi=Z_phi, Z_dist=Z_dist, Z_rem=Z_rem)
 })
 
 
@@ -521,11 +521,11 @@ setMethod("getDesign", "unmarkedFrameOccuFP",
             " dropped due to missing values", call.=FALSE)
     y <- y[!drop_sites,,drop=FALSE]
 
-    out$X <- out$X[!drop_sites,,drop=FALSE]
-    out$X.offset <- out$X.offset[!drop_sites]
+    out$X_state <- out$X_state[!drop_sites,,drop=FALSE]
+    out$offset_state <- out$offset_state[!drop_sites]
     drop_sites_obs <- rep(drop_sites, each = J)
-    out$V <- out$V[!drop_sites_obs,,drop=FALSE]
-    out$V.offset <- out$V.offset[!drop_sites_obs]
+    out$X_det <- out$X_det[!drop_sites_obs,,drop=FALSE]
+    out$offset_det <- out$offset_det[!drop_sites_obs]
 
     X_fp <- X_fp[!drop_sites_obs,,drop=FALSE]
     offset_fp <- offset_fp[!drop_sites_obs]
@@ -533,8 +533,8 @@ setMethod("getDesign", "unmarkedFrameOccuFP",
     offset_b <- offset_b[!drop_sites_obs]
   }
 
-  # Combine outputs
-  new_out <- list(U = X_fp, U.offset = offset_fp, W = X_b, W.offset = offset_b)
+  # Combine outputs (U=fp, W=b)
+  new_out <- list(X_fp = X_fp, offset_fp = offset_fp, X_b = X_b, offset_b = offset_b)
   out <- c(out, new_out)
   out$y <- y
   out$removed.sites <- which(drop_sites)

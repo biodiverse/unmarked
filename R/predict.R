@@ -130,10 +130,10 @@ check_type <- function(mod, type){
 setMethod("predict_inputs_from_umf", "unmarkedFit",
   function(object, type, newdata, na.rm, re.form){
   designMats <- getDesign(newdata, object@formula, na.rm = na.rm)
-  if(type == "state") list_els <- c("X","Z_state","X.offset")
-  if(type == "det") list_els <- c("V","Z_det","V.offset")
+  if(type == "state") list_els <- c("X_state","Z_state","offset_state")
+  if(type == "det") list_els <- c("X_det","Z_det","offset_det")
   if(type == "scale"){ # no covariates
-    n <- nrow(designMats$V)
+    n <- nrow(designMats$X_det)
     return(list(X = matrix(1, nrow=n, ncol=1), offset = rep(0, n)))
   }
 
@@ -323,7 +323,7 @@ setMethod("predict_by_chunk", "unmarkedFitPCount",
 setMethod("predict_inputs_from_umf", "unmarkedFitColExt",
   function(object, type, newdata, na.rm, re.form=NA){
   designMats <- getDesign(newdata, object@formula, na.rm = na.rm)
-  list_el <- switch(type, psi="W", col="X.gam", ext="X.eps", det="V")
+  list_el <- switch(type, psi="X_state", col="X_col", ext="X_ext", det="X_det")
   # colext doesn't support offsets
   list(X=designMats[[list_el]], offset=NULL)
 })
@@ -347,8 +347,8 @@ setMethod("predict_inputs_from_umf", "unmarkedFitOccuFP",
   function(object, type, newdata, na.rm, re.form=NA){
   designMats <- getDesign(newdata, object@detformula, object@FPformula,
                           object@Bformula, object@stateformula, na.rm=na.rm)
-  X_idx <- switch(type, state="X", det="V", fp="U", b="W")
-  off_idx <- paste0(X_idx, ".offset")
+  X_idx <- switch(type, state="X_state", det="X_det", fp="X_fp", b="X_b")
+  off_idx <- paste0("offset_", type)
   list(X=designMats[[X_idx]], offset=designMats[[off_idx]])
 })
 
@@ -387,9 +387,9 @@ setMethod("check_predict_arguments", "unmarkedFitDailMadsen",
 setMethod("predict_inputs_from_umf", "unmarkedFitDailMadsen",
   function(object, type, newdata, na.rm, re.form=NA){
   designMats <- getDesign(newdata, object@formula, na.rm=na.rm)
-  X_idx <- switch(type, lambda="Xlam", gamma="Xgam", omega="Xom",
-                  iota="Xiota", det="Xp")
-  off_idx <- paste0(X_idx, ".offset")
+  X_idx <- switch(type, lambda="X_lambda", gamma="X_gamma", omega="X_omega",
+                  iota="X_iota", det="X_det")
+  off_idx <- paste0("offset_", type)
   list(X=designMats[[X_idx]], offset=designMats[[off_idx]])
 })
 
@@ -444,8 +444,8 @@ setMethod("predict_by_chunk", "unmarkedFitDailMadsen",
 setMethod("predict_inputs_from_umf", "unmarkedFitGMM",
   function(object, type, newdata, na.rm, re.form=NA){
   designMats <- getDesign(newdata, object@formula, na.rm=na.rm)
-  X_idx <- switch(type, lambda="Xlam", phi="Xphi", det="Xdet")
-  off_idx <- paste0(X_idx, ".offset")
+  X_idx <- switch(type, lambda="X_state", phi="X_phi", det="X_det")
+  off_idx <- switch(type, lambda="offset_state", phi="offset_phi", det="offset_det")
   list(X=designMats[[X_idx]], offset=designMats[[off_idx]])
 })
 
@@ -469,7 +469,7 @@ setMethod("get_orig_data", "unmarkedFitGMM", function(object, type, ...){
 setMethod("predict_inputs_from_umf", "unmarkedFitOccuTTD",
   function(object, type, newdata, na.rm, re.form=NA){
   designMats <- getDesign(newdata, object@formula, na.rm = na.rm)
-  list_el <- switch(type, psi="W", col="X.gam", ext="X.eps", det="V")
+  list_el <- switch(type, psi="X_state", col="X_col", ext="X_ext", det="X_det")
   list(X=designMats[[list_el]], offset=NULL)
 })
 
@@ -491,7 +491,7 @@ setMethod("get_orig_data", "unmarkedFitOccuTTD", function(object, type, ...){
 setMethod("predict_inputs_from_umf", "unmarkedFitNmixTTD",
   function(object, type, newdata, na.rm, re.form=NA){
   designMats <- getDesign(newdata, object@formula, na.rm = na.rm)
-  list_el <- switch(type, state="W", det="V")
+  list_el <- switch(type, state="X_state", det="X_det")
   list(X=designMats[[list_el]], offset=NULL)
 })
 
@@ -511,10 +511,10 @@ setMethod("get_orig_data", "unmarkedFitNmixTTD", function(object, type, ...){
 setMethod("predict_inputs_from_umf", "unmarkedFitGDR",
   function(object, type, newdata, na.rm, re.form=NA){
   designMats <- getDesign(newdata, object@formlist)
-  if(type == "lambda") list_els <- c("Xlam","Zlam")
-  if(type == "phi") list_els <- c("Xphi","Zphi")
-  if(type == "dist") list_els <- c("Xdist","Zdist")
-  if(type == "rem") list_els <- c("Xrem", "Zrem")
+  if(type == "lambda") list_els <- c("X_lambda","Z_lambda")
+  if(type == "phi") list_els <- c("X_phi","Z_phi")
+  if(type == "dist") list_els <- c("X_dist","Z_dist")
+  if(type == "rem") list_els <- c("X_rem", "Z_rem")
   X <- designMats[[list_els[1]]]
   if(is.null(re.form)) X <- cbind(X, designMats[[list_els[2]]])
   list(X=X, offset=NULL)
