@@ -359,11 +359,11 @@ setMethod("getDesign", "unmarkedFrameDailMadsen",
     }
   }
 
-	list(y = y, Xlam = X_lambda, Xlam.offset = offset_lambda,
-       Xgam = X_gamma, Xgam.offset = offset_gamma,
-       Xom = X_omega, Xom.offset = offset_omega,
-       Xiota = X_iota, Xiota.offset = offset_iota,
-       Xp = X_det, Xp.offset = offset_det, 
+	list(y = y, X_lambda = X_lambda, offset_lambda = offset_lambda,
+       X_gamma = X_gamma, offset_gamma = offset_gamma,
+       X_omega = X_omega, offset_omega = offset_omega,
+       X_iota = X_iota, offset_iota = offset_iota,
+       X_det = X_det, offset_det = offset_det, 
        delta = delta, removed.sites = which(drop_sites),
        go.dims = go.dims)
 })

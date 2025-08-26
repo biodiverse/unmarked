@@ -22,28 +22,11 @@ formula <- as.formula(paste(unlist(formlist), collapse=" "))
 D <- getDesign(data, formula)
 y <- D$y
 
-Xlam <- D$Xlam
-Xgam <- D$Xgam
-Xom <- D$Xom
-Xp <- D$Xp
-Xiota <- D$Xiota
-
 delta <- D$delta; go.dims <- D$go.dims
 deltamax <- max(delta, na.rm=TRUE)
 M <- nrow(y)
 T <- data@numPrimary
 J <- ncol(getY(data)) / T
-
-Xlam.offset <- D$Xlam.offset
-Xgam.offset <- D$Xgam.offset
-Xom.offset <- D$Xom.offset
-Xp.offset <- D$Xp.offset
-Xiota.offset <- D$Xiota.offset
-if(is.null(Xlam.offset)) Xlam.offset <- rep(0, M)
-if(is.null(Xgam.offset)) Xgam.offset <- rep(0, M*(T-1))
-if(is.null(Xom.offset)) Xom.offset <- rep(0, M*(T-1))
-if(is.null(Xp.offset)) Xp.offset <- rep(0, M*T*J)
-if(is.null(Xiota.offset)) Xiota.offset <- rep(0, M*(T-1))
 
 yna <- is.na(y)
 yna[] <- as.integer(yna)
@@ -64,18 +47,18 @@ if(K <= max(y, na.rm = TRUE))
 k <- 0:K
 lk <- length(k)
 
-lamParms <- colnames(Xlam)
-gamParms <- colnames(Xgam)
-omParms <- colnames(Xom)
-detParms <- colnames(Xp)
-nAP <- ncol(Xlam)
-nGP <- ncol(Xgam)
-nOP <- ncol(Xom)
-nDP <- ncol(Xp)
+lamParms <- colnames(D$X_lambda)
+gamParms <- colnames(D$X_gamma)
+omParms <- colnames(D$X_omega)
+detParms <- colnames(D$X_det)
+nAP <- ncol(D$X_lambda)
+nGP <- ncol(D$X_gamma)
+nOP <- ncol(D$X_omega)
+nDP <- ncol(D$X_det)
 
 if(immigration) {
-  iotaParms <- colnames(Xiota)
-  nIP <- ncol(Xiota)
+  iotaParms <- colnames(D$X_iota)
+  nIP <- ncol(D$X_iota)
 } else {
   nIP <- 0
   iotaParms <- character(0)
@@ -150,9 +133,9 @@ nll <- function(parms) {
         log.alpha <- parms[nP]
     nll_pcountOpen(
           ym,
-          Xlam, Xgam, Xom, Xp, Xiota,
+          D$X_lambda, D$X_gamma, D$X_omega, D$X_det, D$X_iota,
           beta.lam, beta.gam, beta.om, beta.p, beta.iota, log.alpha,
-          Xlam.offset, Xgam.offset, Xom.offset, Xp.offset, Xiota.offset,
+          D$offset_lambda, D$offset_gamma, D$offset_omega, D$offset_det, D$offset_iota,
           ytna, yna,
           lk, mixture, first, last, M, J, T,
           delta, dynamics, fix, go.dims, immigration,
