@@ -8,19 +8,16 @@ colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
   formula <- list(psiformula = psiformula, gammaformula = gammaformula,
                   epsilonformula = epsilonformula, pformula = pformula)
   check_no_support(formula)
-  designMats <- getDesign(data, formula = as.formula(paste(unlist(formula), collapse=" ")))
-  X_psi <- designMats$X_state
-  X_col <- designMats$X_col
-  X_ext <- designMats$X_ext
-  X_det <- designMats$X_det
-  y <- designMats$y
+  dm <- getDesign(data, formula = as.formula(paste(unlist(formula), collapse=" ")))
+  X_psi <- dm$X_state; X_col <- dm$X_col; X_ext <- dm$X_ext
+  y <- dm$y
   M <- nrow(y)
   T <- data@numPrimary
   J <- ncol(y) / T
   psiParms <- colnames(X_psi)
   colParms <- colnames(X_col)
   extParms <- colnames(X_ext)
-  detParms <- colnames(X_det)
+  detParms <- colnames(dm$X_det)
 
   ## remove final year from transition prob design matrices
   X_col <- as.matrix(X_col[-seq(T,M*T,by=T),])
@@ -60,7 +57,7 @@ colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
   pind_mat[4,] <- max(pind_mat[3,]) + c(1, length(detParms))
   
   tmb_dat <- list(y = as.vector(t(y)), X_psi = X_psi, X_col = X_col, 
-                  X_ext = X_ext, X_det = X_det,
+                  X_ext = X_ext, X_det = dm$X_det,
                   M = M, T = T, J = J, 
                   site_sampled = site_sampled, nd = no_detects)
 
@@ -135,7 +132,7 @@ colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
   smoothed <- calculate_smooth(y = y, psi = psis,
                                col = plogis(X_col %*% col_coef$ests),
                                ext = plogis(X_ext %*% ext_coef$ests),
-                               p = plogis(X_det %*% det_coef$ests),
+                               p = plogis(dm$X_det %*% det_coef$ests),
                                M = M, T = T, J = J)
   smoothed.mean <- apply(smoothed, 1:2, mean)
   rownames(smoothed.mean) <- c("unoccupied","occupied")
@@ -148,7 +145,7 @@ colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
                 gamformula = gammaformula,
                 epsformula = epsilonformula,
                 detformula = pformula,
-                data = data, sitesRemoved = designMats$removed.sites,
+                data = data, sitesRemoved = dm$removed.sites,
                 estimates = estimateList,
                 AIC = fmAIC, opt = opt, negLogLike = opt$value,
                 nllFun = tmb_obj$fn,

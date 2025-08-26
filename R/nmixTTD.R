@@ -24,10 +24,9 @@ nmixTTD <- function(stateformula=~1, detformula=~1, data, K=100,
   formula <- as.formula(paste(unlist(formula),collapse=" "))
 
   #Process input data----------------------------------------------------------
-  designMats <- getDesign(data, formula)
-  X_state <- designMats$X_state; X_det <- designMats$X_det
-  y <- designMats$y
-  removed <- designMats$removed.sites
+  dm <- getDesign(data, formula)
+  y <- dm$y
+  removed <- dm$removed.sites
 
   N <- nrow(y)
   R <- ncol(y)
@@ -43,8 +42,8 @@ nmixTTD <- function(stateformula=~1, detformula=~1, data, K=100,
   delta <- as.numeric(yvec<ymax)
 
   #Organize parameters---------------------------------------------------------
-  detParms <- colnames(X_det); nDP <- ncol(X_det)
-  abunParms <- colnames(X_state); nAP <- ncol(X_state)
+  detParms <- colnames(dm$X_det); nDP <- ncol(dm$X_det)
+  abunParms <- colnames(dm$X_state); nAP <- ncol(dm$X_state)
 
   pinds <- matrix(NA, nrow=4, ncol=2)
   pinds[1,] <- c(1, nAP)
@@ -62,8 +61,8 @@ nmixTTD <- function(stateformula=~1, detformula=~1, data, K=100,
   nll_R <- function(params){
 
     #Get abundance and detection parameters
-    lamN <- exp(X_state %*% params[pinds[1,]])
-    lamP <- exp(X_det %*% params[pinds[2,]])
+    lamN <- exp(dm$X_state %*% params[pinds[1,]])
+    lamP <- exp(dm$X_det %*% params[pinds[2,]])
 
     if(mixture == "P"){
       pK <- sapply(0:K, function(k) dpois(k, lamN))
@@ -114,7 +113,7 @@ nmixTTD <- function(stateformula=~1, detformula=~1, data, K=100,
   }
 
   nll_C <- function(params){
-    nll_nmixTTD(params, yvec, delta, X_state, X_det, pinds - 1, mixture, ttdDist,
+    nll_nmixTTD(params, yvec, delta, dm$X_state, dm$X_det, pinds - 1, mixture, ttdDist,
                 N, J, K, naflag, threads)
   }
 

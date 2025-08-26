@@ -16,15 +16,9 @@ formlist <- list(lambdaformula = lambdaformula, phiformula = phiformula,
 check_no_support(formlist)
 form <- as.formula(paste(unlist(formlist), collapse=" "))
 D <- getDesign(data, formula = form)
-
 X_lambda <- D$X_state
-X_phi <- D$X_phi
-X_det <- D$X_det
-y <- D$y  # MxJT
-
 offset_lambda <- D$offset_state
-offset_phi <- D$offset_phi
-offset_det <- D$offset_det
+y <- D$y  # MxJT
 
 K <- check_K_multinomial(K, K_adjust = 100, y, data@numPrimary)
 k <- 0:K
@@ -46,16 +40,16 @@ yt <- apply(y, 1:2, function(x) {
 piFun <- data@piFun
 
 lamPars <- colnames(X_lambda)
-detPars <- colnames(X_det)
+detPars <- colnames(D$X_det)
 nLP <- ncol(X_lambda)
 if(T==1) {
     nPP <- 0
     phiPars <- character(0)
 } else if(T>1) {
-    nPP <- ncol(X_phi)
-    phiPars <- colnames(X_phi)
+    nPP <- ncol(D$X_phi)
+    phiPars <- colnames(D$X_phi)
     }
-nDP <- ncol(X_det)
+nDP <- ncol(D$X_det)
 nP <- nLP + nPP + nDP + (mixture%in%c('NB','ZIP'))
 if(!missing(starts) && length(starts) != nP)
     stop(paste("The number of starting values should be", nP))
@@ -82,8 +76,8 @@ nll_R <- function(pars) {
     if(T==1)
         phi <- 1
     else if(T>1)
-        phi <- drop(plogis(X_phi %*% pars[(nLP+1):(nLP+nPP)] + offset_phi))
-    p <- plogis(X_det %*% pars[(nLP+nPP+1):(nLP+nPP+nDP)] + offset_det)
+        phi <- drop(plogis(D$X_phi %*% pars[(nLP+1):(nLP+nPP)] + D$offset_phi))
+    p <- plogis(D$X_det %*% pars[(nLP+nPP+1):(nLP+nPP+nDP)] + D$offset_det)
 
     phi.mat <- matrix(phi, M, T, byrow=TRUE)
     phi <- as.numeric(phi.mat)
@@ -141,7 +135,7 @@ if(engine=="R"){
 
   nll <- function(params) {
     nll_gmultmix(params, n_param, y_long, mixture_code, piFun, X_lambda, offset_lambda,
-                 X_phi, offset_phi, X_det, offset_det, k, lfac.k, lfac.kmytC,
+                 D$X_phi, D$offset_phi, D$X_det, D$offset_det, k, lfac.k, lfac.kmytC,
                  kmytC, Kmin, threads)
   }
 

@@ -10,19 +10,17 @@ occuRN <- function(formula, data, K = 25, starts, method = "BFGS",
     stop("Data is not an unmarkedFrameOccu object.")
 
   engine <- match.arg(engine, c("C", "R"))
-  designMats <- getDesign(data, formula)
-  X_state <- designMats$X_state; X_det <- designMats$X_det; y <- designMats$y
-  offset_state <- designMats$offset_state; offset_det <- designMats$offset_det
-
+  dm <- getDesign(data, formula)
+  y <- dm$y
   y <- truncateToBinary(y)
 
   J <- ncol(y)
   M <- nrow(y)
 
-  occParms <- colnames(X_state)
-  detParms <- colnames(X_det)
-  nDP <- ncol(X_det)
-  nOP <- ncol(X_state)
+  occParms <- colnames(dm$X_state)
+  detParms <- colnames(dm$X_det)
+  nDP <- ncol(dm$X_det)
+  nOP <- ncol(dm$X_state)
 
   nP <- nDP + nOP
   if(!missing(starts) && length(starts) != nP)
@@ -36,7 +34,7 @@ occuRN <- function(formula, data, K = 25, starts, method = "BFGS",
   {
 
     ## compute individual level detection probabilities
-    r.ij <- matrix(plogis(X_det %*% parms[(nOP + 1) : nP] + offset_det), M, J,
+    r.ij <- matrix(plogis(dm$X_det %*% parms[(nOP + 1) : nP] + dm$offset_det), M, J,
       byrow = TRUE)
 
     ## compute list of detection probabilities along N
@@ -55,7 +53,7 @@ occuRN <- function(formula, data, K = 25, starts, method = "BFGS",
     cp.in <- sapply(cp.ij.list, rowProds)
 
     ## compute P(N = n | lambda_i) along i
-    lambda.i <- exp(X_state %*% parms[1 : nOP] + offset_state)
+    lambda.i <- exp(dm$X_state %*% parms[1 : nOP] + dm$offset_state)
     lambda.in <- sapply(n, function(x) dpois(x, lambda.i))
 
     ## integrate over P(y_i | N = n) * P(N = n | lambda_i) wrt n
@@ -70,7 +68,7 @@ occuRN <- function(formula, data, K = 25, starts, method = "BFGS",
     n_param <- c(nOP, nDP)
     Kmin <- apply(y, 1, function(x) max(x, na.rm=TRUE))
     nll <- function(params){
-      nll_occuRN(params, n_param, y, X_state, X_det, offset_state, offset_det,
+      nll_occuRN(params, n_param, y, dm$X_state, dm$X_det, dm$offset_state, dm$offset_det,
                  K, Kmin, threads)
     }
   }
@@ -98,7 +96,7 @@ occuRN <- function(formula, data, K = 25, starts, method = "BFGS",
 
   umfit <- new("unmarkedFitOccuRN", fitType = "occuRN",
       call = match.call(), formula = formula, data = data,
-      sitesRemoved = designMats$removed.sites, estimates = estimateList,
+      sitesRemoved = dm$removed.sites, estimates = estimateList,
       AIC = fmAIC, opt = fm, negLogLike = fm$value, nllFun = nll, K = K)
 
   return(umfit)

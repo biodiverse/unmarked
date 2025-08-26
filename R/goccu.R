@@ -31,11 +31,8 @@ goccu <- function(psiformula, phiformula, pformula, data,
   # handle offsets
 
   gd <- getDesign(data, formula = formula)
-
-  y <- gd$y
   X_psi <- gd$X_state
-  X_phi <- gd$X_phi
-  X_det <- gd$X_det
+  y <- gd$y
 
   M <- nrow(y)
   T <- data@numPrimary
@@ -81,7 +78,7 @@ goccu <- function(psiformula, phiformula, pformula, data,
 
   # Bundle data for TMB
   dataList <- list(y=y, T=T, link=ifelse(linkPsi=='cloglog', 1, 0), 
-                   X_psi=X_psi, X_phi=X_phi, X_det=X_det,
+                   X_psi=X_psi, X_phi=gd$X_phi, X_det=gd$X_det,
                    n_possible=n_possible,
                    alpha_potential=alpha_potential, alpha_drop = alpha_drop,
                    known_present=known_present, known_available=known_available, 
@@ -90,8 +87,8 @@ goccu <- function(psiformula, phiformula, pformula, data,
   # Provide dimensions and starting values for parameters
   # This part should change to be more like occu() if we add random effects
   psi_ind <- 1:ncol(X_psi)
-  phi_ind <- 1:ncol(X_phi) + max(psi_ind)
-  det_ind <- 1:ncol(X_det) + max(phi_ind)
+  phi_ind <- 1:ncol(gd$X_phi) + max(psi_ind)
+  det_ind <- 1:ncol(gd$X_det) + max(phi_ind)
   nP <- max(det_ind)
   params <- list(beta_psi = rep(0, length(psi_ind)), 
                  beta_phi = rep(0, length(phi_ind)), 
@@ -109,7 +106,7 @@ goccu <- function(psiformula, phiformula, pformula, data,
 
   covMat <- invertHessian(opt, nP, se)
   ests <- opt$par
-  names(ests) <- c(colnames(X_psi), colnames(X_phi), colnames(X_det))
+  names(ests) <- c(colnames(X_psi), colnames(gd$X_phi), colnames(gd$X_det))
   fmAIC <- 2 * opt$value + 2 * nP
 
 
@@ -125,7 +122,7 @@ goccu <- function(psiformula, phiformula, pformula, data,
   phi_est <- unmarkedEstimate(name = "Availability", short.name = "phi",
                               estimates = ests[phi_ind],
                               covMat = covMat[phi_ind, phi_ind, drop=FALSE],
-                              fixed = 1:ncol(X_phi),
+                              fixed = 1:ncol(gd$X_phi),
                               invlink = "logistic",
                               invlinkGrad = "logistic.grad",
                               randomVarInfo=list()
@@ -134,7 +131,7 @@ goccu <- function(psiformula, phiformula, pformula, data,
   det_est <- unmarkedEstimate(name = "Detection", short.name = "p",
                               estimates = ests[det_ind],
                               covMat = covMat[det_ind, det_ind, drop=FALSE],
-                              fixed = 1:ncol(X_det),
+                              fixed = 1:ncol(gd$X_det),
                               invlink = "logistic",
                               invlinkGrad = "logistic.grad",
                               randomVarInfo=list()

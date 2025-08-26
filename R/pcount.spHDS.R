@@ -20,21 +20,16 @@ function (formula, data, K, mixture = c("P", "NB", "ZIP"), starts,
    #engine <- match.arg(engine, c("C", "R"))
     if (identical(mixture, "ZIP") & identical(engine, "R"))
         stop("ZIP mixture not available for engine='R'")
-    designMats <- getDesign(data, formula)
-
-    X_state <- designMats$X_state
-    X_det <- designMats$X_det
-    y <- designMats$y
-    offset_state <- designMats$offset_state
-    offset_det <- designMats$offset_det
+    dm <- getDesign(data, formula)
+    y <- dm$y
 
     NAmat <- is.na(y)
     J <- ncol(y)
     M <- nrow(y)
-    lamParms <- colnames(X_state)
-    detParms <- colnames(X_det)
-    nDP <- ncol(X_det)
-    nAP <- ncol(X_state)
+    lamParms <- colnames(dm$X_state)
+    detParms <- colnames(dm$X_det)
+    nDP <- ncol(dm$X_det)
+    nAP <- ncol(dm$X_state)
     if (missing(K)) {
         K <- max(y, na.rm = TRUE) + 100
         warning("K was not specified and was set to ", K, ".")
@@ -64,9 +59,9 @@ function (formula, data, K, mixture = c("P", "NB", "ZIP"), starts,
             tmp.parms[1]<- -1*exp(tmp.parms[1])
             parms[(nAP + 1):(nAP + nDP)]<- tmp.parms
 
-            theta.i <- exp(X_state %*% parms[1:nAP] + offset_state)
-            p.ij <- 2*plogis(X_det %*% (parms[(nAP + 1):(nAP + nDP)]) +
-                offset_det)
+            theta.i <- exp(dm$X_state %*% parms[1:nAP] + dm$offset_state)
+            p.ij <- 2*plogis(dm$X_det %*% (parms[(nAP + 1):(nAP + nDP)]) +
+                dm$offset_det)
             theta.ik <- rep(theta.i, each = K + 1)
             p.ijk <- rep(p.ij, each = K + 1)
             bin.ijk <- dbinom(y.ijk, k.ijk, p.ijk)
@@ -116,7 +111,7 @@ function (formula, data, K, mixture = c("P", "NB", "ZIP"), starts,
                 nP]), invlink = "logistic", invlinkGrad = "logistic.grad")
     }
     umfit <- new("unmarkedFitPCount", fitType = "pcount", call = match.call(),
-        formula = formula, data = data, sitesRemoved = designMats$removed.sites,
+        formula = formula, data = data, sitesRemoved = dm$removed.sites,
         estimates = estimateList, AIC = fmAIC, opt = fm, negLogLike = fm$value,
         nllFun = nll, K = K, mixture = mixture)
     return(umfit)

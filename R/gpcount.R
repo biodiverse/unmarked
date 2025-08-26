@@ -14,15 +14,9 @@ formlist <- list(lambdaformula = lambdaformula, phiformula = phiformula,
 check_no_support(formlist)
 form <- as.formula(paste(unlist(formlist), collapse=" "))
 D <- getDesign(data, formula = form)
-
 X_lambda <- D$X_state
-X_phi <- D$X_phi
-X_det <- D$X_det
-ym <- D$y  # MxJT
-
 offset_lambda <- D$offset_state
-offset_phi <- D$offset_phi
-offset_det <- D$offset_det
+ym <- D$y  # MxJT
 
 if(missing(K) || is.null(K)) {
     K <- max(ym, na.rm=TRUE) + 100
@@ -39,11 +33,11 @@ J <- numY(data) / T
 y <- array(ym, c(I, J, T))
 
 lamPars <- colnames(X_lambda)
-detPars <- colnames(X_det)
+detPars <- colnames(D$X_det)
 nLP <- ncol(X_lambda)
-nPP <- ncol(X_phi)
-phiPars <- colnames(X_phi)
-nDP <- ncol(X_det)
+nPP <- ncol(D$X_phi)
+phiPars <- colnames(D$X_phi)
+nDP <- ncol(D$X_det)
 nP <- nLP + nPP + nDP + (mixture%in%c('NB','ZIP'))
 if(!missing(starts) && length(starts) != nP)
     stop("There should be", nP, "starting values, not", length(starts))
@@ -52,9 +46,9 @@ if(identical(engine, "R")) {
 # Minus negative log-likelihood
 nll <- function(pars) {
     lam <- exp(X_lambda %*% pars[1:nLP] + offset_lambda)
-    phi <- plogis(X_phi %*% pars[(nLP+1):(nLP+nPP)] + offset_phi)
+    phi <- plogis(D$X_phi %*% pars[(nLP+1):(nLP+nPP)] + D$offset_phi)
     phi <- matrix(phi, I, T, byrow=TRUE)
-    p <- plogis(X_det %*% pars[(nLP+nPP+1):(nLP+nPP+nDP)] + offset_det)
+    p <- plogis(D$X_det %*% pars[(nLP+nPP+1):(nLP+nPP+nDP)] + D$offset_det)
     p <- matrix(p, I, byrow=TRUE)
     p <- array(p, c(I, J, T))  # byrow?
     L <- rep(NA, I)
@@ -102,8 +96,8 @@ if(identical(engine, "C")) {
         log.alpha <- 1
         if(mixture %in% c("NB", "ZIP"))
             log.alpha <- pars[nP]
-        nll_gpcount(ym, X_lambda, X_phi, X_det, beta_lambda, beta_phi, beta_det,
-                    log.alpha, offset_lambda, offset_phi, offset_det,
+        nll_gpcount(ym, X_lambda, D$X_phi, D$X_det, beta_lambda, beta_phi, beta_det,
+                    log.alpha, offset_lambda, D$offset_phi, D$offset_det,
                     as.integer(K), mixture, T, threads)
     }
 }

@@ -31,11 +31,10 @@ occuTTD <- function(psiformula=~1, gammaformula=~1, epsilonformula=~1,
   }
 
   #Process input data----------------------------------------------------------
-  designMats <- getDesign(data, formula)
-  X_psi <- designMats$X_state; X_det <- designMats$X_det
-  X_col <- designMats$X_col; X_ext <- designMats$X_ext
-  y <- designMats$y
-  removed <- designMats$removed.sites
+  dm <- getDesign(data, formula)
+  X_psi <- dm$X_state
+  X_col <- dm$X_col; X_ext <- dm$X_ext
+  y <- dm$y
 
   N <- nrow(y)
   R <- ncol(y)
@@ -46,12 +45,12 @@ occuTTD <- function(psiformula=~1, gammaformula=~1, epsilonformula=~1,
   yvec <- as.numeric(t(y))
   naflag <- as.numeric(is.na(yvec))
   surveyLength <- data@surveyLength
-  if(length(removed>0)) surveyLength <- surveyLength[-removed,]
+  if(length(dm$removed.sites>0)) surveyLength <- surveyLength[-dm$removed.sites,]
   ymax <- as.numeric(t(surveyLength))
   delta <- as.numeric(yvec<ymax)
 
   #Organize parameters---------------------------------------------------------
-  detParms <- colnames(X_det); nDP <- ncol(X_det)
+  detParms <- colnames(dm$X_det); nDP <- ncol(dm$X_det)
   occParms <- colnames(X_psi); nOP <- ncol(X_psi)
   psi_inds <- 1:nOP
 
@@ -81,7 +80,7 @@ occuTTD <- function(psiformula=~1, gammaformula=~1, epsilonformula=~1,
     #Get occupancy and detection parameters
     psi <- linkFunc(X_psi %*% params[psi_inds])
     psi <- cbind(1-psi, psi)
-    lam <- exp(X_det %*% params[det_inds])
+    lam <- exp(dm$X_det %*% params[det_inds])
 
     #Simplified version of Garrard et al. 2013 eqn 5
     #Extended to Weibull
@@ -135,7 +134,7 @@ occuTTD <- function(psiformula=~1, gammaformula=~1, epsilonformula=~1,
 
   nll_C <- function(params){
     nll_occuTTD(
-          params, yvec, delta, X_psi, X_det, X_col, X_ext,
+          params, yvec, delta, X_psi, dm$X_det, X_col, X_ext,
           range(psi_inds)-1, range(det_inds)-1,
           range(col_inds)-1, range(ext_inds)-1,
           linkPsi, ttdDist, N, T, J, naflag
@@ -205,7 +204,7 @@ occuTTD <- function(psiformula=~1, gammaformula=~1, epsilonformula=~1,
                gamformula = gammaformula,
                epsformula = epsilonformula,
                detformula = detformula,
-               data = data, sitesRemoved = removed,
+               data = data, sitesRemoved = dm$removed.sites,
                estimates = estimateList,
                AIC = fmAIC, opt = fm, negLogLike = fm$value,
                nllFun = nll)

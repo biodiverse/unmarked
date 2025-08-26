@@ -26,15 +26,10 @@ formlist <- list(lambdaformula = lambdaformula, phiformula = phiformula,
 check_no_support(formlist)
 form <- as.formula(paste(unlist(formlist), collapse=" "))
 D <- getDesign(data, formula = form)
-
 X_lambda <- D$X_state
-X_phi <- D$X_phi
-X_det <- D$X_det
-y <- D$y  # MxJT
-
 offset_lambda <- D$offset_state
-offset_phi <- D$offset_phi
-offset_det <- D$offset_det
+
+y <- D$y  # MxJT
 
 M <- nrow(y)
 T <- data@numPrimary
@@ -93,16 +88,16 @@ if(T==1) {
     nPP <- 0
     }
 else {
-    phiPars <- colnames(X_phi)
-    nPP <- ncol(X_phi)
+    phiPars <- colnames(D$X_phi)
+    nPP <- ncol(D$X_phi)
     }
 if(identical(keyfun, "uniform")) {
     nDP <- 0
     detPars <- character(0)
     }
 else {
-    nDP <- ncol(X_det)
-    detPars <- colnames(X_det)
+    nDP <- ncol(D$X_det)
+    detPars <- colnames(D$X_det)
     }
 if(identical(keyfun, "hazard")) {
     nSP <- 1
@@ -147,7 +142,7 @@ for(i in 1:M) {
 
 switch(keyfun,
 halfnorm = {
-    altdetParms <- paste("sigma", colnames(X_det), sep="")
+    altdetParms <- paste("sigma", colnames(D$X_det), sep="")
     if(missing(starts)) {
         starts <- rep(0, nP)
         starts[nLP+nPP+1] <- log(max(db))
@@ -161,10 +156,10 @@ halfnorm = {
         if(T==1)
             phi <- matrix(1, M, T)
         else {
-            phi <- plogis(X_phi %*% pars[(nLP+1):(nLP+nPP)] + offset_phi)
+            phi <- plogis(D$X_phi %*% pars[(nLP+1):(nLP+nPP)] + D$offset_phi)
             phi <- matrix(phi, M, T, byrow=TRUE)
             }
-        sigma <- exp(X_det %*% pars[(nLP+nPP+1):(nLP+nPP+nDP)]+offset_det)
+        sigma <- exp(D$X_det %*% pars[(nLP+nPP+1):(nLP+nPP+nDP)]+D$offset_det)
         sigma <- matrix(sigma, M, T, byrow=TRUE)
 
         switch(mixture,
@@ -217,7 +212,7 @@ halfnorm = {
         }
     },
 exp = {
-    altdetParms <- paste("rate", colnames(X_det), sep="")
+    altdetParms <- paste("rate", colnames(D$X_det), sep="")
     if(missing(starts)) {
         starts <- rep(0, nP)
         starts[nLP+nPP+1] <- log(max(db))
@@ -230,10 +225,10 @@ exp = {
         if(T==1)
             phi <- matrix(1, M, T)
         else {
-            phi <- plogis(X_phi %*% pars[(nLP+1):(nLP+nPP)] + offset_phi)
+            phi <- plogis(D$X_phi %*% pars[(nLP+1):(nLP+nPP)] + D$offset_phi)
             phi <- matrix(phi, M, T, byrow=TRUE)
             }
-        rate <- exp(X_det %*% pars[(nLP+nPP+1):(nLP+nPP+nDP)] + offset_det)
+        rate <- exp(D$X_det %*% pars[(nLP+nPP+1):(nLP+nPP+nDP)] + D$offset_det)
         rate <- matrix(rate, M, T, byrow=TRUE)
 
         switch(mixture,
@@ -287,7 +282,7 @@ exp = {
         }
     },
 hazard = {
-    altdetParms <- paste("shape", colnames(X_det), sep="")
+    altdetParms <- paste("shape", colnames(D$X_det), sep="")
     if(missing(starts)) {
         starts <- rep(0, nP)
         }
@@ -299,10 +294,10 @@ hazard = {
         if(T==1)
             phi <- matrix(1, M, T)
         else {
-            phi <- plogis(X_phi %*% pars[(nLP+1):(nLP+nPP)] + offset_phi)
+            phi <- plogis(D$X_phi %*% pars[(nLP+1):(nLP+nPP)] + D$offset_phi)
             phi <- matrix(phi, M, T, byrow=TRUE)
             }
-        shape <- exp(X_det %*% pars[(nLP+nPP+1):(nLP+nPP+nDP)]+offset_det)
+        shape <- exp(D$X_det %*% pars[(nLP+nPP+1):(nLP+nPP+nDP)]+D$offset_det)
         shape <- matrix(shape, M, T, byrow=TRUE)
 
         scale <- exp(pars[nLP+nPP+nDP+1])
@@ -367,7 +362,7 @@ uniform = {
         if(T==1)
             phi <- matrix(1, M, T)
         else {
-            phi <- plogis(X_phi %*% pars[(nLP+1):(nLP+nPP)] + offset_phi)
+            phi <- plogis(D$X_phi %*% pars[(nLP+1):(nLP+nPP)] + D$offset_phi)
             phi <- matrix(phi, M, T, byrow=TRUE)
             }
         p <- 1
@@ -415,7 +410,7 @@ if(engine =="C"){
 
   nll <- function(params){
     nll_gdistsamp(params, n_param, y_long, mixture_code, keyfun, survey,
-                  X_lambda, offset_lambda, A, X_phi, offset_phi, X_det, offset_det,
+                  X_lambda, offset_lambda, A, D$X_phi, D$offset_phi, D$X_det, D$offset_det,
                   db, a, t(u), w, k, lfac.k, lfac.kmytC, kmytC, Kmin, threads)
   }
 

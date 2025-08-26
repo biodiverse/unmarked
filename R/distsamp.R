@@ -16,10 +16,8 @@ distsamp <- function(formula, data,
     if(missing(starts)) starts <- NULL
 
     #Generate design matrix
-    designMats <- getDesign(data, formula)
-    X_state <- designMats$X_state; X_det <- designMats$X_det; y <- designMats$y
-    offset_state <- designMats$offset_state; offset_det <- designMats$offset_det
-
+    dm <- getDesign(data, formula)
+    y <- dm$y
     M <- nrow(y)
     J <- ncol(y)
 
@@ -59,8 +57,8 @@ distsamp <- function(formula, data,
         kmsq = A <- A)
 
     # Set up parameters
-    lamParms <- colnames(X_state)
-    detParms <- colnames(X_det)
+    lamParms <- colnames(dm$X_state)
+    detParms <- colnames(dm$X_det)
     scaleParms <- character(0)
     nAP <- length(lamParms)
     nDP <- length(detParms)
@@ -94,8 +92,8 @@ distsamp <- function(formula, data,
     switch(keyfun,
     halfnorm = {
         nll <- function(param) {
-            sigma <- drop(exp(X_det %*% param[(nAP+1):nP] + offset_det))
-            lambda <- drop(exp(X_state %*% param[1:nAP] + offset_state))
+            sigma <- drop(exp(dm$X_det %*% param[(nAP+1):nP] + dm$offset_det))
+            lambda <- drop(exp(dm$X_state %*% param[1:nAP] + dm$offset_state))
             if(identical(output, "density"))
                 lambda <- lambda * A
             for(i in 1:M) {
@@ -125,8 +123,8 @@ distsamp <- function(formula, data,
             }},
     exp = {
         nll <- function(param) {
-            rate <- drop(exp(X_det %*% param[(nAP+1):nP] + offset_det))
-            lambda <- drop(exp(X_state %*% param[1:nAP] + offset_state))
+            rate <- drop(exp(dm$X_det %*% param[(nAP+1):nP] + dm$offset_det))
+            lambda <- drop(exp(dm$X_state %*% param[1:nAP] + dm$offset_state))
             if(identical(output, "density"))
                 lambda <- lambda * A
             for(i in 1:M) {
@@ -161,9 +159,9 @@ distsamp <- function(formula, data,
             }},
     hazard = {
         nll <- function(param) {
-            shape <- drop(exp(X_det %*% param[(nAP+1):(nP-1)] + offset_det))
+            shape <- drop(exp(dm$X_det %*% param[(nAP+1):(nP-1)] + dm$offset_det))
             scale <- drop(exp(param[nP]))
-            lambda <- drop(exp(X_state %*% param[1:nAP] + offset_state))
+            lambda <- drop(exp(dm$X_state %*% param[1:nAP] + dm$offset_state))
             if(identical(output, "density"))
                 lambda <- lambda * A
             for(i in 1:M) {
@@ -199,7 +197,7 @@ distsamp <- function(formula, data,
             }},
     uniform = {
         nll <- function(param) {
-            lambda <- drop(exp(X_state %*% param + offset_state))
+            lambda <- drop(exp(dm$X_state %*% param + dm$offset_state))
             if(identical(output, "density"))
                 lambda <- lambda * A
             ll <- dpois(y, lambda * u, log=TRUE)
@@ -216,10 +214,10 @@ distsamp <- function(formula, data,
                 beta.sig <- param[(nAP+1):nP]
                 scale <- -99.0
             }
-            lambda <- drop(exp(X_state %*% beta.lam + offset_state))
+            lambda <- drop(exp(dm$X_state %*% beta.lam + dm$offset_state))
             if(identical(output, "density"))
                 lambda <- lambda * A
-            sigma <- drop(exp(X_det %*% beta.sig + offset_det))
+            sigma <- drop(exp(dm$X_det %*% beta.sig + dm$offset_det))
             nll_distsamp(
                   y, lambda, sigma, scale,
                   a, u, w, db,
@@ -257,14 +255,14 @@ distsamp <- function(formula, data,
       if(output == "abund") A <- rep(1, length(A))
       forms <- split_formula(formula)
       inps <- get_ranef_inputs(forms, list(det=siteCovs(data), state=siteCovs(data)),
-                               list(X_det, X_state), designMats[c("Z_det","Z_state")])
+                               list(dm$X_det, dm$X_state), dm[c("Z_det","Z_state")])
 
       keyfun_type <- switch(keyfun, uniform={0}, halfnorm={1}, exp={2},
                             hazard={3})
       survey_type <- switch(survey, line={0}, point={1})
       tmb_dat <- c(list(y=y, survey_type=survey_type, keyfun_type=keyfun_type,
-                        A=A, db=db, a=a, w=w, u=u, offset_state=offset_state,
-                        offset_det=offset_det), inps$data)
+                        A=A, db=db, a=a, w=w, u=u, offset_state=dm$offset_state,
+                        offset_det=dm$offset_det), inps$data)
 
       tmb_param <- c(inps$pars, list(beta_scale=rep(0,0)))
 
@@ -320,7 +318,7 @@ distsamp <- function(formula, data,
 
     dsfit <- new("unmarkedFitDS", fitType = "distsamp", call = match.call(),
         opt = fm, formula = formula, data = data, keyfun=keyfun,
-        sitesRemoved = designMats$removed.sites, unitsOut=unitsOut,
+        sitesRemoved = dm$removed.sites, unitsOut=unitsOut,
         estimates = estimateList, AIC = fmAIC, negLogLike = fm$value,
         nllFun = nll, output=output, TMB=tmb_mod)
     return(dsfit)

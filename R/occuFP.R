@@ -13,33 +13,25 @@ occuFP <- function(detformula = ~ 1,FPformula = ~ 1,Bformula = ~ 1,stateformula 
     if(!is(data, "unmarkedFrameOccuFP"))   stop("Data is not an unmarkedFrameOccuFP object.")
 
     type <- data@type
-
     if(sum(type[2:3])==0)   stop("Only type 1 data. No data types with false positives. Use occu instead.")
 
-    designMats <- getDesign(data, detformula,FPformula,Bformula,stateformula)
-    X_state <- designMats$X_state; X_det <- designMats$X_det; X_fp <- designMats$X_fp; X_b <- designMats$X_b;
-    y <- designMats$y
-
+    dm <- getDesign(data, detformula,FPformula,Bformula,stateformula)
+    y <- dm$y
     if(any(type[1:2]>0)) if(any(y[,1:sum(type[1:2])]>1,na.rm = TRUE))   stop("Values of y for type 1 and type 2 data must be 0 or 1.")
     if(type[3]>0) if(any(y[,1:sum(type[3])]>2,na.rm = TRUE))   stop("Values of y for type 3 data must be 0, 1, or 2.")
 
 
-    removed <- designMats$removed.sites
-    offset_state <- designMats$offset_state; offset_det <- designMats$offset_det; 
-    offset_fp <- designMats$offset_fp; offset_b <- designMats$offset_b
-
     J <- ncol(y)
     M <- nrow(y)
 
-
-    occParms <- colnames(X_state)
-    detParms <- colnames(X_det)
-    FPParms <- colnames(X_fp)
-    if(type[3]!=0) BParms <- colnames(X_b) else BParms = NULL
-    nDP <- ncol(X_det)
-    nFP <- ncol(X_fp)
-    nBP <- ifelse(type[3]!=0,ncol(X_b),0)
-    nOP <- ncol(X_state)
+    occParms <- colnames(dm$X_state)
+    detParms <- colnames(dm$X_det)
+    FPParms <- colnames(dm$X_fp)
+    if(type[3]!=0) BParms <- colnames(dm$X_b) else BParms = NULL
+    nDP <- ncol(dm$X_det)
+    nFP <- ncol(dm$X_fp)
+    nBP <- ifelse(type[3]!=0,ncol(dm$X_b),0)
+    nOP <- ncol(dm$X_state)
 
     nP <- nDP + nOP + nFP + nBP
     if(!missing(starts) && length(starts) != nP)
@@ -52,12 +44,12 @@ occuFP <- function(detformula = ~ 1,FPformula = ~ 1,Bformula = ~ 1,stateformula 
 
 
         nll <- function(params) {
-            psi <- plogis(X_state %*% params[1 : nOP] + offset_state)
-            pvec <- plogis(X_det %*% params[(nOP + 1) : (nOP + nDP)] + offset_det)
-            fvec <- plogis(X_fp %*% params[(nOP + nDP + 1) : (nOP + nDP + nFP)] + offset_fp)
+            psi <- plogis(dm$X_state %*% params[1 : nOP] + dm$offset_state)
+            pvec <- plogis(dm$X_det %*% params[(nOP + 1) : (nOP + nDP)] + dm$offset_det)
+            fvec <- plogis(dm$X_fp %*% params[(nOP + nDP + 1) : (nOP + nDP + nFP)] + dm$offset_fp)
             if (type[1]!=0) fvec[rep(c(rep(TRUE,type[1]),rep(FALSE,sum(type[2:3]))),M)] = 0
             if (type[3]!=0){
-              bvec <- plogis(X_b %*% params[(nOP + nDP + nFP + 1) : nP] + offset_b)
+              bvec <- plogis(dm$X_b %*% params[(nOP + nDP + nFP + 1) : nP] + dm$offset_b)
               if (type[1]!=0|type[2]!=0) bvec[rep(c(rep(TRUE,sum(type[1:2])),rep(FALSE,type[3])),M)] = 0}
             if (type[3]==0){
               bvec <- matrix(0,M*J,1)
@@ -119,7 +111,7 @@ occuFP <- function(detformula = ~ 1,FPformula = ~ 1,Bformula = ~ 1,stateformula 
     umfit <- new("unmarkedFitOccuFP", fitType = "occuFP", call = match.call(),
                  detformula = detformula,FPformula = FPformula,Bformula = Bformula,
                  stateformula = stateformula, formula = ~1, type = type, data = data,
-                 sitesRemoved = designMats$removed.sites,
+                 sitesRemoved = dm$removed.sites,
                  estimates = estimateList, AIC = fmAIC, opt = fm,
                  negLogLike = fm$value,
                  nllFun = nll)
