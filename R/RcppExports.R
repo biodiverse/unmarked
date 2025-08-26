@@ -17,8 +17,8 @@ nll_distsampOpen <- function(y, yt, X_lambda, X_gamma, X_omega, X_det, X_iota, b
     .Call(`_unmarked_nll_distsampOpen`, y, yt, X_lambda, X_gamma, X_omega, X_det, X_iota, beta, bi, offset_lambda, offset_gamma, offset_omega, offset_det, offset_iota, ytna, lk, mixture, first, last, first1, M, T, delta, dynamics, survey, fix, go_dims, immigration, I, I1, Ib, Ip, a, u, w, db, keyfun, lfac_k, kmyt, lfac_kmyt, fin, A)
 }
 
-nll_gdistremoval <- function(beta, n_param, yDistance, yRemoval, ysum, mixture, keyfun, Xlam, A, Xphi, Xrem, Xdist, db, a, u, w, pl, K, Kmin, threads) {
-    .Call(`_unmarked_nll_gdistremoval`, beta, n_param, yDistance, yRemoval, ysum, mixture, keyfun, Xlam, A, Xphi, Xrem, Xdist, db, a, u, w, pl, K, Kmin, threads)
+nll_gdistremoval <- function(beta, n_param, yDistance, yRemoval, ysum, mixture, keyfun, X_lambda, A, X_phi, X_rem, X_dist, db, a, u, w, pl, K, Kmin, threads) {
+    .Call(`_unmarked_nll_gdistremoval`, beta, n_param, yDistance, yRemoval, ysum, mixture, keyfun, X_lambda, A, X_phi, X_rem, X_dist, db, a, u, w, pl, K, Kmin, threads)
 }
 
 nll_gdistsamp <- function(beta, n_param, y, mixture, keyfun, survey, X_lambda, offset_lambda, A, X_phi, offset_phi, X_det, offset_det, db, a, u, w, k, lfac_k, lfac_kmyt, kmyt, Kmin, threads) {

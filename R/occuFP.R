@@ -17,7 +17,7 @@ occuFP <- function(detformula = ~ 1,FPformula = ~ 1,Bformula = ~ 1,stateformula 
     if(sum(type[2:3])==0)   stop("Only type 1 data. No data types with false positives. Use occu instead.")
 
     designMats <- getDesign(data, detformula,FPformula,Bformula,stateformula)
-    X <- designMats$X_state; V <- designMats$X_det; U <- designMats$U; W <- designMats$W;
+    X_state <- designMats$X_state; X_det <- designMats$X_det; X_fp <- designMats$X_fp; X_b <- designMats$X_b;
     y <- designMats$y
 
     if(any(type[1:2]>0)) if(any(y[,1:sum(type[1:2])]>1,na.rm = TRUE))   stop("Values of y for type 1 and type 2 data must be 0 or 1.")
@@ -25,32 +25,21 @@ occuFP <- function(detformula = ~ 1,FPformula = ~ 1,Bformula = ~ 1,stateformula 
 
 
     removed <- designMats$removed.sites
-    X.offset <- designMats$offset_state; V.offset <- designMats$offset_det; U.offset <- designMats$U.offset; W.offset <- designMats$W.offset
-    if(is.null(X.offset)) {
-        X.offset <- rep(0, nrow(X))
-    }
-    if(is.null(V.offset)) {
-        V.offset <- rep(0, nrow(V))
-    }
-    if(is.null(U.offset)) {
-      U.offset <- rep(0, nrow(U))
-    }
-    if(is.null(W.offset)) {
-      W.offset <- rep(0, nrow(W))
-    }
+    offset_state <- designMats$offset_state; offset_det <- designMats$offset_det; 
+    offset_fp <- designMats$offset_fp; offset_b <- designMats$offset_b
 
     J <- ncol(y)
     M <- nrow(y)
 
 
-    occParms <- colnames(X)
-    detParms <- colnames(V)
-    FPParms <- colnames(U)
-    if(type[3]!=0) BParms <- colnames(W) else BParms = NULL
-    nDP <- ncol(V)
-    nFP <- ncol(U)
-    nBP <- ifelse(type[3]!=0,ncol(W),0)
-    nOP <- ncol(X)
+    occParms <- colnames(X_state)
+    detParms <- colnames(X_det)
+    FPParms <- colnames(X_fp)
+    if(type[3]!=0) BParms <- colnames(X_b) else BParms = NULL
+    nDP <- ncol(X_det)
+    nFP <- ncol(X_fp)
+    nBP <- ifelse(type[3]!=0,ncol(X_b),0)
+    nOP <- ncol(X_state)
 
     nP <- nDP + nOP + nFP + nBP
     if(!missing(starts) && length(starts) != nP)
@@ -63,12 +52,12 @@ occuFP <- function(detformula = ~ 1,FPformula = ~ 1,Bformula = ~ 1,stateformula 
 
 
         nll <- function(params) {
-            psi <- plogis(X %*% params[1 : nOP] + X.offset)
-            pvec <- plogis(V %*% params[(nOP + 1) : (nOP + nDP)] + V.offset)
-            fvec <- plogis(U %*% params[(nOP + nDP + 1) : (nOP + nDP + nFP)] + U.offset)
+            psi <- plogis(X_state %*% params[1 : nOP] + offset_state)
+            pvec <- plogis(X_det %*% params[(nOP + 1) : (nOP + nDP)] + offset_det)
+            fvec <- plogis(X_fp %*% params[(nOP + nDP + 1) : (nOP + nDP + nFP)] + offset_fp)
             if (type[1]!=0) fvec[rep(c(rep(TRUE,type[1]),rep(FALSE,sum(type[2:3]))),M)] = 0
             if (type[3]!=0){
-              bvec <- plogis(W %*% params[(nOP + nDP + nFP + 1) : nP] + W.offset)
+              bvec <- plogis(X_b %*% params[(nOP + nDP + nFP + 1) : nP] + offset_b)
               if (type[1]!=0|type[2]!=0) bvec[rep(c(rep(TRUE,sum(type[1:2])),rep(FALSE,type[3])),M)] = 0}
             if (type[3]==0){
               bvec <- matrix(0,M*J,1)

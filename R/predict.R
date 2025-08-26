@@ -347,8 +347,8 @@ setMethod("predict_inputs_from_umf", "unmarkedFitOccuFP",
   function(object, type, newdata, na.rm, re.form=NA){
   designMats <- getDesign(newdata, object@detformula, object@FPformula,
                           object@Bformula, object@stateformula, na.rm=na.rm)
-  X_idx <- switch(type, state="X_state", det="X_det", fp="U", b="W")
-  off_idx <- paste0(X_idx, ".offset")
+  X_idx <- switch(type, state="X_state", det="X_det", fp="X_fp", b="X_b")
+  off_idx <- paste0("offset_", type)
   list(X=designMats[[X_idx]], offset=designMats[[off_idx]])
 })
 
@@ -511,10 +511,10 @@ setMethod("get_orig_data", "unmarkedFitNmixTTD", function(object, type, ...){
 setMethod("predict_inputs_from_umf", "unmarkedFitGDR",
   function(object, type, newdata, na.rm, re.form=NA){
   designMats <- getDesign(newdata, object@formlist)
-  if(type == "lambda") list_els <- c("Xlam","Zlam")
-  if(type == "phi") list_els <- c("Xphi","Zphi")
-  if(type == "dist") list_els <- c("Xdist","Zdist")
-  if(type == "rem") list_els <- c("Xrem", "Zrem")
+  if(type == "lambda") list_els <- c("X_lambda","Z_lambda")
+  if(type == "phi") list_els <- c("X_phi","Z_phi")
+  if(type == "dist") list_els <- c("X_dist","Z_dist")
+  if(type == "rem") list_els <- c("X_rem", "Z_rem")
   X <- designMats[[list_els[1]]]
   if(is.null(re.form)) X <- cbind(X, designMats[[list_els[2]]])
   list(X=X, offset=NULL)

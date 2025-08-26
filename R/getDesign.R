@@ -427,56 +427,56 @@ setMethod("getDesign", "unmarkedFrameGDR",
   if(return.frames) return(list(sc=sc, ysc=ysc, oc=oc))
 
   lam_fixed <- reformulas::nobars(formula$lambdaformula)
-  Xlam <- model.matrix(lam_fixed,
+  X_lambda <- model.matrix(lam_fixed,
             model.frame(lam_fixed, sc, na.action=NULL))
 
   phi_fixed <- reformulas::nobars(formula$phiformula)
-  Xphi <- model.matrix(phi_fixed,
+  X_phi<- model.matrix(phi_fixed,
             model.frame(phi_fixed, ysc, na.action=NULL))
 
   dist_fixed <- reformulas::nobars(formula$distanceformula)
-  Xdist <- model.matrix(dist_fixed,
+  X_dist <- model.matrix(dist_fixed,
             model.frame(dist_fixed, ysc, na.action=NULL))
 
   rem_fixed <- reformulas::nobars(formula$removalformula)
-  Xrem <- model.matrix(rem_fixed,
+  X_rem <- model.matrix(rem_fixed,
             model.frame(rem_fixed, oc, na.action=NULL))
 
-  Zlam <- get_Z(formula$lambdaformula, sc)
-  Zphi <- get_Z(formula$phiformula, ysc)
-  Zdist <- get_Z(formula$distanceformula, ysc)
-  Zrem <- get_Z(formula$removalformula, oc)
+  Z_lambda <- get_Z(formula$lambdaformula, sc)
+  Z_phi <- get_Z(formula$phiformula, ysc)
+  Z_dist <- get_Z(formula$distanceformula, ysc)
+  Z_rem <- get_Z(formula$removalformula, oc)
  
   # Check if there are missing yearlySiteCovs
   ydist_mat <- apply(matrix(yDist, nrow=M*T, byrow=TRUE), 1, function(x) any(is.na(x)))
   yrem_mat <- apply(matrix(yRem, nrow=M*T, byrow=TRUE), 1, function(x) any(is.na(x)))
   ok_missing_phi_covs <- ydist_mat | yrem_mat
-  missing_phi_covs <- apply(Xphi, 1, function(x) any(is.na(x)))  
+  missing_phi_covs <- apply(X_phi, 1, function(x) any(is.na(x)))  
   if(!all(which(missing_phi_covs) %in% which(ok_missing_phi_covs))){
     stop("Missing yearlySiteCovs values for some observations that are not missing", call.=FALSE)
   }
 
   # Check if there are missing dist covs
-  missing_dist_covs <- apply(Xdist, 1, function(x) any(is.na(x)))
+  missing_dist_covs <- apply(X_dist, 1, function(x) any(is.na(x)))
   ok_missing_dist_covs <- ydist_mat
   if(!all(which(missing_dist_covs) %in% which(ok_missing_dist_covs))){
     stop("Missing yearlySiteCovs values for some distance observations that are not missing", call.=FALSE)
   }
 
   # Check if there are missing rem covs
-  missing_obs_covs <- apply(Xrem, 1, function(x) any(is.na(x)))
+  missing_obs_covs <- apply(X_rem, 1, function(x) any(is.na(x)))
   missing_obs_covs <- apply(matrix(missing_obs_covs, nrow=M*T, byrow=TRUE), 1, function(x) any(x))
   ok_missing_obs_covs <- yrem_mat
   if(!all(which(missing_obs_covs) %in% which(ok_missing_obs_covs))){
     stop("Missing obsCovs values for some removal observations that are not missing", call.=FALSE)
   }
     
-  if(any(is.na(Xlam))){
+  if(any(is.na(X_lambda))){
     stop("gdistremoval does not currently handle missing values in siteCovs", call.=FALSE)
   }
 
-  list(yDist=yDist, yRem=yRem, Xlam=Xlam, Xphi=Xphi, Xdist=Xdist, Xrem=Xrem,
-       Zlam=Zlam, Zphi=Zphi, Zdist=Zdist, Zrem=Zrem)
+  list(yDist=yDist, yRem=yRem, X_lambda=X_lambda, X_phi=X_phi, X_dist=X_dist, X_rem=X_rem,
+       Z_lambda=Z_lambda, Z_phi=Z_phi, Z_dist=Z_dist, Z_rem=Z_rem)
 })
 
 
@@ -533,8 +533,8 @@ setMethod("getDesign", "unmarkedFrameOccuFP",
     offset_b <- offset_b[!drop_sites_obs]
   }
 
-  # Combine outputs
-  new_out <- list(U = X_fp, U.offset = offset_fp, W = X_b, W.offset = offset_b)
+  # Combine outputs (U=fp, W=b)
+  new_out <- list(X_fp = X_fp, offset_fp = offset_fp, X_b = X_b, offset_b = offset_b)
   out <- c(out, new_out)
   out$y <- y
   out$removed.sites <- which(drop_sites)

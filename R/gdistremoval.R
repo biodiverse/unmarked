@@ -83,19 +83,19 @@ gdistremoval <- function(lambdaformula=~1, phiformula=~1, removalformula=~1,
   Kmin = apply(ysum, 1, max, na.rm=T)
 
   # Parameters-----------------------------------------------------------------
-  n_param <- c(ncol(gd$Xlam), ifelse(mixture=="P",0,1),
-              ifelse(T>1,ncol(gd$Xphi),0),
-              ifelse(keyfun=="uniform", 0, ncol(gd$Xdist)),
+  n_param <- c(ncol(gd$X_lambda), ifelse(mixture=="P",0,1),
+              ifelse(T>1,ncol(gd$X_phi),0),
+              ifelse(keyfun=="uniform", 0, ncol(gd$X_dist)),
               ifelse(keyfun=="hazard",1,0),
-              ncol(gd$Xrem))
+              ncol(gd$X_rem))
   nP <- sum(n_param)
 
-  pnames <- colnames(gd$Xlam)
+  pnames <- colnames(gd$X_lambda)
   if(mixture!="P") pnames <- c(pnames, "alpha")
-  if(data@numPrimary > 1) pnames <- c(pnames, colnames(gd$Xphi))
-  if(keyfun!="uniform") pnames <- c(pnames, colnames(gd$Xdist))
+  if(data@numPrimary > 1) pnames <- c(pnames, colnames(gd$X_phi))
+  if(keyfun!="uniform") pnames <- c(pnames, colnames(gd$X_dist))
   if(keyfun=="hazard") pnames <- c(pnames, "scale")
-  pnames <- c(pnames, colnames(gd$Xrem))
+  pnames <- c(pnames, colnames(gd$X_rem))
 
   lam_ind <- 1:n_param[1]
   a_ind <- n_param[1]+1
@@ -134,7 +134,7 @@ gdistremoval <- function(lambdaformula=~1, phiformula=~1, removalformula=~1,
 
     nll <- function(param){
       nll_gdistremoval(param, n_param, gd$yDist, gd$yRem, ysum, mixture_code, keyfun,
-                      gd$Xlam, A, gd$Xphi, gd$Xrem, gd$Xdist, db, a, t(u), w, pl,
+                      gd$X_lambda, A, gd$X_phi, gd$X_rem, gd$X_dist, db, a, t(u), w, pl,
                       K, Kmin, threads=threads)
     }
 
@@ -175,8 +175,8 @@ gdistremoval <- function(lambdaformula=~1, phiformula=~1, removalformula=~1,
     dlist <- list(lambda=siteCovs(data), phi=yearlySiteCovs(data),
                   dist=siteCovs(data), rem=obsCovs(data))
     inps <- get_ranef_inputs(formlist, dlist,
-                             gd[c("Xlam","Xphi","Xdist","Xrem")],
-                             gd[c("Zlam","Zphi","Zdist","Zrem")])
+                             gd[c("X_lambda","X_phi","X_dist","X_rem")],
+                             gd[c("Z_lambda","Z_phi","Z_dist","Z_rem")])
 
     keyfun_type <- switch(keyfun, uniform={0}, halfnorm={1}, exp={2},
                           hazard={3})

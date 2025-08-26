@@ -111,8 +111,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // nll_gdistremoval
-double nll_gdistremoval(arma::vec beta, arma::uvec n_param, arma::vec yDistance, arma::vec yRemoval, arma::mat ysum, int mixture, std::string keyfun, arma::mat Xlam, arma::vec A, arma::mat Xphi, arma::mat Xrem, arma::mat Xdist, arma::vec db, arma::mat a, arma::mat u, arma::vec w, arma::uvec pl, int K, arma::uvec Kmin, int threads);
-RcppExport SEXP _unmarked_nll_gdistremoval(SEXP betaSEXP, SEXP n_paramSEXP, SEXP yDistanceSEXP, SEXP yRemovalSEXP, SEXP ysumSEXP, SEXP mixtureSEXP, SEXP keyfunSEXP, SEXP XlamSEXP, SEXP ASEXP, SEXP XphiSEXP, SEXP XremSEXP, SEXP XdistSEXP, SEXP dbSEXP, SEXP aSEXP, SEXP uSEXP, SEXP wSEXP, SEXP plSEXP, SEXP KSEXP, SEXP KminSEXP, SEXP threadsSEXP) {
+double nll_gdistremoval(arma::vec beta, arma::uvec n_param, arma::vec yDistance, arma::vec yRemoval, arma::mat ysum, int mixture, std::string keyfun, arma::mat X_lambda, arma::vec A, arma::mat X_phi, arma::mat X_rem, arma::mat X_dist, arma::vec db, arma::mat a, arma::mat u, arma::vec w, arma::uvec pl, int K, arma::uvec Kmin, int threads);
+RcppExport SEXP _unmarked_nll_gdistremoval(SEXP betaSEXP, SEXP n_paramSEXP, SEXP yDistanceSEXP, SEXP yRemovalSEXP, SEXP ysumSEXP, SEXP mixtureSEXP, SEXP keyfunSEXP, SEXP X_lambdaSEXP, SEXP ASEXP, SEXP X_phiSEXP, SEXP X_remSEXP, SEXP X_distSEXP, SEXP dbSEXP, SEXP aSEXP, SEXP uSEXP, SEXP wSEXP, SEXP plSEXP, SEXP KSEXP, SEXP KminSEXP, SEXP threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -123,11 +123,11 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type ysum(ysumSEXP);
     Rcpp::traits::input_parameter< int >::type mixture(mixtureSEXP);
     Rcpp::traits::input_parameter< std::string >::type keyfun(keyfunSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type Xlam(XlamSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type X_lambda(X_lambdaSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type A(ASEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type Xphi(XphiSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type Xrem(XremSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type Xdist(XdistSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type X_phi(X_phiSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type X_rem(X_remSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type X_dist(X_distSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type db(dbSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type a(aSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type u(uSEXP);
@@ -136,7 +136,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type K(KSEXP);
     Rcpp::traits::input_parameter< arma::uvec >::type Kmin(KminSEXP);
     Rcpp::traits::input_parameter< int >::type threads(threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(nll_gdistremoval(beta, n_param, yDistance, yRemoval, ysum, mixture, keyfun, Xlam, A, Xphi, Xrem, Xdist, db, a, u, w, pl, K, Kmin, threads));
+    rcpp_result_gen = Rcpp::wrap(nll_gdistremoval(beta, n_param, yDistance, yRemoval, ysum, mixture, keyfun, X_lambda, A, X_phi, X_rem, X_dist, db, a, u, w, pl, K, Kmin, threads));
     return rcpp_result_gen;
 END_RCPP
 }
