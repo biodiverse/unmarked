@@ -68,17 +68,17 @@ setMethod("getDesign", "unmarkedFrame",
 
 
 # UnmarkedMultFrame
-# used by colext and base class for G3 and DailMadsen
+# used by colext, occuTTD, nmixTTD and base class for G3 and DailMadsen
 setMethod("getDesign", "unmarkedMultFrame",
   function(umf, formula, na.rm = TRUE){
 
-  psiformula <- as.formula(formula[[2]][[2]][[2]])  
+  stateformula <- as.formula(formula[[2]][[2]][[2]])  
   gamformula <- as.formula(as.call(list(as.name("~"), formula[[2]][[2]][[3]])))
   epsformula <- as.formula(as.call(list(as.name("~"), formula[[2]][[3]])))
   detformula <- as.formula(as.call(list(as.name("~"), formula[[3]])))
  
   # Process state and detection with generic umf method  
-  comb_form <- list(as.name("~"), detformula, psiformula[[2]])
+  comb_form <- list(as.name("~"), detformula, stateformula[[2]])
   comb_form <- as.formula(as.call(comb_form))
   out <- methods::callNextMethod(umf, formula = comb_form, na.rm = FALSE)
  
@@ -132,7 +132,7 @@ setMethod("getDesign", "unmarkedMultFrame",
   }
 
   # Combine outputs
-  list(y = y, W = out$X_state, X.gam = X_col, X.eps = X_ext, V = out$X_det,
+  list(y = y, X_state = out$X_state, X_col = X_col, X_ext = X_ext, X_det = out$X_det,
        removed.sites = which(drop_sites))
 })
 
@@ -141,12 +141,12 @@ setMethod("getDesign", "unmarkedMultFrame",
 setMethod("getDesign", "unmarkedFrameG3",
   function(umf, formula, na.rm = TRUE){
 
-  lamformula <- as.formula(formula[[2]][[2]])  
+  stateformula <- as.formula(formula[[2]][[2]])  
   phiformula <- as.formula(as.call(list(as.name("~"), formula[[2]][[3]])))
   detformula <- as.formula(as.call(list(as.name("~"), formula[[3]])))
  
   # Process state and detection with generic umf method  
-  comb_form <- list(as.name("~"), detformula, lamformula[[2]])
+  comb_form <- list(as.name("~"), detformula, stateformula[[2]])
   comb_form <- as.formula(as.call(comb_form))
   # Have to use getMethod because this inherits from unmarkedMultFrame
   getDesign_generic <- methods::getMethod("getDesign", "unmarkedFrame")
@@ -190,9 +190,9 @@ setMethod("getDesign", "unmarkedFrameG3",
   }
 
   # Combine outputs
-  test = list(y = y, Xlam = out$X_state, Xlam.offset = out$offset_state,
-       Xphi = X_phi, Xphi.offset = offset_phi,
-       Xdet = out$X_det, Xdet.offset = out$offset_det,
+  list(y = y, X_state = out$X_state, offset_state = out$offset_state,
+       X_phi = X_phi, offset_phi = offset_phi,
+       X_det = out$X_det, offset_det = out$offset_det,
        removed.sites = which(drop_sites))
 })
 

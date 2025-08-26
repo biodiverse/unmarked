@@ -15,17 +15,14 @@ check_no_support(formlist)
 form <- as.formula(paste(unlist(formlist), collapse=" "))
 D <- getDesign(data, formula = form)
 
-Xlam <- D$Xlam
-Xphi <- D$Xphi
-Xdet <- D$Xdet
+X_lambda <- D$X_state
+X_phi <- D$X_phi
+X_det <- D$X_det
 ym <- D$y  # MxJT
 
-Xlam.offset <- D$Xlam.offset
-Xphi.offset <- D$Xphi.offset
-Xdet.offset <- D$Xdet.offset
-if(is.null(Xlam.offset)) Xlam.offset <- rep(0, nrow(Xlam))
-if(is.null(Xphi.offset)) Xphi.offset <- rep(0, nrow(Xphi))
-if(is.null(Xdet.offset)) Xdet.offset <- rep(0, nrow(Xdet))
+offset_lambda <- D$offset_state
+offset_phi <- D$offset_phi
+offset_det <- D$offset_det
 
 if(missing(K) || is.null(K)) {
     K <- max(ym, na.rm=TRUE) + 100
@@ -41,12 +38,12 @@ J <- numY(data) / T
 
 y <- array(ym, c(I, J, T))
 
-lamPars <- colnames(Xlam)
-detPars <- colnames(Xdet)
-nLP <- ncol(Xlam)
-nPP <- ncol(Xphi)
-phiPars <- colnames(Xphi)
-nDP <- ncol(Xdet)
+lamPars <- colnames(X_lambda)
+detPars <- colnames(X_det)
+nLP <- ncol(X_lambda)
+nPP <- ncol(X_phi)
+phiPars <- colnames(X_phi)
+nDP <- ncol(X_det)
 nP <- nLP + nPP + nDP + (mixture%in%c('NB','ZIP'))
 if(!missing(starts) && length(starts) != nP)
     stop("There should be", nP, "starting values, not", length(starts))
@@ -54,10 +51,10 @@ if(!missing(starts) && length(starts) != nP)
 if(identical(engine, "R")) {
 # Minus negative log-likelihood
 nll <- function(pars) {
-    lam <- exp(Xlam %*% pars[1:nLP] + Xlam.offset)
-    phi <- plogis(Xphi %*% pars[(nLP+1):(nLP+nPP)] + Xphi.offset)
+    lam <- exp(X_lambda %*% pars[1:nLP] + offset_lambda)
+    phi <- plogis(X_phi %*% pars[(nLP+1):(nLP+nPP)] + offset_phi)
     phi <- matrix(phi, I, T, byrow=TRUE)
-    p <- plogis(Xdet %*% pars[(nLP+nPP+1):(nLP+nPP+nDP)] + Xdet.offset)
+    p <- plogis(X_det %*% pars[(nLP+nPP+1):(nLP+nPP+nDP)] + offset_det)
     p <- matrix(p, I, byrow=TRUE)
     p <- array(p, c(I, J, T))  # byrow?
     L <- rep(NA, I)
@@ -99,14 +96,14 @@ nll <- function(pars) {
 } else
 if(identical(engine, "C")) {
     nll <- function(pars) {
-        beta.lam <- pars[1:nLP]
-        beta.phi <- pars[(nLP+1):(nLP+nPP)]
-        beta.p <- pars[(nLP+nPP+1):(nLP+nPP+nDP)]
+        beta_lambda <- pars[1:nLP]
+        beta_phi <- pars[(nLP+1):(nLP+nPP)]
+        beta_det <- pars[(nLP+nPP+1):(nLP+nPP+nDP)]
         log.alpha <- 1
         if(mixture %in% c("NB", "ZIP"))
             log.alpha <- pars[nP]
-        nll_gpcount(ym, Xlam, Xphi, Xdet, beta.lam, beta.phi, beta.p,
-                    log.alpha, Xlam.offset, Xphi.offset, Xdet.offset,
+        nll_gpcount(ym, X_lambda, X_phi, X_det, beta_lambda, beta_phi, beta_det,
+                    log.alpha, offset_lambda, offset_phi, offset_det,
                     as.integer(K), mixture, T, threads)
     }
 }

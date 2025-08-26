@@ -21,16 +21,16 @@ nll_gdistremoval <- function(beta, n_param, yDistance, yRemoval, ysum, mixture, 
     .Call(`_unmarked_nll_gdistremoval`, beta, n_param, yDistance, yRemoval, ysum, mixture, keyfun, Xlam, A, Xphi, Xrem, Xdist, db, a, u, w, pl, K, Kmin, threads)
 }
 
-nll_gdistsamp <- function(beta, n_param, y, mixture, keyfun, survey, Xlam, Xlam_offset, A, Xphi, Xphi_offset, Xdet, Xdet_offset, db, a, u, w, k, lfac_k, lfac_kmyt, kmyt, Kmin, threads) {
-    .Call(`_unmarked_nll_gdistsamp`, beta, n_param, y, mixture, keyfun, survey, Xlam, Xlam_offset, A, Xphi, Xphi_offset, Xdet, Xdet_offset, db, a, u, w, k, lfac_k, lfac_kmyt, kmyt, Kmin, threads)
+nll_gdistsamp <- function(beta, n_param, y, mixture, keyfun, survey, X_lambda, offset_lambda, A, X_phi, offset_phi, X_det, offset_det, db, a, u, w, k, lfac_k, lfac_kmyt, kmyt, Kmin, threads) {
+    .Call(`_unmarked_nll_gdistsamp`, beta, n_param, y, mixture, keyfun, survey, X_lambda, offset_lambda, A, X_phi, offset_phi, X_det, offset_det, db, a, u, w, k, lfac_k, lfac_kmyt, kmyt, Kmin, threads)
 }
 
-nll_gmultmix <- function(beta, n_param, y, mixture, pi_fun, Xlam, Xlam_offset, Xphi, Xphi_offset, Xdet, Xdet_offset, k, lfac_k, lfac_kmyt, kmyt, Kmin, threads) {
-    .Call(`_unmarked_nll_gmultmix`, beta, n_param, y, mixture, pi_fun, Xlam, Xlam_offset, Xphi, Xphi_offset, Xdet, Xdet_offset, k, lfac_k, lfac_kmyt, kmyt, Kmin, threads)
+nll_gmultmix <- function(beta, n_param, y, mixture, pi_fun, X_lambda, offset_lambda, X_phi, offset_phi, X_det, offset_det, k, lfac_k, lfac_kmyt, kmyt, Kmin, threads) {
+    .Call(`_unmarked_nll_gmultmix`, beta, n_param, y, mixture, pi_fun, X_lambda, offset_lambda, X_phi, offset_phi, X_det, offset_det, k, lfac_k, lfac_kmyt, kmyt, Kmin, threads)
 }
 
-nll_gpcount <- function(ym, Xlam, Xphi, Xp, beta_lam, beta_phi, beta_p, log_alpha, Xlam_offset, Xphi_offset, Xp_offset, M, mixture, T, threads) {
-    .Call(`_unmarked_nll_gpcount`, ym, Xlam, Xphi, Xp, beta_lam, beta_phi, beta_p, log_alpha, Xlam_offset, Xphi_offset, Xp_offset, M, mixture, T, threads)
+nll_gpcount <- function(ym, X_lambda, X_phi, X_det, beta_lambda, beta_phi, beta_det, log_alpha, offset_lambda, offset_phi, offset_det, M, mixture, T, threads) {
+    .Call(`_unmarked_nll_gpcount`, ym, X_lambda, X_phi, X_det, beta_lambda, beta_phi, beta_det, log_alpha, offset_lambda, offset_phi, offset_det, M, mixture, T, threads)
 }
 
 nll_multinomPois <- function(beta, pi_fun, Xlam, Xlam_offset, Xdet, Xdet_offset, y, navec, nP, nAP) {
@@ -41,8 +41,8 @@ nll_multmixOpen <- function(y, yt, Xlam, Xgam, Xom, Xp, Xiota, beta, bi, Xlam_of
     .Call(`_unmarked_nll_multmixOpen`, y, yt, Xlam, Xgam, Xom, Xp, Xiota, beta, bi, Xlam_offset, Xgam_offset, Xom_offset, Xp_offset, Xiota_offset, ytna, yna, lk, mixture, first, last, first1, M, T, J, R, delta, dynamics, fix, go_dims, immigration, I, I1, Ib, Ip, pi_fun, lfac_k, kmyt, lfac_kmyt, fin)
 }
 
-nll_nmixTTD <- function(beta, y, delta, W, V, pinds, mixture, tdist, N, J, K, naflag, threads) {
-    .Call(`_unmarked_nll_nmixTTD`, beta, y, delta, W, V, pinds, mixture, tdist, N, J, K, naflag, threads)
+nll_nmixTTD <- function(beta, y, delta, X_state, X_det, pinds, mixture, tdist, N, J, K, naflag, threads) {
+    .Call(`_unmarked_nll_nmixTTD`, beta, y, delta, X_state, X_det, pinds, mixture, tdist, N, J, K, naflag, threads)
 }
 
 nll_occu <- function(y, X, V, beta_psi, beta_p, nd, knownOcc, navec, X_offset, V_offset, link_psi) {
@@ -73,8 +73,8 @@ nll_occuRN <- function(beta, n_param, y, X, V, X_offset, V_offset, K, Kmin, thre
     .Call(`_unmarked_nll_occuRN`, beta, n_param, y, X, V, X_offset, V_offset, K, Kmin, threads)
 }
 
-nll_occuTTD <- function(beta, y, delta, W, V, Xgam, Xeps, pind, dind, cind, eind, lpsi, tdist, N, T, J, naflag) {
-    .Call(`_unmarked_nll_occuTTD`, beta, y, delta, W, V, Xgam, Xeps, pind, dind, cind, eind, lpsi, tdist, N, T, J, naflag)
+nll_occuTTD <- function(beta, y, delta, X_psi, X_det, X_col, X_ext, pind, dind, cind, eind, lpsi, tdist, N, T, J, naflag) {
+    .Call(`_unmarked_nll_occuTTD`, beta, y, delta, X_psi, X_det, X_col, X_ext, pind, dind, cind, eind, lpsi, tdist, N, T, J, naflag)
 }
 
 nll_pcount <- function(beta, n_param, y, X, V, X_offset, V_offset, K, Kmin, mixture, threads) {

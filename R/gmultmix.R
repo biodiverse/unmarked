@@ -17,17 +17,14 @@ check_no_support(formlist)
 form <- as.formula(paste(unlist(formlist), collapse=" "))
 D <- getDesign(data, formula = form)
 
-Xlam <- D$Xlam
-Xphi <- D$Xphi
-Xdet <- D$Xdet
+X_lambda <- D$X_state
+X_phi <- D$X_phi
+X_det <- D$X_det
 y <- D$y  # MxJT
 
-Xlam.offset <- D$Xlam.offset
-Xphi.offset <- D$Xphi.offset
-Xdet.offset <- D$Xdet.offset
-if(is.null(Xlam.offset)) Xlam.offset <- rep(0, nrow(Xlam))
-if(is.null(Xphi.offset)) Xphi.offset <- rep(0, nrow(Xphi))
-if(is.null(Xdet.offset)) Xdet.offset <- rep(0, nrow(Xdet))
+offset_lambda <- D$offset_state
+offset_phi <- D$offset_phi
+offset_det <- D$offset_det
 
 K <- check_K_multinomial(K, K_adjust = 100, y, data@numPrimary)
 k <- 0:K
@@ -48,17 +45,17 @@ yt <- apply(y, 1:2, function(x) {
 
 piFun <- data@piFun
 
-lamPars <- colnames(Xlam)
-detPars <- colnames(Xdet)
-nLP <- ncol(Xlam)
+lamPars <- colnames(X_lambda)
+detPars <- colnames(X_det)
+nLP <- ncol(X_lambda)
 if(T==1) {
     nPP <- 0
     phiPars <- character(0)
 } else if(T>1) {
-    nPP <- ncol(Xphi)
-    phiPars <- colnames(Xphi)
+    nPP <- ncol(X_phi)
+    phiPars <- colnames(X_phi)
     }
-nDP <- ncol(Xdet)
+nDP <- ncol(X_det)
 nP <- nLP + nPP + nDP + (mixture%in%c('NB','ZIP'))
 if(!missing(starts) && length(starts) != nP)
     stop(paste("The number of starting values should be", nP))
@@ -81,12 +78,12 @@ for(i in 1:M) {
     }
 
 nll_R <- function(pars) {
-    lambda <- exp(Xlam %*% pars[1:nLP] + Xlam.offset)
+    lambda <- exp(X_lambda %*% pars[1:nLP] + offset_lambda)
     if(T==1)
         phi <- 1
     else if(T>1)
-        phi <- drop(plogis(Xphi %*% pars[(nLP+1):(nLP+nPP)] + Xphi.offset))
-    p <- plogis(Xdet %*% pars[(nLP+nPP+1):(nLP+nPP+nDP)] + Xdet.offset)
+        phi <- drop(plogis(X_phi %*% pars[(nLP+1):(nLP+nPP)] + offset_phi))
+    p <- plogis(X_det %*% pars[(nLP+nPP+1):(nLP+nPP+nDP)] + offset_det)
 
     phi.mat <- matrix(phi, M, T, byrow=TRUE)
     phi <- as.numeric(phi.mat)
@@ -143,8 +140,8 @@ if(engine=="R"){
   Kmin <- apply(yt, 1, max, na.rm=TRUE)
 
   nll <- function(params) {
-    nll_gmultmix(params, n_param, y_long, mixture_code, piFun, Xlam, Xlam.offset,
-                 Xphi, Xphi.offset, Xdet, Xdet.offset, k, lfac.k, lfac.kmytC,
+    nll_gmultmix(params, n_param, y_long, mixture_code, piFun, X_lambda, offset_lambda,
+                 X_phi, offset_phi, X_det, offset_det, k, lfac.k, lfac.kmytC,
                  kmytC, Kmin, threads)
   }
 

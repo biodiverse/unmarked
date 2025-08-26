@@ -33,9 +33,9 @@ goccu <- function(psiformula, phiformula, pformula, data,
   gd <- getDesign(data, formula = formula)
 
   y <- gd$y
-  Xpsi <- gd$Xlam # The G3 getDesign method identifies state as lam
-  Xphi <- gd$Xphi
-  Xp <- gd$Xdet
+  X_psi <- gd$X_state
+  X_phi <- gd$X_phi
+  X_det <- gd$X_det
 
   M <- nrow(y)
   T <- data@numPrimary
@@ -81,7 +81,7 @@ goccu <- function(psiformula, phiformula, pformula, data,
 
   # Bundle data for TMB
   dataList <- list(y=y, T=T, link=ifelse(linkPsi=='cloglog', 1, 0), 
-                   Xpsi=Xpsi, Xphi=Xphi, Xp=Xp,
+                   X_psi=X_psi, X_phi=X_phi, X_det=X_det,
                    n_possible=n_possible,
                    alpha_potential=alpha_potential, alpha_drop = alpha_drop,
                    known_present=known_present, known_available=known_available, 
@@ -89,13 +89,13 @@ goccu <- function(psiformula, phiformula, pformula, data,
 
   # Provide dimensions and starting values for parameters
   # This part should change to be more like occu() if we add random effects
-  psi_ind <- 1:ncol(Xpsi)
-  phi_ind <- 1:ncol(Xphi) + max(psi_ind)
-  p_ind <- 1:ncol(Xp) + max(phi_ind)
-  nP <- max(p_ind)
+  psi_ind <- 1:ncol(X_psi)
+  phi_ind <- 1:ncol(X_phi) + max(psi_ind)
+  det_ind <- 1:ncol(X_det) + max(phi_ind)
+  nP <- max(det_ind)
   params <- list(beta_psi = rep(0, length(psi_ind)), 
                  beta_phi = rep(0, length(phi_ind)), 
-                 beta_p = rep(0, length(p_ind)))
+                 beta_det = rep(0, length(det_ind)))
 
   # Create TMB object
   tmb_mod <- TMB::MakeADFun(data = c(model = "tmb_goccu", dataList),
@@ -109,14 +109,14 @@ goccu <- function(psiformula, phiformula, pformula, data,
 
   covMat <- invertHessian(opt, nP, se)
   ests <- opt$par
-  names(ests) <- c(colnames(Xpsi), colnames(Xphi), colnames(Xp))
+  names(ests) <- c(colnames(X_psi), colnames(X_phi), colnames(X_det))
   fmAIC <- 2 * opt$value + 2 * nP
 
 
   psi_est <- unmarkedEstimate(name = "Occupancy", short.name = "psi",
                               estimates = ests[psi_ind],
                               covMat = covMat[psi_ind, psi_ind, drop=FALSE],
-                              fixed = 1:ncol(Xpsi),
+                              fixed = 1:ncol(X_psi),
                               invlink = psiInvLink,
                               invlinkGrad = psiLinkGrad,
                               randomVarInfo=list()
@@ -125,23 +125,22 @@ goccu <- function(psiformula, phiformula, pformula, data,
   phi_est <- unmarkedEstimate(name = "Availability", short.name = "phi",
                               estimates = ests[phi_ind],
                               covMat = covMat[phi_ind, phi_ind, drop=FALSE],
-                              fixed = 1:ncol(Xphi),
+                              fixed = 1:ncol(X_phi),
                               invlink = "logistic",
                               invlinkGrad = "logistic.grad",
                               randomVarInfo=list()
                             )
 
-  p_est <- unmarkedEstimate(name = "Detection", short.name = "p",
-                              estimates = ests[p_ind],
-                              covMat = covMat[p_ind, p_ind, drop=FALSE],
-                              fixed = 1:ncol(Xp),
+  det_est <- unmarkedEstimate(name = "Detection", short.name = "p",
+                              estimates = ests[det_ind],
+                              covMat = covMat[det_ind, det_ind, drop=FALSE],
+                              fixed = 1:ncol(X_det),
                               invlink = "logistic",
                               invlinkGrad = "logistic.grad",
                               randomVarInfo=list()
                             )
 
-  estimate_list <- unmarkedEstimateList(list(psi=psi_est, phi=phi_est,
-                                                        det=p_est))
+  estimate_list <- unmarkedEstimateList(list(psi=psi_est, phi=phi_est, det=det_est))
 
   # Create unmarkedFit object--------------------------------------------------
   umfit <- new("unmarkedFitGOccu", fitType = "goccu", call = match.call(),
@@ -160,8 +159,7 @@ goccu <- function(psiformula, phiformula, pformula, data,
 setMethod("predict_inputs_from_umf", "unmarkedFitGOccu",
   function(object, type, newdata, na.rm, re.form=NA){
   designMats <- getDesign(newdata, object@formula, na.rm=na.rm)
-  X_idx <- switch(type, psi="Xlam", phi="Xphi", det="Xdet") # Xlam = state design matrix
-  off_idx <- paste0(X_idx, ".offset")
+  X_idx <- switch(type, psi="X_state", phi="X_phi", det="X_det")
   list(X=designMats[[X_idx]], offset=NULL)
 })
 
@@ -190,12 +188,12 @@ setMethod("fitted_internal", "unmarkedFitGOccu", function(object){
   M <- numSites(object@data)
   JT <- obsNum(object@data)  
   gd <- getDesign(object@data, object@formula, na.rm=FALSE)
-  Xpsi <- gd$Xlam
+  X_psi <- gd$X_state
 
-  psi <- drop(plogis(Xpsi %*% coef(object, "psi")))
+  psi <- drop(plogis(X_psi %*% coef(object, "psi")))
   psi <- matrix(psi, nrow=M, ncol=JT)
 
-  phi <- drop(plogis(gd$Xphi %*% coef(object, "phi")))
+  phi <- drop(plogis(gd$X_phi %*% coef(object, "phi")))
   phi <- rep(phi, each = JT / object@data@numPrimary)
   phi <- matrix(phi, nrow=M, ncol=JT, byrow=TRUE)
 
@@ -215,10 +213,10 @@ setMethod("ranef_internal", "unmarkedFitGOccu", function(object, ...){
 
   gd <- getDesign(object@data, object@formula, na.rm=FALSE)
   y_array <- array(t(gd$y), c(J, T, M))
-  Xpsi <- gd$Xlam
+  X_psi <- gd$X_state
 
-  psi <- drop(plogis(Xpsi %*% coef(object, "psi")))
-  phi <- drop(plogis(gd$Xphi %*% coef(object, "phi")))
+  psi <- drop(plogis(X_psi %*% coef(object, "psi")))
+  phi <- drop(plogis(gd$X_phi %*% coef(object, "phi")))
   phi <- matrix(phi, nrow=M, ncol=T, byrow=TRUE)
   p <- getP(object)
   p_array <- array(t(p), c(J, T, M))
