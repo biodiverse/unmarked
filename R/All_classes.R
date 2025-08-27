@@ -276,6 +276,7 @@ setClass("unmarkedFit",
   representation(fitType = "character",
     call = "call",
     formula = "formula",
+    formlist = "list",
     data = "unmarkedFrame",
     sitesRemoved = "numeric",  # vector of indices of removed sites
     estimates = "unmarkedEstimateList",
@@ -316,7 +317,7 @@ setClass("unmarkedFitOccuComm", contains="unmarkedFitOccu")
 
 # Count-based occupancy model
 setClass("unmarkedFitOccuCOP",
-  representation(removed_obs = "matrix", formlist = "list"),
+  representation(removed_obs = "matrix"),
   contains = "unmarkedFit"
 )
 
@@ -362,14 +363,11 @@ setClass("unmarkedFitPCount",
 ### Temporary emigration (TE) model types
 
 # TE occupancy
-setClass("unmarkedFitGOccu",
-  representation(formlist = "list"),
-  contains = "unmarkedFit"
-)
+setClass("unmarkedFitGOccu", contains = "unmarkedFit")
 
 # TE multinomial mixture
 setClass("unmarkedFitGMM",
-  representation(formlist = "list", mixture = "character", K = "numeric"),
+  representation(mixture = "character", K = "numeric"),
   contains = "unmarkedFit"
 )
 
@@ -413,8 +411,8 @@ setClass("unmarkedFitOccuTTD",
 
 # This class is not used directly, just used as a base for for PCO, MMO, DSO
 setClass("unmarkedFitDailMadsen",
-  representation(K = "numeric", mixture = "character", formlist = "list",
-                 dynamics = "character", immigration = "logical", fix = "character"),
+  representation(K = "numeric", mixture = "character", dynamics = "character",
+                 immigration = "logical", fix = "character"),
   contains = "unmarkedFit"
 )
 
@@ -436,7 +434,6 @@ setClass("unmarkedFitPCO", contains = "unmarkedFitDailMadsen")
 setClassUnion("unmarkedFrameOrNULL", members=c("unmarkedFrame", "NULL"))
 setClass("unmarkedFitIDS",
     representation(
-        formlist = "list",
         keyfun = "character",
         K = "numeric",
         dataPC = "unmarkedFrameOrNULL",
