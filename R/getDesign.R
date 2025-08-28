@@ -5,28 +5,24 @@
 # generic method for unmarkedFrame
 # used by distsamp, multinomPois, occu, occuPEN, occuRN, pcount, pcount.spHDS, IDS
 setMethod("getDesign", "unmarkedFrame", 
-  function(umf, formula, na.rm = TRUE, ...){
+  function(umf, formulas, na.rm = TRUE, ...){
 
   M <- numSites(umf)
   J <- obsNum(umf)
   y <- getY(umf)
 
-  formulas <- split_formula(formula)
-  stateformula <- formulas[[2]]
-  detformula <- formulas[[1]]
-
   # Process covariates
   covs <- clean_up_covs(umf)
   
   # Model matrices and offset for state submodel
-  X_state <- get_model_matrix(stateformula, covs$site_covs)
-  offset_state <- get_offset(stateformula, covs$site_covs)
-  Z_state <- get_Z(stateformula, covs$site_covs)
+  X_state <- get_model_matrix(formulas$state, covs$site_covs)
+  offset_state <- get_offset(formulas$state, covs$site_covs)
+  Z_state <- get_Z(formulas$state, covs$site_covs)
 
   # Model matrices and offset for detection submodel
-  X_det <- get_model_matrix(detformula, covs$obs_covs)
-  offset_det <- get_offset(detformula, covs$obs_covs)
-  Z_det <- get_Z(detformula, covs$obs_covs)
+  X_det <- get_model_matrix(formulas$det, covs$obs_covs)
+  offset_det <- get_offset(formulas$det, covs$obs_covs)
+  Z_det <- get_Z(formulas$det, covs$obs_covs)
 
   # Identify missing values in state covs
   has_na_site <- row_has_na(cbind(X_state, Z_state))
@@ -37,7 +33,7 @@ setMethod("getDesign", "unmarkedFrame",
   has_na_obs <- matrix(has_na_obs, M, J, byrow=TRUE)
   # Multiplying by obsToY handles models where the number of estimated parameters
   # is not the same as the number of observations, such as double-observer models
-  has_na_obs <- has_na_obs %*% umf@obsToY > 0
+  has_na_obs <- has_na_obs %*% obsToY(umf) > 0
 
   # Combine missing value information
   has_na <- has_na_site | has_na_obs

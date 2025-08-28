@@ -1,7 +1,7 @@
 #Get y (corrected for missing values) based on data and formulas
 #Approach for some fit functions is different, so this is now a method
 setMethod("fl_getY", "unmarkedFit", function(fit, ...){
-  getDesign(getData(fit), fit@formula)$y
+  getDesign(getData(fit), fit@formlist)$y
 })
 
 setMethod("fl_getY", "unmarkedFitOccuMulti", function(fit, ...){

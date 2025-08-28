@@ -4,13 +4,15 @@
 occuRN <- function(formula, data, K = 25, starts, method = "BFGS",
     se = TRUE, engine=c("C","R"), threads = 1, ...)
 {
-  check_no_support(split_formula(formula))
+  formulas <- split_formula(formula)
+  names(formulas) <- c("det", "state")
+  check_no_support(formulas)
 
   if(!is(data, "unmarkedFrameOccu"))
     stop("Data is not an unmarkedFrameOccu object.")
 
   engine <- match.arg(engine, c("C", "R"))
-  dm <- getDesign(data, formula)
+  dm <- getDesign(data, formulas)
   y <- dm$y
   y <- truncateToBinary(y)
 
@@ -95,7 +97,7 @@ occuRN <- function(formula, data, K = 25, starts, method = "BFGS",
           det=detEstimates))
 
   umfit <- new("unmarkedFitOccuRN", fitType = "occuRN",
-      call = match.call(), formula = formula, data = data,
+      call = match.call(), formula = formula, formlist = formulas, data = data,
       sitesRemoved = dm$removed.sites, estimates = estimateList,
       AIC = fmAIC, opt = fm, negLogLike = fm$value, nllFun = nll, K = K)
 

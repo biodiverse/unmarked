@@ -129,7 +129,7 @@ check_type <- function(mod, type){
 # Get X and offset when newdata is umf
 setMethod("predict_inputs_from_umf", "unmarkedFit",
   function(object, type, newdata, na.rm, re.form){
-  designMats <- getDesign(newdata, object@formula, na.rm = na.rm)
+  designMats <- getDesign(newdata, object@formlist, na.rm = na.rm)
   if(type == "state") list_els <- c("X_state","Z_state","offset_state")
   if(type == "det") list_els <- c("X_det","Z_det","offset_det")
   if(type == "scale"){ # no covariates
@@ -146,12 +146,13 @@ setMethod("predict_inputs_from_umf", "unmarkedFit",
 
 # Get correct individual formula based on type
 setMethod("get_formula", "unmarkedFit", function(object, type, ...){
-  if(type == "state"){
-    return(as.formula(paste("~", object@formula[3], sep="")))
-  } else if(type == "det"){
-    return(as.formula(object@formula[[2]]))
-  }
-  NULL
+  object@formlist[[type]]
+  #if(type == "state"){
+  #  return(as.formula(paste("~", object@formula[3], sep="")))
+  #} else if(type == "det"){
+  #  return(as.formula(object@formula[[2]]))
+  #}
+  #NULL
 })
 
 # When newdata is data.frame/raster, get original dataset

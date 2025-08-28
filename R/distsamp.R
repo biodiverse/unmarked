@@ -8,7 +8,9 @@ distsamp <- function(formula, data,
 
     # Check arguments
     engine <- match.arg(engine)
-    if(any(sapply(split_formula(formula), has_random))) engine <- "TMB"
+    formulas <- split_formula(formula)
+    names(formulas) <- c("det", "state")
+    if(any(sapply(formulas, has_random))) engine <- "TMB"
     keyfun <- match.arg(keyfun)
     output <- match.arg(output)
     unitsOut <- match.arg(unitsOut)
@@ -16,7 +18,7 @@ distsamp <- function(formula, data,
     if(missing(starts)) starts <- NULL
 
     #Generate design matrix
-    dm <- getDesign(data, formula)
+    dm <- getDesign(data, formulas)
     y <- dm$y
     M <- nrow(y)
     J <- ncol(y)
@@ -253,8 +255,7 @@ distsamp <- function(formula, data,
 
       # Set up TMB input data
       if(output == "abund") A <- rep(1, length(A))
-      forms <- split_formula(formula)
-      inps <- get_ranef_inputs(forms, list(det=siteCovs(data), state=siteCovs(data)),
+      inps <- get_ranef_inputs(formulas, list(det=siteCovs(data), state=siteCovs(data)),
                                list(dm$X_det, dm$X_state), dm[c("Z_det","Z_state")])
 
       keyfun_type <- switch(keyfun, uniform={0}, halfnorm={1}, exp={2},
@@ -290,8 +291,8 @@ distsamp <- function(formula, data,
       }
 
       # Organize random-effect estimates from TMB output
-      state_rand_info <- get_randvar_info(tmb_out$sdr, "state", forms[[2]], siteCovs(data))
-      det_rand_info <- get_randvar_info(tmb_out$sdr, "det", forms[[1]], siteCovs(data))
+      state_rand_info <- get_randvar_info(tmb_out$sdr, "state", formulas$state, siteCovs(data))
+      det_rand_info <- get_randvar_info(tmb_out$sdr, "det", formulas$det, siteCovs(data))
 
     }
 
@@ -317,7 +318,7 @@ distsamp <- function(formula, data,
     }
 
     dsfit <- new("unmarkedFitDS", fitType = "distsamp", call = match.call(),
-        opt = fm, formula = formula, data = data, keyfun=keyfun,
+        opt = fm, formula = formula, formlist = formulas, data = data, keyfun=keyfun,
         sitesRemoved = dm$removed.sites, unitsOut=unitsOut,
         estimates = estimateList, AIC = fmAIC, negLogLike = fm$value,
         nllFun = nll, output=output, TMB=tmb_mod)
