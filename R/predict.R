@@ -384,17 +384,11 @@ setMethod("check_predict_arguments", "unmarkedFitDailMadsen",
 
 setMethod("predict_inputs_from_umf", "unmarkedFitDailMadsen",
   function(object, type, newdata, na.rm, re.form=NA){
-  designMats <- getDesign(newdata, object@formula, na.rm=na.rm)
+  designMats <- getDesign(newdata, object@formlist, na.rm=na.rm)
   X_idx <- switch(type, lambda="X_lambda", gamma="X_gamma", omega="X_omega",
                   iota="X_iota", det="X_det")
   off_idx <- paste0("offset_", type)
   list(X=designMats[[X_idx]], offset=designMats[[off_idx]])
-})
-
-setMethod("get_formula", "unmarkedFitDailMadsen", function(object, type, ...){
-  fl <- object@formlist
-  switch(type, lambda=fl$lambdaformula, gamma=fl$gammaformula,
-         omega=fl$omegaformula, iota=fl$iotaformula, det=fl$pformula)
 })
 
 setMethod("get_orig_data", "unmarkedFitDailMadsen", function(object, type, ...){

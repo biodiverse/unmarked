@@ -883,7 +883,7 @@ simOpenN <- function(object){
     #To partially handle old saved model objects
     fix <- tryCatch(object@fix, error=function(e) "none")
     immigration <- tryCatch(object@immigration, error=function(e) FALSE)
-    delta <- getDesign(umf, object@formula, na.rm = FALSE)$delta  
+    delta <- getDesign(umf, object@formlist, na.rm = FALSE)$delta  
     y <- umf@y
     M <- nrow(y)
     T <- umf@numPrimary

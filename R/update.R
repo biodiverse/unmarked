@@ -52,11 +52,11 @@ setMethod("rebuild_call", "unmarkedFitColExt", function(object){
 # Covers MMO and PCO
 setMethod("rebuild_call", "unmarkedFitDailMadsen", function(object){ 
   cl <- methods::callNextMethod(object)
-  cl[["lambdaformula"]] <- object@formlist$lambdaformula
-  cl[["gammaformula"]] <- object@formlist$gammaformula
-  cl[["omegaformula"]] <- object@formlist$omegaformula
-  cl[["pformula"]] <- object@formlist$pformula
-  cl[["iotaformula"]] <- object@formlist$iotaformula
+  cl[["lambdaformula"]] <- object@formlist$lambda
+  cl[["gammaformula"]] <- object@formlist$gamma
+  cl[["omegaformula"]] <- object@formlist$omega
+  cl[["pformula"]] <- object@formlist$det
+  cl[["iotaformula"]] <- object@formlist$iota
   cl[["mixture"]] <- object@mixture
   cl[["dynamics"]] <- object@dynamics
   cl[["immigration"]] <- object@immigration

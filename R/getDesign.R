@@ -182,13 +182,7 @@ setMethod("getDesign", "unmarkedFrameG3",
 
 # unmarkedFrameDailMadsen (pcountOpen, multmixOpen, distsampOpen)
 setMethod("getDesign", "unmarkedFrameDailMadsen",
-  function(umf, formula, na.rm = TRUE){
-
-  lamformula <- as.formula(formula[[2]][[2]][[2]][[2]])  
-  gamformula <- as.formula(as.call(list(as.name("~"), formula[[2]][[2]][[2]][[3]])))
-  omformula <- as.formula(as.call(list(as.name("~"), formula[[2]][[2]][[3]])))
-  pformula <- as.formula(as.call(list(as.name("~"), formula[[2]][[3]])))
-  iotaformula <- as.formula(as.call(list(as.name("~"), formula[[3]])))
+  function(umf, formulas, na.rm = TRUE){
 
   M <- numSites(umf)
   T <- umf@numPrimary
@@ -202,22 +196,22 @@ setMethod("getDesign", "unmarkedFrameDailMadsen",
   covs <- clean_up_covs(umf, drop_final = TRUE)
 
   # Model matrix for abundance
-  X_lambda <- get_model_matrix(lamformula, covs$site_covs)
-  offset_lambda <- get_offset(lamformula, covs$site_covs)
+  X_lambda <- get_model_matrix(formulas$lambda, covs$site_covs)
+  offset_lambda <- get_offset(formulas$lambda, covs$site_covs)
 
   # Transition probs
   # Drop last period of transition prob design matrices
   # NOTE: this is done outside getDesign for colext
   drop_periods <- rep(1:T, M) == T
   ysc_drop <- covs$yearly_site_covs[!drop_periods,,drop=FALSE]
-  X_gamma <- get_model_matrix(gamformula, ysc_drop)
-  offset_gamma <- get_offset(gamformula, ysc_drop)
+  X_gamma <- get_model_matrix(formulas$gamma, ysc_drop)
+  offset_gamma <- get_offset(formulas$gamma, ysc_drop)
 
-  X_omega <- get_model_matrix(omformula, ysc_drop)
-  offset_omega <- get_offset(omformula, ysc_drop)
+  X_omega <- get_model_matrix(formulas$omega, ysc_drop)
+  offset_omega <- get_offset(formulas$omega, ysc_drop)
 
-  X_iota <- get_model_matrix(iotaformula, ysc_drop)
-  offset_iota <- get_offset(iotaformula, ysc_drop)
+  X_iota <- get_model_matrix(formulas$iota, ysc_drop)
+  offset_iota <- get_offset(formulas$iota, ysc_drop)
 
   # Detection, which differs by model type
   det_covs <- covs$obs_covs
@@ -227,8 +221,8 @@ setMethod("getDesign", "unmarkedFrameDailMadsen",
     covs_dso <- clean_up_covs(umf, drop_final = FALSE)
     det_covs <- covs_dso$yearly_site_covs
   }
-  X_det <-  get_model_matrix(pformula, det_covs)
-  offset_det <- get_offset(pformula, det_covs)
+  X_det <-  get_model_matrix(formulas$det, det_covs)
+  offset_det <- get_offset(formulas$det, det_covs)
 
   # Identify missing values in lambda covs
   has_na_site <- row_has_na(X_lambda)
@@ -326,8 +320,8 @@ setMethod("getDesign", "unmarkedFrameDailMadsen",
     } else
       return("matrix")
   }
-  if(length(all.vars(gamformula)) == 0 & length(all.vars(omformula)) == 0 & 
-     length(all.vars(iotaformula)) == 0){
+  if(length(all.vars(formulas$gamma)) == 0 & length(all.vars(formulas$omega)) == 0 & 
+     length(all.vars(formulas$iota)) == 0){
     go.dims <- "scalar"
   } else {
     go.dims.vec <- apply(Xgo, 2, getGOdims)

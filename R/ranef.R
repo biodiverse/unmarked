@@ -66,9 +66,7 @@ setMethod("ranef_internal", "unmarkedFitColExt", function(object){
 # DSO and MMO
 setMethod("ranef_internal", "unmarkedFitDailMadsen", function(object, ...){
     dyn <- object@dynamics
-    formlist <- object@formlist
-    formula <- as.formula(paste(unlist(formlist), collapse=" "))
-    D <- getDesign(object@data, formula, na.rm=FALSE)
+    D <- getDesign(object@data, object@formlist, na.rm=FALSE)
     delta <- D$delta
     deltamax <- max(delta, na.rm=TRUE)
     if(!.hasSlot(object, "immigration")){ #For backwards compatibility
@@ -804,10 +802,7 @@ setMethod("ranef_internal", "unmarkedFitPCount", function(object, ...){
 
 setMethod("ranef_internal", "unmarkedFitPCO", function(object, ...){
     dyn <- object@dynamics
-    
-    formlist <- object@formlist
-    formula <- as.formula(paste(unlist(formlist), collapse=" "))
-    D <- getDesign(object@data, formula, na.rm=FALSE)
+    D <- getDesign(object@data, object@formlist, na.rm=FALSE)
     delta <- D$delta
     deltamax <- max(delta, na.rm=TRUE)
     if(!.hasSlot(object, "immigration")) #For backwards compatibility

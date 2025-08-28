@@ -44,12 +44,12 @@ distsampOpen <- function(lambdaformula, gammaformula, omegaformula, pformula,
 
   fix <- match.arg(fix)
 
-  formlist <- mget(c("lambdaformula", "gammaformula", "omegaformula",
-                   "pformula", "iotaformula"))
-  check_no_support(formlist)
-  formula <- as.formula(paste(unlist(formlist), collapse=" "))
+  formulas <- list(lambda = lambdaformula, gamma = gammaformula,
+                   omega = omegaformula, det = pformula, iota = iotaformula)
+  check_no_support(formulas)
+  comb_form <- as.formula(paste(unlist(formulas), collapse=" "))
 
-  D <- getDesign(data, formula)
+  D <- getDesign(data, formulas)
   y <- D$y
 
   deltamax <- max(D$delta, na.rm=TRUE)
@@ -307,7 +307,7 @@ distsampOpen <- function(lambdaformula, gammaformula, omegaformula, pformula,
   }
 
   umfit <- new("unmarkedFitDSO", fitType = "distsampOpen",
-      call = match.call(), formula = formula, formlist = formlist, data = data,
+      call = match.call(), formula = comb_form, formlist = formulas, data = data,
       sitesRemoved=D$removed.sites, estimates = estimateList, AIC = fmAIC,
       opt = fm, negLogLike = fm$value, nllFun = nll, K = K, mixture = mixture,
       dynamics = dynamics, fix = fix, immigration=immigration, keyfun=keyfun,
