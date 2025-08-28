@@ -66,17 +66,10 @@ setMethod("getDesign", "unmarkedFrame",
 # UnmarkedMultFrame
 # used by colext, occuTTD, nmixTTD and base class for G3 and DailMadsen
 setMethod("getDesign", "unmarkedMultFrame",
-  function(umf, formula, na.rm = TRUE){
+  function(umf, formulas, na.rm = TRUE){
 
-  stateformula <- as.formula(formula[[2]][[2]][[2]])  
-  gamformula <- as.formula(as.call(list(as.name("~"), formula[[2]][[2]][[3]])))
-  epsformula <- as.formula(as.call(list(as.name("~"), formula[[2]][[3]])))
-  detformula <- as.formula(as.call(list(as.name("~"), formula[[3]])))
- 
   # Process state and detection with generic umf method  
-  comb_form <- list(as.name("~"), detformula, stateformula[[2]])
-  comb_form <- as.formula(as.call(comb_form))
-  out <- methods::callNextMethod(umf, formula = comb_form, na.rm = FALSE)
+  out <- methods::callNextMethod(umf, formulas = formulas, na.rm = FALSE)
  
   M <- numSites(umf)
   R <- obsNum(umf)
@@ -91,12 +84,12 @@ setMethod("getDesign", "unmarkedMultFrame",
   covs <- clean_up_covs(umf, drop_final = TRUE)
 
   # Model matrix for colonization
-  X_col <- get_model_matrix(gamformula, covs$yearly_site_covs)
-  offset_col <- get_offset(gamformula, covs$yearly_site_covs)
+  X_col <- get_model_matrix(formulas$col, covs$yearly_site_covs)
+  offset_col <- get_offset(formulas$col, covs$yearly_site_covs)
 
   # Model matrix for extinction
-  X_ext <- get_model_matrix(epsformula, covs$yearly_site_covs)
-  offset_ext <- get_offset(epsformula, covs$yearly_site_covs)
+  X_ext <- get_model_matrix(formulas$ext, covs$yearly_site_covs)
+  offset_ext <- get_offset(formulas$ext, covs$yearly_site_covs)
 
   # Error if any offsets specified
   if(any(c(offset_col, offset_ext, out$X.offset, out$V.offset) != 0)){
@@ -135,18 +128,12 @@ setMethod("getDesign", "unmarkedMultFrame",
 
 # unmarkedFrameG3 (gpcount, gmultmix, gdistsamp, goccu)
 setMethod("getDesign", "unmarkedFrameG3",
-  function(umf, formula, na.rm = TRUE){
+  function(umf, formulas, na.rm = TRUE){
 
-  stateformula <- as.formula(formula[[2]][[2]])  
-  phiformula <- as.formula(as.call(list(as.name("~"), formula[[2]][[3]])))
-  detformula <- as.formula(as.call(list(as.name("~"), formula[[3]])))
- 
   # Process state and detection with generic umf method  
-  comb_form <- list(as.name("~"), detformula, stateformula[[2]])
-  comb_form <- as.formula(as.call(comb_form))
   # Have to use getMethod because this inherits from unmarkedMultFrame
   getDesign_generic <- methods::getMethod("getDesign", "unmarkedFrame")
-  out <- getDesign_generic(umf, formula = comb_form, na.rm = FALSE)
+  out <- getDesign_generic(umf, formulas = formulas, na.rm = FALSE)
  
   M <- numSites(umf)
   R <- obsNum(umf)
@@ -159,8 +146,8 @@ setMethod("getDesign", "unmarkedFrameG3",
   covs <- clean_up_covs(umf)
 
   # Model matrix for availability
-  X_phi <- get_model_matrix(phiformula, covs$yearly_site_covs)
-  offset_phi <- get_offset(phiformula, covs$yearly_site_covs)
+  X_phi <- get_model_matrix(formulas$phi, covs$yearly_site_covs)
+  offset_phi <- get_offset(formulas$phi, covs$yearly_site_covs)
 
   # Check missing values in availability
   has_na <- row_has_na(X_phi)

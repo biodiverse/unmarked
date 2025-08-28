@@ -16,9 +16,9 @@ occuTTD <- function(psiformula=~1, gammaformula=~1, epsilonformula=~1,
   ttdDist <- match.arg(ttdDist, c("exp","weibull"))
   linkPsi <- match.arg(linkPsi, c("logit","cloglog"))
 
-  formula <- list(psiformula, gammaformula, epsilonformula, detformula)
-  check_no_support(formula)
-  formula <- as.formula(paste(unlist(formula),collapse=" "))
+  formulas <- list(state = psiformula, col = gammaformula, ext = epsilonformula, det = detformula)
+  check_no_support(formulas)
+  comb_form <- as.formula(paste(unlist(formulas),collapse=" "))
 
   #Psi link function
   linkFunc <- plogis
@@ -31,7 +31,8 @@ occuTTD <- function(psiformula=~1, gammaformula=~1, epsilonformula=~1,
   }
 
   #Process input data----------------------------------------------------------
-  dm <- getDesign(data, formula)
+  dm <- getDesign(data, formulas)
+  names(formulas)[1] <- "psi"
   X_psi <- dm$X_state
   X_col <- dm$X_col; X_ext <- dm$X_ext
   y <- dm$y
@@ -199,7 +200,8 @@ occuTTD <- function(psiformula=~1, gammaformula=~1, epsilonformula=~1,
 
   umfit <- new("unmarkedFitOccuTTD", fitType = "occuTTD",
                call = match.call(),
-               formula = formula,
+               formula = comb_form,
+               formlist = formulas,
                psiformula = psiformula,
                gamformula = gammaformula,
                epsformula = epsilonformula,

@@ -42,10 +42,10 @@ setMethod("rebuild_call", "unmarkedFit", function(object){
 
 setMethod("rebuild_call", "unmarkedFitColExt", function(object){ 
   cl <- methods::callNextMethod(object) # calls base class method above
-  cl[["psiformula"]] <- object@psiformula
-  cl[["gammaformula"]] <- object@gamformula
-  cl[["epsilonformula"]] <- object@epsformula
-  cl[["pformula"]] <- object@detformula
+  cl[["psiformula"]] <- object@formlist$psi
+  cl[["gammaformula"]] <- object@formlist$col
+  cl[["epsilonformula"]] <- object@formlist$ext
+  cl[["pformula"]] <- object@formlist$det
   cl
 })
 
@@ -87,9 +87,9 @@ setMethod("rebuild_call", "unmarkedFitDSO", function(object){
 # Also covers unmarkedFitGPC
 setMethod("rebuild_call", "unmarkedFitGMM", function(object){ 
   cl <- methods::callNextMethod(object)
-  cl[["lambdaformula"]] <- object@formlist$lambdaformula
-  cl[["phiformula"]] <- object@formlist$phiformula
-  cl[["pformula"]] <- object@formlist$pformula
+  cl[["lambdaformula"]] <- object@formlist$lambda
+  cl[["phiformula"]] <- object@formlist$phi
+  cl[["pformula"]] <- object@formlist$det
   cl[["mixture"]] <- object@mixture
   if(methods::.hasSlot(object, "K")){
     cl[["K"]] <- object@K
@@ -113,8 +113,8 @@ setMethod("rebuild_call", "unmarkedFitMPois", function(object){
 
 setMethod("rebuild_call", "unmarkedFitNmixTTD", function(object){ 
   cl <- methods::callNextMethod(object)
-  cl[["stateformula"]] <- object@stateformula
-  cl[["detformula"]] <- object@detformula
+  cl[["stateformula"]] <- object@formlist$state
+  cl[["detformula"]] <- object@formlist$det
   cl[["K"]] <- object@K
   cl
 })
@@ -186,9 +186,9 @@ setMethod("rebuild_call", "unmarkedFitOccuRN", function(object){
 
 setMethod("rebuild_call", "unmarkedFitOccuTTD", function(object){ 
   cl <- methods::callNextMethod(object)
-  cl[["psiformula"]] <- object@psiformula
-  cl[["gammaformula"]] <- object@gamformula
-  cl[["epsilonformula"]] <- object@epsformula
-  cl[["detformula"]] <- object@detformula
+  cl[["psiformula"]] <- object@formlist$psi
+  cl[["gammaformula"]] <- object@formlist$col
+  cl[["epsilonformula"]] <- object@formlist$ext
+  cl[["detformula"]] <- object@formlist$det
   cl
 })

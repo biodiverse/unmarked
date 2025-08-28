@@ -11,11 +11,12 @@ engine <- match.arg(engine, c("C", "R"))
 
 mixture <- match.arg(mixture)
 
-formlist <- list(lambdaformula = lambdaformula, phiformula = phiformula,
-    pformula = pformula)
-check_no_support(formlist)
-form <- as.formula(paste(unlist(formlist), collapse=" "))
-D <- getDesign(data, formula = form)
+formulas <- list(state = lambdaformula, phi = phiformula, det = pformula)
+check_no_support(formulas)
+comb_form <- as.formula(paste(unlist(formulas), collapse=" "))
+D <- getDesign(data, formulas)
+
+names(formulas)[1] <- "lambda"
 X_lambda <- D$X_state
 offset_lambda <- D$offset_state
 y <- D$y  # MxJT
@@ -194,7 +195,7 @@ if(identical(mixture,"ZIP")) {
 }
 
 umfit <- new("unmarkedFitGMM", fitType = "gmn",
-    call = match.call(), formula = form, formlist = formlist,
+    call = match.call(), formula = comb_form, formlist = formulas,
     data = data, estimates = estimateList, sitesRemoved = D$removed.sites,
     AIC = fmAIC, opt = fm, negLogLike = fm$value, nllFun = nll,
     mixture=mixture, K=K)

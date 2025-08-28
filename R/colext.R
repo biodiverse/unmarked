@@ -5,10 +5,14 @@ colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
   ## truncate to 1
   data@y <- truncateToBinary(data@y)
  
-  formula <- list(psiformula = psiformula, gammaformula = gammaformula,
-                  epsilonformula = epsilonformula, pformula = pformula)
-  check_no_support(formula)
-  dm <- getDesign(data, formula = as.formula(paste(unlist(formula), collapse=" ")))
+  formulas <- list(state = psiformula, col = gammaformula, ext = epsilonformula,
+                   det = pformula)
+  check_no_support(formulas)
+  dm <- getDesign(data, formulas)
+  
+  names(formulas)[1] <- "psi"
+  comb_formula <- as.formula(paste(unlist(formulas), collapse=" "))
+
   X_psi <- dm$X_state; X_col <- dm$X_col; X_ext <- dm$X_ext
   y <- dm$y
   M <- nrow(y)
@@ -140,7 +144,8 @@ colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
 
   umfit <- new("unmarkedFitColExt", fitType = "colext",
                 call = match.call(),
-                formula = as.formula(paste(unlist(formula),collapse=" ")),
+                formula = comb_formula,
+                formlist = formulas,
                 psiformula = psiformula,
                 gamformula = gammaformula,
                 epsformula = epsilonformula,

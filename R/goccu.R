@@ -19,10 +19,9 @@ goccu <- function(psiformula, phiformula, pformula, data,
 
   # Pass phiformula as gamma/eps formula so it will be applied to
   # yearlySiteCovs in getDesign
-  formlist <- list(psiformula=psiformula, phiformula=phiformula,
-                  pformula=pformula)
+  formulas <- list(state=psiformula, phi=phiformula, det=pformula)
 
-  formula <- as.formula(paste(unlist(formlist), collapse=" "))
+  comb_form <- as.formula(paste(unlist(formlist), collapse=" "))
 
   data@y[data@y > 1] <- 1
  
@@ -30,7 +29,9 @@ goccu <- function(psiformula, phiformula, pformula, data,
 
   # handle offsets
 
-  gd <- getDesign(data, formula = formula)
+  gd <- getDesign(data, formulas)
+
+  names(formulas)[1] <- "psi"
   X_psi <- gd$X_state
   y <- gd$y
 
@@ -141,7 +142,7 @@ goccu <- function(psiformula, phiformula, pformula, data,
 
   # Create unmarkedFit object--------------------------------------------------
   umfit <- new("unmarkedFitGOccu", fitType = "goccu", call = match.call(),
-                 formula = formula, formlist=formlist, data = data,
+                 formula = comb_form, formlist=formulas, data = data,
                  sitesRemoved = gd$removed.sites,
                  estimates = estimate_list, AIC = fmAIC, opt = opt,
                  negLogLike = opt$value,
@@ -155,14 +156,11 @@ goccu <- function(psiformula, phiformula, pformula, data,
 
 setMethod("predict_inputs_from_umf", "unmarkedFitGOccu",
   function(object, type, newdata, na.rm, re.form=NA){
-  designMats <- getDesign(newdata, object@formula, na.rm=na.rm)
+  formlist <- object@formlist
+  names(formlist)[1] <- "state"
+  designMats <- getDesign(newdata, formlist, na.rm=na.rm)
   X_idx <- switch(type, psi="X_state", phi="X_phi", det="X_det")
   list(X=designMats[[X_idx]], offset=NULL)
-})
-
-setMethod("get_formula", "unmarkedFitGOccu", function(object, type, ...){
-  fl <- object@formlist
-  switch(type, psi=fl$psiformula, phi=fl$phiformula, det=fl$pformula)
 })
 
 setMethod("get_orig_data", "unmarkedFitGOccu", function(object, type, ...){
@@ -183,8 +181,10 @@ setMethod("getP_internal", "unmarkedFitGOccu", function(object){
 setMethod("fitted_internal", "unmarkedFitGOccu", function(object){
   # TODO: Use predict here
   M <- numSites(object@data)
-  JT <- obsNum(object@data)  
-  gd <- getDesign(object@data, object@formula, na.rm=FALSE)
+  JT <- obsNum(object@data) 
+  formlist <- object@formlist
+  names(formlist)[1] <- "state"
+  gd <- getDesign(object@data, formlist, na.rm=FALSE)
   X_psi <- gd$X_state
 
   psi <- drop(plogis(X_psi %*% coef(object, "psi")))
@@ -208,7 +208,9 @@ setMethod("ranef_internal", "unmarkedFitGOccu", function(object, ...){
   T <- object@data@numPrimary
   J <- JT / T
 
-  gd <- getDesign(object@data, object@formula, na.rm=FALSE)
+  formlist <- object@formlist
+  names(formlist)[1] <- "state"
+  gd <- getDesign(object@data, formlist, na.rm=FALSE)
   y_array <- array(t(gd$y), c(J, T, M))
   X_psi <- gd$X_state
 
@@ -302,8 +304,8 @@ setMethod("get_fitting_function", "unmarkedFrameGOccu",
 setMethod("rebuild_call", "unmarkedFitGOccu", function(object){           
   cl <- object@call
   cl[["data"]] <- quote(object@data)
-  cl[["psiformula"]] <- object@formlist$psiformula
-  cl[["phiformula"]] <- object@formlist$phiformula
-  cl[["pformula"]] <- object@formlist$pformula
+  cl[["psiformula"]] <- object@formlist$psi
+  cl[["phiformula"]] <- object@formlist$phi
+  cl[["pformula"]] <- object@formlist$det
   cl
 })
