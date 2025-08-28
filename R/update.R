@@ -130,10 +130,10 @@ setMethod("rebuild_call", "unmarkedFitOccu", function(object){
 
 setMethod("rebuild_call", "unmarkedFitOccuFP", function(object){ 
   cl <- methods::callNextMethod(object)
-  cl[["detformula"]] <- object@detformula
-  cl[["FPformula"]] <- object@FPformula
-  cl[["Bformula"]] <- object@Bformula
-  cl[["stateformula"]] <- object@stateformula
+  cl[["detformula"]] <- object@formlist$det
+  cl[["FPformula"]] <- object@formlist$fp
+  cl[["Bformula"]] <- object@formlist$b
+  cl[["stateformula"]] <- object@formlist$state
   cl
 })
 

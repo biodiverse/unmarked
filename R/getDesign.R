@@ -379,7 +379,7 @@ formatDelta <- function(d, yna)
 
 # gdistremoval
 setMethod("getDesign", "unmarkedFrameGDR",
-  function(umf, formula, na.rm=TRUE, return.frames=FALSE){
+  function(umf, formulas, na.rm=TRUE){
 
   M <- numSites(umf)
   T <- umf@numPrimary
@@ -401,28 +401,26 @@ setMethod("getDesign", "unmarkedFrameGDR",
   ysc <- cbind(ysc, sc[rep(1:M, each=T),,drop=FALSE])
   oc <- cbind(oc, ysc[rep(1:nrow(ysc), each=Jrem),,drop=FALSE])
 
-  if(return.frames) return(list(sc=sc, ysc=ysc, oc=oc))
-
-  lam_fixed <- reformulas::nobars(formula$lambdaformula)
+  lam_fixed <- reformulas::nobars(formulas$lambda)
   X_lambda <- model.matrix(lam_fixed,
             model.frame(lam_fixed, sc, na.action=NULL))
 
-  phi_fixed <- reformulas::nobars(formula$phiformula)
+  phi_fixed <- reformulas::nobars(formulas$phi)
   X_phi<- model.matrix(phi_fixed,
             model.frame(phi_fixed, ysc, na.action=NULL))
 
-  dist_fixed <- reformulas::nobars(formula$distanceformula)
+  dist_fixed <- reformulas::nobars(formulas$dist)
   X_dist <- model.matrix(dist_fixed,
             model.frame(dist_fixed, ysc, na.action=NULL))
 
-  rem_fixed <- reformulas::nobars(formula$removalformula)
+  rem_fixed <- reformulas::nobars(formulas$rem)
   X_rem <- model.matrix(rem_fixed,
             model.frame(rem_fixed, oc, na.action=NULL))
 
-  Z_lambda <- get_Z(formula$lambdaformula, sc)
-  Z_phi <- get_Z(formula$phiformula, ysc)
-  Z_dist <- get_Z(formula$distanceformula, ysc)
-  Z_rem <- get_Z(formula$removalformula, oc)
+  Z_lambda <- get_Z(formulas$lambda, sc)
+  Z_phi <- get_Z(formulas$phi, ysc)
+  Z_dist <- get_Z(formulas$dist, ysc)
+  Z_rem <- get_Z(formulas$rem, oc)
  
   # Check if there are missing yearlySiteCovs
   ydist_mat <- apply(matrix(yDist, nrow=M*T, byrow=TRUE), 1, function(x) any(is.na(x)))
@@ -461,13 +459,10 @@ setMethod("getDesign", "unmarkedFrameGDR",
 # there are 3 observation formula which are stored in V (true positive detections),
 # U (false positive detections), and W (b or probability detetion is certain)
 setMethod("getDesign", "unmarkedFrameOccuFP",
-  function(umf, detformula, FPformula, Bformula, stateformula, na.rm = TRUE){
+  function(umf, formulas, na.rm = TRUE){
 
   # Process state and true detection with generic umf method
-  # Combine detection and state formulas
-  comb_form <- list(as.name("~"), detformula, stateformula[[2]])
-  comb_form <- as.formula(as.call(comb_form))
-  out <- methods::callNextMethod(umf, formula = comb_form, na.rm = FALSE)
+  out <- methods::callNextMethod(umf, formulas = formulas, na.rm = FALSE)
  
   M <- numSites(umf)
   J <- obsNum(umf)
@@ -477,12 +472,12 @@ setMethod("getDesign", "unmarkedFrameOccuFP",
   covs <- clean_up_covs(umf)
   
   # Model matrix and offset for false positives
-  X_fp <- get_model_matrix(FPformula, covs$obs_covs)
-  offset_fp <- get_offset(FPformula, covs$obs_covs)
+  X_fp <- get_model_matrix(formulas$fp, covs$obs_covs)
+  offset_fp <- get_offset(formulas$fp, covs$obs_covs)
 
   # Model matrices and offset for b (prob detection is certain)
-  X_b <- get_model_matrix(Bformula, covs$obs_covs)
-  offset_b <- get_offset(Bformula, covs$obs_covs)
+  X_b <- get_model_matrix(formulas$b, covs$obs_covs)
+  offset_b <- get_offset(formulas$b, covs$obs_covs)
 
   # Check missing values in FP and b
   has_na <- row_has_na(cbind(X_fp, X_b))

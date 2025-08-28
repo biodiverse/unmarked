@@ -21,7 +21,7 @@ goccu <- function(psiformula, phiformula, pformula, data,
   # yearlySiteCovs in getDesign
   formulas <- list(state=psiformula, phi=phiformula, det=pformula)
 
-  comb_form <- as.formula(paste(unlist(formlist), collapse=" "))
+  comb_form <- as.formula(paste(unlist(formulas), collapse=" "))
 
   data@y[data@y > 1] <- 1
  

@@ -8,14 +8,16 @@
 
 occuFP <- function(detformula = ~ 1,FPformula = ~ 1,Bformula = ~ 1,stateformula = ~ 1, data, starts,
                  method = "BFGS", se = TRUE, engine = "R", ...) {
-    check_no_support(list(detformula,FPformula,Bformula,stateformula))
+
 
     if(!is(data, "unmarkedFrameOccuFP"))   stop("Data is not an unmarkedFrameOccuFP object.")
 
     type <- data@type
     if(sum(type[2:3])==0)   stop("Only type 1 data. No data types with false positives. Use occu instead.")
 
-    dm <- getDesign(data, detformula,FPformula,Bformula,stateformula)
+    formulas <- list(det = detformula, fp = FPformula, b = Bformula, state = stateformula)
+    check_no_support(formulas)
+    dm <- getDesign(data, formulas)
     y <- dm$y
     if(any(type[1:2]>0)) if(any(y[,1:sum(type[1:2])]>1,na.rm = TRUE))   stop("Values of y for type 1 and type 2 data must be 0 or 1.")
     if(type[3]>0) if(any(y[,1:sum(type[3])]>2,na.rm = TRUE))   stop("Values of y for type 3 data must be 0, 1, or 2.")
@@ -110,6 +112,7 @@ occuFP <- function(detformula = ~ 1,FPformula = ~ 1,Bformula = ~ 1,stateformula 
 
     umfit <- new("unmarkedFitOccuFP", fitType = "occuFP", call = match.call(),
                  detformula = detformula,FPformula = FPformula,Bformula = Bformula,
+                 formlist = formulas,
                  stateformula = stateformula, formula = ~1, type = type, data = data,
                  sitesRemoved = dm$removed.sites,
                  estimates = estimateList, AIC = fmAIC, opt = fm,

@@ -343,16 +343,10 @@ setMethod("get_orig_data", "unmarkedFitColExt", function(object, type, ...){
 
 setMethod("predict_inputs_from_umf", "unmarkedFitOccuFP",
   function(object, type, newdata, na.rm, re.form=NA){
-  designMats <- getDesign(newdata, object@detformula, object@FPformula,
-                          object@Bformula, object@stateformula, na.rm=na.rm)
+  designMats <- getDesign(newdata, object@formlist, na.rm=na.rm)
   X_idx <- switch(type, state="X_state", det="X_det", fp="X_fp", b="X_b")
   off_idx <- paste0("offset_", type)
   list(X=designMats[[X_idx]], offset=designMats[[off_idx]])
-})
-
-setMethod("get_formula", "unmarkedFitOccuFP", function(object, type, ...){
-  switch(type, state=object@stateformula, det=object@detformula,
-         b=object@Bformula, fp=object@FPformula)
 })
 
 setMethod("get_orig_data", "unmarkedFitOccuFP", function(object, type, ...){
@@ -500,12 +494,6 @@ setMethod("predict_inputs_from_umf", "unmarkedFitGDR",
   X <- designMats[[list_els[1]]]
   if(is.null(re.form)) X <- cbind(X, designMats[[list_els[2]]])
   list(X=X, offset=NULL)
-})
-
-setMethod("get_formula", "unmarkedFitGDR", function(object, type, ...){
-  fl <- object@formlist
-  switch(type, lambda=fl$lambdaformula, phi=fl$phiformula,
-         dist=fl$distanceformula, rem=fl$removalformula)
 })
 
 setMethod("get_orig_data", "unmarkedFitGDR", function(object, type, ...){

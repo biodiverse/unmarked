@@ -15,11 +15,6 @@ setMethod("fl_getY", "unmarkedFitOccuMS", function(fit, ...){
             fit@detformulas, fit@parameterization)$y
 })
 
-setMethod("fl_getY", "unmarkedFitOccuFP", function(fit, ...){
-  getDesign(getData(fit), fit@detformula, fit@FPformula,
-            fit@Bformula, fit@stateformula)$y
-})
-
 # constructor of unmarkedFitList objects
 fitList <- function(..., fits, autoNames=c("object","formula")) {
   autoNames <- match.arg(autoNames)
