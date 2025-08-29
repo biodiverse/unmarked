@@ -7,8 +7,10 @@ multinomPois <- function(formula, data, starts, method = "BFGS",
     if(!is(data, "unmarkedFrameMPois"))
 		    stop("Data is not a data frame or unmarkedFrame.")
     engine <- match.arg(engine, c("C", "R", "TMB"))
-    if(any(sapply(split_formula(formula), has_random))) engine <- "TMB"
-    dm <- getDesign(data, formula)
+    formulas <- split_formula(formula)
+    names(formulas) <- c("det", "state")
+    if(any(sapply(formulas, has_random))) engine <- "TMB"
+    dm <- getDesign(data, formulas)
     y <- dm$y
 
     J <- ncol(y)
@@ -77,9 +79,8 @@ multinomPois <- function(formula, data, starts, method = "BFGS",
 
     } else if(engine == "TMB"){
 
-      forms <- split_formula(formula)
       obs_all <- add_covariates(obsCovs(data), siteCovs(data), numSites(data)*obsNum(data))
-      inps <- get_ranef_inputs(forms, list(det=obs_all, state=siteCovs(data)),
+      inps <- get_ranef_inputs(formulas, list(det=obs_all, state=siteCovs(data)),
                                list(dm$X_det, dm$X_state), dm[c("Z_det","Z_state")])
 
       if(!piFun%in%c('doublePiFun','removalPiFun','depDoublePiFun')){
@@ -104,8 +105,8 @@ multinomPois <- function(formula, data, starts, method = "BFGS",
       det_coef <- get_coef_info(tmb_out$sdr, "det", detParms, pIdx)
 
       # Organize random-effect estimates from TMB output
-      state_rand_info <- get_randvar_info(tmb_out$sdr, "state", forms[[2]], siteCovs(data))
-      det_rand_info <- get_randvar_info(tmb_out$sdr, "det", forms[[1]], obs_all)
+      state_rand_info <- get_randvar_info(tmb_out$sdr, "state", formulas$state, siteCovs(data))
+      det_rand_info <- get_randvar_info(tmb_out$sdr, "det", formulas$det, obs_all)
 
     }
 
@@ -123,7 +124,7 @@ multinomPois <- function(formula, data, starts, method = "BFGS",
         det=detEstimates))
 
     umfit <- new("unmarkedFitMPois", fitType = "multinomPois",
-        call = match.call(), formula = formula, data = data,
+        call = match.call(), formula = formula, formlist = formulas, data = data,
         estimates = estimateList, sitesRemoved = dm$removed.sites,
         AIC = fmAIC, opt = fm, negLogLike = fm$value, nllFun = nll, TMB=tmb_mod)
 

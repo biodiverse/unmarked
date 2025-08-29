@@ -21,14 +21,9 @@ survey <- data@survey
 unitsIn <- data@unitsIn
 mixture <- match.arg(mixture)
 
-formlist <- list(lambdaformula = lambdaformula, phiformula = phiformula,
-    pformula = pformula)
-check_no_support(formlist)
-form <- as.formula(paste(unlist(formlist), collapse=" "))
-D <- getDesign(data, formula = form)
-X_lambda <- D$X_state
-offset_lambda <- D$offset_state
-
+formulas <- list(lambda = lambdaformula, phi = phiformula, det = pformula)
+check_no_support(formulas)
+D <- getDesign(data, formulas)
 y <- D$y  # MxJT
 
 M <- nrow(y)
@@ -82,7 +77,7 @@ switch(unitsOut,
     kmsq = A <- A)
 
 
-lamPars <- colnames(X_lambda)
+lamPars <- colnames(D$X_lambda)
 if(T==1) {
     phiPars <- character(0)
     nPP <- 0
@@ -118,7 +113,7 @@ if(identical(mixture, "NB")) {
     nbPar <- character(0)
 }
 
-nLP <- ncol(X_lambda)
+nLP <- ncol(D$X_lambda)
 nP  <- nLP + nPP + nDP + nSP + nOP
 
 cp <- array(as.numeric(NA), c(M, T, J+1))
@@ -149,7 +144,7 @@ halfnorm = {
         }
 
     nll_R <- function(pars) {
-        lambda <- exp(X_lambda %*% pars[1:nLP] + offset_lambda)
+        lambda <- exp(D$X_lambda %*% pars[1:nLP] + D$offset_lambda)
         if(identical(output, "density"))
             lambda <- lambda * A
 
@@ -219,7 +214,7 @@ exp = {
         }
 
     nll_R <- function(pars) {
-        lambda <- exp(X_lambda %*% pars[1:nLP] + offset_lambda)
+        lambda <- exp(D$X_lambda %*% pars[1:nLP] + D$offset_lambda)
         if(identical(output, "density"))
             lambda <- lambda * A
         if(T==1)
@@ -287,7 +282,7 @@ hazard = {
         starts <- rep(0, nP)
         }
     nll_R <- function(pars) {
-        lambda <- exp(X_lambda %*% pars[1:nLP] + offset_lambda)
+        lambda <- exp(D$X_lambda %*% pars[1:nLP] + D$offset_lambda)
         if(identical(output, "density"))
             lambda <- lambda * A
 
@@ -356,7 +351,7 @@ uniform = {
         starts <- rep(0, nP)
         }
     nll_R <- function(pars) {
-        lambda <- exp(X_lambda %*% pars[1:nLP] + offset_lambda)
+        lambda <- exp(D$X_lambda %*% pars[1:nLP] + D$offset_lambda)
         if(identical(output, "density"))
             lambda <- lambda * A
         if(T==1)
@@ -410,7 +405,7 @@ if(engine =="C"){
 
   nll <- function(params){
     nll_gdistsamp(params, n_param, y_long, mixture_code, keyfun, survey,
-                  X_lambda, offset_lambda, A, D$X_phi, D$offset_phi, D$X_det, D$offset_det,
+                  D$X_lambda, D$offset_lambda, A, D$X_phi, D$offset_phi, D$X_det, D$offset_det,
                   db, a, t(u), w, k, lfac.k, lfac.kmytC, kmytC, Kmin, threads)
   }
 
@@ -467,7 +462,7 @@ if(identical(mixture,"ZIP")) {
 }
 
 umfit <- new("unmarkedFitGDS", fitType = "gdistsamp",
-    call = match.call(), formula = form, formlist = formlist,
+    call = match.call(), formlist = formulas,
     data = data, estimates = estimateList, sitesRemoved = D$removed.sites,
     AIC = fmAIC, opt = fm, negLogLike = fm$value, nllFun = nll,
     mixture=mixture, K=K, keyfun=keyfun, unitsOut=unitsOut, output=output)

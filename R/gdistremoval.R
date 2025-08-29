@@ -65,8 +65,9 @@ gdistremoval <- function(lambdaformula=~1, phiformula=~1, removalformula=~1,
   mixture <- match.arg(mixture)
   engine <- match.arg(engine)
 
-  formlist <- mget(c("lambdaformula", "phiformula", "distanceformula", "removalformula"))
-  if(any(sapply(formlist, has_random))) engine <- "TMB"
+  formulas <- list(lambda = lambdaformula, phi = phiformula, dist = distanceformula,
+                   rem = removalformula)
+  if(any(sapply(formulas, has_random))) engine <- "TMB"
 
   M <- numSites(data)
   T <- data@numPrimary
@@ -74,7 +75,7 @@ gdistremoval <- function(lambdaformula=~1, phiformula=~1, removalformula=~1,
   Rrem <- ncol(data@yRemoval)
   mixture_code <- switch(mixture, P={1}, NB={2}, ZIP={3})
 
-  gd <- getDesign(data, formlist)
+  gd <- getDesign(data, formulas)
 
   Jdist <- Rdist / T
   ysum <- array(t(gd$yDist), c(Jdist, T, M))
@@ -174,7 +175,7 @@ gdistremoval <- function(lambdaformula=~1, phiformula=~1, removalformula=~1,
 
     dlist <- list(lambda=siteCovs(data), phi=yearlySiteCovs(data),
                   dist=siteCovs(data), rem=obsCovs(data))
-    inps <- get_ranef_inputs(formlist, dlist,
+    inps <- get_ranef_inputs(formulas, dlist,
                              gd[c("X_lambda","X_phi","X_dist","X_rem")],
                              gd[c("Z_lambda","Z_phi","Z_dist","Z_rem")])
 
@@ -264,8 +265,8 @@ gdistremoval <- function(lambdaformula=~1, phiformula=~1, removalformula=~1,
       randomVarInfo=rem_rand_info)
 
   new("unmarkedFitGDR", fitType = "gdistremoval",
-    call = match.call(), formula = as.formula(paste(formlist, collapse="")),
-    formlist = formlist, data = data, estimates = estimateList, sitesRemoved = numeric(0),
+    call = match.call(), formlist = formulas, data = data, 
+    estimates = estimateList, sitesRemoved = numeric(0),
     AIC = fmAIC, opt = opt, negLogLike = opt$value, nllFun = nll,
     mixture=mixture, K=K, keyfun=keyfun, unitsOut=unitsOut, output=output, TMB=tmb_mod)
 
@@ -572,10 +573,10 @@ setMethod("y_to_zeros", "unmarkedFrameGDR", function(object, ...){
 setMethod("rebuild_call", "unmarkedFitGDR", function(object){           
   cl <- object@call
   cl[["data"]] <- quote(object@data)
-  cl[["lambdaformula"]] <- object@formlist$lambdaformula
-  cl[["phiformula"]] <- object@formlist$phiformula
-  cl[["removalformula"]] <- object@formlist$removalformula
-  cl[["distanceformula"]] <- object@formlist$distanceformula
+  cl[["lambdaformula"]] <- object@formlist$lambda
+  cl[["phiformula"]] <- object@formlist$phi
+  cl[["removalformula"]] <- object@formlist$rem
+  cl[["distanceformula"]] <- object@formlist$dist
   cl[["mixture"]] <- object@mixture
   cl[["K"]] <- object@K
   cl[["keyfun"]] <- object@keyfun

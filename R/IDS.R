@@ -96,13 +96,19 @@ IDS <- function(lambdaformula = ~1,
   # Design matrices------------------------------------------------------------
 
   # Need to add offset support here eventually
-  gd_hds <- getDesign(dataDS, form_hds)
+  form_hds_split <- split_formula(form_hds)
+  names(form_hds_split) <- c("det", "state")
+  gd_hds <- getDesign(dataDS, form_hds_split)
   if(any(is.na(gd_hds$y))){
     stop("Missing values in only some distance bins is not supported", call.=FALSE)
   } 
   ds_hds <- get_ds_info(dataDS@dist.breaks)
   Xavail_ds <- matrix(0,0,0)
-  if(has_avail) Xavail_ds <- getDesign(dataDS, form_avail)$X_state
+  if(has_avail){
+    form_avail_split <- split_formula(form_avail)
+    names(form_avail_split) <- c("det", "state")
+    Xavail_ds <- getDesign(dataDS, form_avail_split)$X_state
+  }
   if(is.null(durationDS)) durationDS <- rep(0,0)
 
   gd_pc <- list(y=matrix(0,0,0), X_state=matrix(0,0,0), X_det=matrix(0,0,0))
@@ -110,9 +116,11 @@ IDS <- function(lambdaformula = ~1,
   Xavail_pc <- matrix(0,0,0)
   if(is.null(durationPC)) durationPC <- rep(0,0)
   if(!is.null(dataPC)){
-    gd_pc <- getDesign(dataPC, form_pc)
+    form_pc_split <- split_formula(form_pc)
+    names(form_pc_split) <- c("det", "state")
+    gd_pc <- getDesign(dataPC, form_pc_split)
     ds_pc <- get_ds_info(c(0, maxDistPC))
-    if(has_avail) Xavail_pc <- getDesign(dataPC, form_avail)$X_state
+    if(has_avail) Xavail_pc <- getDesign(dataPC, form_avail_split)$X_state
   }
 
   gd_oc <- list(y=matrix(0,0,0), X_state=matrix(0,0,0), X_det=matrix(0,0,0))
@@ -121,10 +129,12 @@ IDS <- function(lambdaformula = ~1,
   Xavail_oc <- matrix(0,0,0)
   if(is.null(durationOC)) durationOC <- rep(0,0)
   if(!is.null(dataOC)){
-    gd_oc <- getDesign(dataOC, form_oc)
+    form_oc_split <- split_formula(form_pc)
+    names(form_oc_split) <- c("det", "state")
+    gd_oc <- getDesign(dataOC, form_oc_split)
     ds_oc <- get_ds_info(c(0, maxDistOC))
     Kmin_oc <- apply(gd_oc$y, 1, max, na.rm=T)
-    if(has_avail) Xavail_oc <- getDesign(dataOC, form_avail)$X_state
+    if(has_avail) Xavail_oc <- getDesign(dataOC, form_avail_split)$X_state
   }
 
   # Density conversion and unequal area correction
@@ -322,7 +332,7 @@ IDS <- function(lambdaformula = ~1,
   est_list <- unmarkedEstimateList(est_list)
 
   new("unmarkedFitIDS", fitType = "IDS", call = match.call(),
-    opt = opt, formula = lambdaformula, formlist=formlist,
+    opt = opt, formlist=formlist,
     data = dataDS, dataPC=dataPC, dataOC=dataOC, K=K,
     surveyDurations=surveyDurations,
     maxDist = list(pc=maxDistPC, oc=maxDistOC),
@@ -400,8 +410,10 @@ IDS_convert_class <- function(inp, type, ds_type=NULL){
 
   form <- inp@formlist[[type]]
   if(type=="phi") form <- as.formula(paste(c(as.character(form), "~1"), collapse=""))
+  formlist <- split_formula(form)
+  names(formlist) <- c("det", "state")
 
-  new("unmarkedFitDS", fitType="IDS", opt=inp@opt, formula=form,
+  new("unmarkedFitDS", fitType="IDS", opt=inp@opt, formula=form, formlist=formlist,
       data=data, keyfun=inp@keyfun, unitsOut=inp@unitsOut,
       estimates=unmarkedEstimateList(est),
       AIC=inp@AIC, output="density", TMB=inp@TMB)

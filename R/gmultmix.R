@@ -11,13 +11,9 @@ engine <- match.arg(engine, c("C", "R"))
 
 mixture <- match.arg(mixture)
 
-formlist <- list(lambdaformula = lambdaformula, phiformula = phiformula,
-    pformula = pformula)
-check_no_support(formlist)
-form <- as.formula(paste(unlist(formlist), collapse=" "))
-D <- getDesign(data, formula = form)
-X_lambda <- D$X_state
-offset_lambda <- D$offset_state
+formulas <- list(lambda = lambdaformula, phi = phiformula, det = pformula)
+check_no_support(formulas)
+D <- getDesign(data, formulas)
 y <- D$y  # MxJT
 
 K <- check_K_multinomial(K, K_adjust = 100, y, data@numPrimary)
@@ -39,9 +35,9 @@ yt <- apply(y, 1:2, function(x) {
 
 piFun <- data@piFun
 
-lamPars <- colnames(X_lambda)
+lamPars <- colnames(D$X_lambda)
 detPars <- colnames(D$X_det)
-nLP <- ncol(X_lambda)
+nLP <- ncol(D$X_lambda)
 if(T==1) {
     nPP <- 0
     phiPars <- character(0)
@@ -72,7 +68,7 @@ for(i in 1:M) {
     }
 
 nll_R <- function(pars) {
-    lambda <- exp(X_lambda %*% pars[1:nLP] + offset_lambda)
+    lambda <- exp(D$X_lambda %*% pars[1:nLP] + D$offset_lambda)
     if(T==1)
         phi <- 1
     else if(T>1)
@@ -134,7 +130,7 @@ if(engine=="R"){
   Kmin <- apply(yt, 1, max, na.rm=TRUE)
 
   nll <- function(params) {
-    nll_gmultmix(params, n_param, y_long, mixture_code, piFun, X_lambda, offset_lambda,
+    nll_gmultmix(params, n_param, y_long, mixture_code, piFun, D$X_lambda, D$offset_lambda,
                  D$X_phi, D$offset_phi, D$X_det, D$offset_det, k, lfac.k, lfac.kmytC,
                  kmytC, Kmin, threads)
   }
@@ -194,7 +190,7 @@ if(identical(mixture,"ZIP")) {
 }
 
 umfit <- new("unmarkedFitGMM", fitType = "gmn",
-    call = match.call(), formula = form, formlist = formlist,
+    call = match.call(), formlist = formulas,
     data = data, estimates = estimateList, sitesRemoved = D$removed.sites,
     AIC = fmAIC, opt = fm, negLogLike = fm$value, nllFun = nll,
     mixture=mixture, K=K)

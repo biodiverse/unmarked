@@ -134,7 +134,7 @@ occuMulti <- function(detformulas, stateformulas,  data, maxOrder,
 
   umfit <- new("unmarkedFitOccuMulti", fitType = "occuMulti", call = cl,
                 detformulas = detformulas, stateformulas = stateformulas,
-                formula = ~1, data = data,
+                data = data,
                 #sitesRemoved = designMats$removed.sites,
                 estimates = estimateList, AIC = fmAIC, opt = fm,
                 negLogLike = fm$value, nllFun = nll_R)

@@ -9,13 +9,10 @@ if(!is(data, "unmarkedFrameGPC"))
 mixture <- match.arg(mixture)
 engine <- match.arg(engine)
 
-formlist <- list(lambdaformula = lambdaformula, phiformula = phiformula,
-    pformula = pformula)
-check_no_support(formlist)
-form <- as.formula(paste(unlist(formlist), collapse=" "))
-D <- getDesign(data, formula = form)
-X_lambda <- D$X_state
-offset_lambda <- D$offset_state
+formulas <- list(lambda = lambdaformula, phi = phiformula, det = pformula)
+check_no_support(formulas)
+
+D <- getDesign(data, formulas)
 ym <- D$y  # MxJT
 
 if(missing(K) || is.null(K)) {
@@ -32,9 +29,9 @@ J <- numY(data) / T
 
 y <- array(ym, c(I, J, T))
 
-lamPars <- colnames(X_lambda)
+lamPars <- colnames(D$X_lambda)
 detPars <- colnames(D$X_det)
-nLP <- ncol(X_lambda)
+nLP <- ncol(D$X_lambda)
 nPP <- ncol(D$X_phi)
 phiPars <- colnames(D$X_phi)
 nDP <- ncol(D$X_det)
@@ -45,7 +42,7 @@ if(!missing(starts) && length(starts) != nP)
 if(identical(engine, "R")) {
 # Minus negative log-likelihood
 nll <- function(pars) {
-    lam <- exp(X_lambda %*% pars[1:nLP] + offset_lambda)
+    lam <- exp(D$X_lambda %*% pars[1:nLP] + D$offset_lambda)
     phi <- plogis(D$X_phi %*% pars[(nLP+1):(nLP+nPP)] + D$offset_phi)
     phi <- matrix(phi, I, T, byrow=TRUE)
     p <- plogis(D$X_det %*% pars[(nLP+nPP+1):(nLP+nPP+nDP)] + D$offset_det)
@@ -96,8 +93,8 @@ if(identical(engine, "C")) {
         log.alpha <- 1
         if(mixture %in% c("NB", "ZIP"))
             log.alpha <- pars[nP]
-        nll_gpcount(ym, X_lambda, D$X_phi, D$X_det, beta_lambda, beta_phi, beta_det,
-                    log.alpha, offset_lambda, D$offset_phi, D$offset_det,
+        nll_gpcount(ym, D$X_lambda, D$X_phi, D$X_det, beta_lambda, beta_phi, beta_det,
+                    log.alpha, D$offset_lambda, D$offset_phi, D$offset_det,
                     as.integer(K), mixture, T, threads)
     }
 }
@@ -147,7 +144,7 @@ if(identical(mixture,"ZIP")) {
 }
 
 umfit <- new("unmarkedFitGPC", fitType = "gpcount",
-    call = match.call(), formula = form, formlist = formlist,
+    call = match.call(), formlist = formulas,
     data = data, estimates = estimateList, sitesRemoved = D$removed.sites,
     AIC = fmAIC, opt = fm, negLogLike = fm$value, nllFun = nll,
     mixture=mixture, K=K)

@@ -1,7 +1,7 @@
 #Get y (corrected for missing values) based on data and formulas
 #Approach for some fit functions is different, so this is now a method
 setMethod("fl_getY", "unmarkedFit", function(fit, ...){
-  getDesign(getData(fit), fit@formula)$y
+  getDesign(getData(fit), fit@formlist)$y
 })
 
 setMethod("fl_getY", "unmarkedFitOccuMulti", function(fit, ...){
@@ -13,11 +13,6 @@ setMethod("fl_getY", "unmarkedFitOccuMulti", function(fit, ...){
 setMethod("fl_getY", "unmarkedFitOccuMS", function(fit, ...){
   getDesign(getData(fit), fit@psiformulas, fit@phiformulas,
             fit@detformulas, fit@parameterization)$y
-})
-
-setMethod("fl_getY", "unmarkedFitOccuFP", function(fit, ...){
-  getDesign(getData(fit), fit@detformula, fit@FPformula,
-            fit@Bformula, fit@stateformula)$y
 })
 
 # constructor of unmarkedFitList objects
@@ -220,9 +215,7 @@ setMethod("modSel", "unmarkedFitList",
     colnames(out) <- cNames
     out$model <- names(fits)
     out$formula <- sapply(fits, function(x) {
-          f <- as.character(x@formula)
-          f <- paste(f[2], "~", f[3])
-          f
+          paste(unlist(x@formlist), collapse = " ")
         })
     for(i in 1:length(eNames)) {
         out[,eNames[i]] <- sapply(estList, function(x) x[eNames[i]])

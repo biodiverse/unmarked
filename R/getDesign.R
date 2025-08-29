@@ -5,28 +5,24 @@
 # generic method for unmarkedFrame
 # used by distsamp, multinomPois, occu, occuPEN, occuRN, pcount, pcount.spHDS, IDS
 setMethod("getDesign", "unmarkedFrame", 
-  function(umf, formula, na.rm = TRUE, ...){
+  function(umf, formulas, na.rm = TRUE, ...){
 
   M <- numSites(umf)
   J <- obsNum(umf)
   y <- getY(umf)
 
-  formulas <- split_formula(formula)
-  stateformula <- formulas[[2]]
-  detformula <- formulas[[1]]
-
   # Process covariates
   covs <- clean_up_covs(umf)
   
   # Model matrices and offset for state submodel
-  X_state <- get_model_matrix(stateformula, covs$site_covs)
-  offset_state <- get_offset(stateformula, covs$site_covs)
-  Z_state <- get_Z(stateformula, covs$site_covs)
+  X_state <- get_model_matrix(formulas$state, covs$site_covs)
+  offset_state <- get_offset(formulas$state, covs$site_covs)
+  Z_state <- get_Z(formulas$state, covs$site_covs)
 
   # Model matrices and offset for detection submodel
-  X_det <- get_model_matrix(detformula, covs$obs_covs)
-  offset_det <- get_offset(detformula, covs$obs_covs)
-  Z_det <- get_Z(detformula, covs$obs_covs)
+  X_det <- get_model_matrix(formulas$det, covs$obs_covs)
+  offset_det <- get_offset(formulas$det, covs$obs_covs)
+  Z_det <- get_Z(formulas$det, covs$obs_covs)
 
   # Identify missing values in state covs
   has_na_site <- row_has_na(cbind(X_state, Z_state))
@@ -37,7 +33,7 @@ setMethod("getDesign", "unmarkedFrame",
   has_na_obs <- matrix(has_na_obs, M, J, byrow=TRUE)
   # Multiplying by obsToY handles models where the number of estimated parameters
   # is not the same as the number of observations, such as double-observer models
-  has_na_obs <- has_na_obs %*% umf@obsToY > 0
+  has_na_obs <- has_na_obs %*% obsToY(umf) > 0
 
   # Combine missing value information
   has_na <- has_na_site | has_na_obs
@@ -70,17 +66,13 @@ setMethod("getDesign", "unmarkedFrame",
 # UnmarkedMultFrame
 # used by colext, occuTTD, nmixTTD and base class for G3 and DailMadsen
 setMethod("getDesign", "unmarkedMultFrame",
-  function(umf, formula, na.rm = TRUE){
+  function(umf, formulas, na.rm = TRUE){
 
-  stateformula <- as.formula(formula[[2]][[2]][[2]])  
-  gamformula <- as.formula(as.call(list(as.name("~"), formula[[2]][[2]][[3]])))
-  epsformula <- as.formula(as.call(list(as.name("~"), formula[[2]][[3]])))
-  detformula <- as.formula(as.call(list(as.name("~"), formula[[3]])))
- 
-  # Process state and detection with generic umf method  
-  comb_form <- list(as.name("~"), detformula, stateformula[[2]])
-  comb_form <- as.formula(as.call(comb_form))
-  out <- methods::callNextMethod(umf, formula = comb_form, na.rm = FALSE)
+  # Handle varying name of state variable in models that use this method
+  state_type <- names(formulas)[1]
+  # Process state and detection with generic umf method
+  names(formulas)[1] <- "state"
+  out <- methods::callNextMethod(umf, formulas = formulas, na.rm = FALSE)
  
   M <- numSites(umf)
   R <- obsNum(umf)
@@ -95,12 +87,12 @@ setMethod("getDesign", "unmarkedMultFrame",
   covs <- clean_up_covs(umf, drop_final = TRUE)
 
   # Model matrix for colonization
-  X_col <- get_model_matrix(gamformula, covs$yearly_site_covs)
-  offset_col <- get_offset(gamformula, covs$yearly_site_covs)
+  X_col <- get_model_matrix(formulas$col, covs$yearly_site_covs)
+  offset_col <- get_offset(formulas$col, covs$yearly_site_covs)
 
   # Model matrix for extinction
-  X_ext <- get_model_matrix(epsformula, covs$yearly_site_covs)
-  offset_ext <- get_offset(epsformula, covs$yearly_site_covs)
+  X_ext <- get_model_matrix(formulas$ext, covs$yearly_site_covs)
+  offset_ext <- get_offset(formulas$ext, covs$yearly_site_covs)
 
   # Error if any offsets specified
   if(any(c(offset_col, offset_ext, out$X.offset, out$V.offset) != 0)){
@@ -132,25 +124,26 @@ setMethod("getDesign", "unmarkedMultFrame",
   }
 
   # Combine outputs
-  list(y = y, X_state = out$X_state, X_col = X_col, X_ext = X_ext, X_det = out$X_det,
-       removed.sites = which(drop_sites))
+  out <- list(y = y, X_state = out$X_state, X_col = X_col, X_ext = X_ext, X_det = out$X_det,
+              removed.sites = which(drop_sites))
+  # Rename design matrix for state variable to correct type
+  names(out)[names(out) == "X_state"] <- paste0("X_", state_type)
+  out
 })
 
 
 # unmarkedFrameG3 (gpcount, gmultmix, gdistsamp, goccu)
 setMethod("getDesign", "unmarkedFrameG3",
-  function(umf, formula, na.rm = TRUE){
+  function(umf, formulas, na.rm = TRUE){
 
-  stateformula <- as.formula(formula[[2]][[2]])  
-  phiformula <- as.formula(as.call(list(as.name("~"), formula[[2]][[3]])))
-  detformula <- as.formula(as.call(list(as.name("~"), formula[[3]])))
- 
+  # Handle varying name of state variable in models that use this method
+  state_type <- names(formulas)[1]
+  
   # Process state and detection with generic umf method  
-  comb_form <- list(as.name("~"), detformula, stateformula[[2]])
-  comb_form <- as.formula(as.call(comb_form))
   # Have to use getMethod because this inherits from unmarkedMultFrame
+  names(formulas)[1] <- "state"
   getDesign_generic <- methods::getMethod("getDesign", "unmarkedFrame")
-  out <- getDesign_generic(umf, formula = comb_form, na.rm = FALSE)
+  out <- getDesign_generic(umf, formulas = formulas, na.rm = FALSE)
  
   M <- numSites(umf)
   R <- obsNum(umf)
@@ -163,8 +156,8 @@ setMethod("getDesign", "unmarkedFrameG3",
   covs <- clean_up_covs(umf)
 
   # Model matrix for availability
-  X_phi <- get_model_matrix(phiformula, covs$yearly_site_covs)
-  offset_phi <- get_offset(phiformula, covs$yearly_site_covs)
+  X_phi <- get_model_matrix(formulas$phi, covs$yearly_site_covs)
+  offset_phi <- get_offset(formulas$phi, covs$yearly_site_covs)
 
   # Check missing values in availability
   has_na <- row_has_na(X_phi)
@@ -190,22 +183,20 @@ setMethod("getDesign", "unmarkedFrameG3",
   }
 
   # Combine outputs
-  list(y = y, X_state = out$X_state, offset_state = out$offset_state,
-       X_phi = X_phi, offset_phi = offset_phi,
-       X_det = out$X_det, offset_det = out$offset_det,
-       removed.sites = which(drop_sites))
+  out <- list(y = y, X_state = out$X_state, offset_state = out$offset_state,
+              X_phi = X_phi, offset_phi = offset_phi,
+              X_det = out$X_det, offset_det = out$offset_det,
+              removed.sites = which(drop_sites))
+  # Rename design matrix and offset for state variable to correct type
+  names(out)[names(out) == "X_state"] <- paste0("X_", state_type)
+  names(out)[names(out) == "offset_state"] <- paste0("offset_", state_type)
+  out
 })
 
 
 # unmarkedFrameDailMadsen (pcountOpen, multmixOpen, distsampOpen)
 setMethod("getDesign", "unmarkedFrameDailMadsen",
-  function(umf, formula, na.rm = TRUE){
-
-  lamformula <- as.formula(formula[[2]][[2]][[2]][[2]])  
-  gamformula <- as.formula(as.call(list(as.name("~"), formula[[2]][[2]][[2]][[3]])))
-  omformula <- as.formula(as.call(list(as.name("~"), formula[[2]][[2]][[3]])))
-  pformula <- as.formula(as.call(list(as.name("~"), formula[[2]][[3]])))
-  iotaformula <- as.formula(as.call(list(as.name("~"), formula[[3]])))
+  function(umf, formulas, na.rm = TRUE){
 
   M <- numSites(umf)
   T <- umf@numPrimary
@@ -219,22 +210,22 @@ setMethod("getDesign", "unmarkedFrameDailMadsen",
   covs <- clean_up_covs(umf, drop_final = TRUE)
 
   # Model matrix for abundance
-  X_lambda <- get_model_matrix(lamformula, covs$site_covs)
-  offset_lambda <- get_offset(lamformula, covs$site_covs)
+  X_lambda <- get_model_matrix(formulas$lambda, covs$site_covs)
+  offset_lambda <- get_offset(formulas$lambda, covs$site_covs)
 
   # Transition probs
   # Drop last period of transition prob design matrices
   # NOTE: this is done outside getDesign for colext
   drop_periods <- rep(1:T, M) == T
   ysc_drop <- covs$yearly_site_covs[!drop_periods,,drop=FALSE]
-  X_gamma <- get_model_matrix(gamformula, ysc_drop)
-  offset_gamma <- get_offset(gamformula, ysc_drop)
+  X_gamma <- get_model_matrix(formulas$gamma, ysc_drop)
+  offset_gamma <- get_offset(formulas$gamma, ysc_drop)
 
-  X_omega <- get_model_matrix(omformula, ysc_drop)
-  offset_omega <- get_offset(omformula, ysc_drop)
+  X_omega <- get_model_matrix(formulas$omega, ysc_drop)
+  offset_omega <- get_offset(formulas$omega, ysc_drop)
 
-  X_iota <- get_model_matrix(iotaformula, ysc_drop)
-  offset_iota <- get_offset(iotaformula, ysc_drop)
+  X_iota <- get_model_matrix(formulas$iota, ysc_drop)
+  offset_iota <- get_offset(formulas$iota, ysc_drop)
 
   # Detection, which differs by model type
   det_covs <- covs$obs_covs
@@ -244,8 +235,8 @@ setMethod("getDesign", "unmarkedFrameDailMadsen",
     covs_dso <- clean_up_covs(umf, drop_final = FALSE)
     det_covs <- covs_dso$yearly_site_covs
   }
-  X_det <-  get_model_matrix(pformula, det_covs)
-  offset_det <- get_offset(pformula, det_covs)
+  X_det <-  get_model_matrix(formulas$det, det_covs)
+  offset_det <- get_offset(formulas$det, det_covs)
 
   # Identify missing values in lambda covs
   has_na_site <- row_has_na(X_lambda)
@@ -343,8 +334,8 @@ setMethod("getDesign", "unmarkedFrameDailMadsen",
     } else
       return("matrix")
   }
-  if(length(all.vars(gamformula)) == 0 & length(all.vars(omformula)) == 0 & 
-     length(all.vars(iotaformula)) == 0){
+  if(length(all.vars(formulas$gamma)) == 0 & length(all.vars(formulas$omega)) == 0 & 
+     length(all.vars(formulas$iota)) == 0){
     go.dims <- "scalar"
   } else {
     go.dims.vec <- apply(Xgo, 2, getGOdims)
@@ -402,7 +393,7 @@ formatDelta <- function(d, yna)
 
 # gdistremoval
 setMethod("getDesign", "unmarkedFrameGDR",
-  function(umf, formula, na.rm=TRUE, return.frames=FALSE){
+  function(umf, formulas, na.rm=TRUE){
 
   M <- numSites(umf)
   T <- umf@numPrimary
@@ -424,28 +415,26 @@ setMethod("getDesign", "unmarkedFrameGDR",
   ysc <- cbind(ysc, sc[rep(1:M, each=T),,drop=FALSE])
   oc <- cbind(oc, ysc[rep(1:nrow(ysc), each=Jrem),,drop=FALSE])
 
-  if(return.frames) return(list(sc=sc, ysc=ysc, oc=oc))
-
-  lam_fixed <- reformulas::nobars(formula$lambdaformula)
+  lam_fixed <- reformulas::nobars(formulas$lambda)
   X_lambda <- model.matrix(lam_fixed,
             model.frame(lam_fixed, sc, na.action=NULL))
 
-  phi_fixed <- reformulas::nobars(formula$phiformula)
+  phi_fixed <- reformulas::nobars(formulas$phi)
   X_phi<- model.matrix(phi_fixed,
             model.frame(phi_fixed, ysc, na.action=NULL))
 
-  dist_fixed <- reformulas::nobars(formula$distanceformula)
+  dist_fixed <- reformulas::nobars(formulas$dist)
   X_dist <- model.matrix(dist_fixed,
             model.frame(dist_fixed, ysc, na.action=NULL))
 
-  rem_fixed <- reformulas::nobars(formula$removalformula)
+  rem_fixed <- reformulas::nobars(formulas$rem)
   X_rem <- model.matrix(rem_fixed,
             model.frame(rem_fixed, oc, na.action=NULL))
 
-  Z_lambda <- get_Z(formula$lambdaformula, sc)
-  Z_phi <- get_Z(formula$phiformula, ysc)
-  Z_dist <- get_Z(formula$distanceformula, ysc)
-  Z_rem <- get_Z(formula$removalformula, oc)
+  Z_lambda <- get_Z(formulas$lambda, sc)
+  Z_phi <- get_Z(formulas$phi, ysc)
+  Z_dist <- get_Z(formulas$dist, ysc)
+  Z_rem <- get_Z(formulas$rem, oc)
  
   # Check if there are missing yearlySiteCovs
   ydist_mat <- apply(matrix(yDist, nrow=M*T, byrow=TRUE), 1, function(x) any(is.na(x)))
@@ -484,13 +473,10 @@ setMethod("getDesign", "unmarkedFrameGDR",
 # there are 3 observation formula which are stored in V (true positive detections),
 # U (false positive detections), and W (b or probability detetion is certain)
 setMethod("getDesign", "unmarkedFrameOccuFP",
-  function(umf, detformula, FPformula, Bformula, stateformula, na.rm = TRUE){
+  function(umf, formulas, na.rm = TRUE){
 
   # Process state and true detection with generic umf method
-  # Combine detection and state formulas
-  comb_form <- list(as.name("~"), detformula, stateformula[[2]])
-  comb_form <- as.formula(as.call(comb_form))
-  out <- methods::callNextMethod(umf, formula = comb_form, na.rm = FALSE)
+  out <- methods::callNextMethod(umf, formulas = formulas, na.rm = FALSE)
  
   M <- numSites(umf)
   J <- obsNum(umf)
@@ -500,12 +486,12 @@ setMethod("getDesign", "unmarkedFrameOccuFP",
   covs <- clean_up_covs(umf)
   
   # Model matrix and offset for false positives
-  X_fp <- get_model_matrix(FPformula, covs$obs_covs)
-  offset_fp <- get_offset(FPformula, covs$obs_covs)
+  X_fp <- get_model_matrix(formulas$fp, covs$obs_covs)
+  offset_fp <- get_offset(formulas$fp, covs$obs_covs)
 
   # Model matrices and offset for b (prob detection is certain)
-  X_b <- get_model_matrix(Bformula, covs$obs_covs)
-  offset_b <- get_offset(Bformula, covs$obs_covs)
+  X_b <- get_model_matrix(formulas$b, covs$obs_covs)
+  offset_b <- get_offset(formulas$b, covs$obs_covs)
 
   # Check missing values in FP and b
   has_na <- row_has_na(cbind(X_fp, X_b))

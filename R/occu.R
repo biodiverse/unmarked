@@ -10,7 +10,9 @@ occu <- function(formula, data, knownOcc = numeric(0),
     stop("Data is not an unmarkedFrameOccu object.")
 
   engine <- match.arg(engine, c("C", "R", "TMB"))
-  if(any(sapply(split_formula(formula), has_random))) engine <- "TMB"
+  formulas <- split_formula(formula)
+  names(formulas) <- c("det", "state")
+  if(any(sapply(formulas, has_random))) engine <- "TMB"
   if(length(knownOcc)>0 & engine == "TMB"){
     stop("TMB engine does not support knownOcc argument", call.=FALSE)
   }
@@ -21,7 +23,7 @@ occu <- function(formula, data, knownOcc = numeric(0),
   psiLinkGrad <- ifelse(linkPsi=="cloglog", "cloglog.grad", "logistic.grad")
 
   # Format input data----------------------------------------------------------
-  dm <- getDesign(data, formula)
+  dm <- getDesign(data, formulas)
   y <- truncateToBinary(dm$y)
 
   # Re-format some variables for C and R engines
@@ -95,9 +97,8 @@ occu <- function(formula, data, knownOcc = numeric(0),
   } else if(identical(engine, "TMB")){
 
     # Set up TMB input data
-    forms <- split_formula(formula)
     obs_all <- add_covariates(obsCovs(data), siteCovs(data), length(getY(data)))
-    inps <- get_ranef_inputs(forms, list(det=obs_all, state=siteCovs(data)),
+    inps <- get_ranef_inputs(formulas, list(det=obs_all, state=siteCovs(data)),
                              list(dm$X_det, dm$X_state), dm[c("Z_det","Z_state")])
 
     tmb_dat <- c(list(y=y, no_detect=nd, link=ifelse(linkPsi=="cloglog",1,0),
@@ -117,9 +118,9 @@ occu <- function(formula, data, knownOcc = numeric(0),
     det_coef <- get_coef_info(tmb_out$sdr, "det", detParms, (nOP+1):nP)
 
     # Organize random effect estimates
-    state_rand_info <- get_randvar_info(tmb_out$sdr, "state", forms[[2]],
+    state_rand_info <- get_randvar_info(tmb_out$sdr, "state", formulas$state,
                                         siteCovs(data))
-    det_rand_info <- get_randvar_info(tmb_out$sdr, "det", forms[[1]],
+    det_rand_info <- get_randvar_info(tmb_out$sdr, "det", formulas$det,
                                       obs_all)
 
     }
@@ -147,7 +148,7 @@ occu <- function(formula, data, knownOcc = numeric(0),
 
   # Create unmarkedFit object--------------------------------------------------
   umfit <- new("unmarkedFitOccu", fitType = "occu", call = match.call(),
-                 formula = formula, data = data,
+                 formula = formula, formlist = formulas, data = data,
                  sitesRemoved = dm$removed.sites,
                  estimates = estimateList, AIC = fmAIC, opt = fm,
                  negLogLike = fm$value,

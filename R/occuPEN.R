@@ -2,7 +2,9 @@
 computeMPLElambda = function(formula, data, knownOcc = numeric(0), starts, method = "BFGS", engine = c("C", "R")){
 
   engine <- match.arg(engine, c("C", "R"))
-  designMats <- getDesign(data, formula)
+  formulas <- split_formula(formula)
+  names(formulas) <- c("det", "state")
+  designMats <- getDesign(data, formulas)
   X_state <- designMats$X_state; X_det <- designMats$X_det; y <- designMats$y
   removed <- designMats$removed.sites
   y <- truncateToBinary(y)
@@ -48,7 +50,9 @@ occuPEN_CV <- function(formula, data, knownOcc = numeric(0), starts,
   if (length(lambdaVec)==1) stop("Must provide more than one lambda for cross-validation.")
 
   engine <- match.arg(engine, c("C", "R"))
-  designMats <- getDesign(data, formula)
+  formulas <- split_formula(formula)
+  names(formulas) <- c("det", "state")
+  designMats <- getDesign(data, formulas)
   X_state <- designMats$X_state; X_det <- designMats$X_det; y <- designMats$y
   y <- truncateToBinary(y)
   J <- ncol(y)
@@ -102,7 +106,7 @@ occuPEN_CV <- function(formula, data, knownOcc = numeric(0), starts,
     occuTrain = data[which(foldAssignments!=fold),] # train on NOT this fold
     occuTest = data[which(foldAssignments==fold),] # test on this fold
 
-    designMats <- getDesign(occuTest, formula)
+    designMats <- getDesign(occuTest, formulas)
     X_state <- designMats$X_state; X_det <- designMats$X_det; y <- designMats$y
     removed <- designMats$removed.sites
     offset_state <- designMats$offset_state; offset_det <- designMats$offset_det
@@ -146,7 +150,7 @@ occuPEN_CV <- function(formula, data, knownOcc = numeric(0), starts,
   occuOut = occuPEN(formula, data, starts=starts, lambda=bestLambda, pen.type=pen.type)
 
   umfit <- new("unmarkedFitOccuPEN_CV", fitType = "occu", call = match.call(),
-                 formula = formula, data = data,
+                 formula = formula, formlist = formulas, data = data,
                  sitesRemoved = designMats$removed.sites,
                  estimates = occuOut@estimates, AIC = occuOut@AIC,
 		 opt = occuOut@opt,
@@ -168,7 +172,9 @@ occuPEN <- function(formula, data, knownOcc = numeric(0), starts,
 		 ...)
 {
 
-    check_no_support(split_formula(formula))
+    formulas <- split_formula(formula)
+    names(formulas) <- c("det", "state")
+    check_no_support(formulas)
 
     if(!is(data, "unmarkedFrameOccu"))
         stop("Data is not an unmarkedFrameOccu object.")
@@ -179,7 +185,7 @@ occuPEN <- function(formula, data, knownOcc = numeric(0), starts,
 
     engine <- match.arg(engine, c("C", "R"))
 
-    designMats <- getDesign(data, formula)
+    designMats <- getDesign(data, formulas)
     X_state <- designMats$X_state; X_det <- designMats$X_det; y <- designMats$y
 
     if (ncol(X_state)==1 & pen.type=="MPLE") stop("MPLE requires occupancy covariates.")
@@ -296,7 +302,7 @@ occuPEN <- function(formula, data, knownOcc = numeric(0), starts,
     estimateList <- unmarkedEstimateList(list(state=state, det=det))
 
     umfit <- new("unmarkedFitOccuPEN", fitType = "occu", call = match.call(),
-                 formula = formula, data = data,
+                 formula = formula, formlist = formulas, data = data,
                  sitesRemoved = designMats$removed.sites,
                  estimates = estimateList, AIC = fmAIC, opt = opt,
                  negLogLike = fm$value,

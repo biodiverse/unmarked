@@ -464,13 +464,7 @@ setMethod("hist", "unmarkedFitDS", function(x, lwd=1, lty=1, ...) {
 # Extract detection probs
 setMethod("getFP", "unmarkedFitOccuFP", function(object, na.rm = TRUE)
 {
-  formula <- object@formula
-  detformula <- object@detformula
-  stateformula <- object@stateformula
-  FPformula <- object@FPformula
-  Bformula <- object@Bformula
-  umf <- object@data
-  designMats <- getDesign(umf, detformula,FPformula,Bformula,stateformula, na.rm = na.rm)
+  designMats <- getDesign(getData(object), object@formlist, na.rm = na.rm)
   type = object@type
   y <- designMats$y
   M <- nrow(y)
@@ -486,13 +480,7 @@ setMethod("getFP", "unmarkedFitOccuFP", function(object, na.rm = TRUE)
 
 setMethod("getB", "unmarkedFitOccuFP", function(object, na.rm = TRUE)
 {
-  formula <- object@formula
-  detformula <- object@detformula
-  stateformula <- object@stateformula
-  FPformula <- object@FPformula
-  Bformula <- object@Bformula
-  umf <- object@data
-  designMats <- getDesign(umf, detformula,FPformula,Bformula,stateformula, na.rm = na.rm)
+  designMats <- getDesign(getData(object), object@formlist, na.rm = na.rm)
   y <- designMats$y
   M <- nrow(y)
   J <- ncol(y)

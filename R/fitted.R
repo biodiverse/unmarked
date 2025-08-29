@@ -319,7 +319,7 @@ setMethod("fitted_internal", "unmarkedFitDailMadsen", function(object){
     fix <- tryCatch(object@fix, error=function(e) "none")
     immigration <- tryCatch(object@immigration, error=function(e) FALSE)
     data <- getData(object)
-    D <- getDesign(data, object@formula, na.rm = FALSE)
+    D <- getDesign(data, object@formlist, na.rm = FALSE)
     delta <- D$delta #FIXME this isn't returned propertly when na.rm=F
 
     M <- numSites(data)

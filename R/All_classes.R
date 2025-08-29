@@ -275,7 +275,7 @@ setClass("unmarkedEstimateList",
 setClass("unmarkedFit",
   representation(fitType = "character",
     call = "call",
-    formula = "formula",
+    formlist = "list",
     data = "unmarkedFrame",
     sitesRemoved = "numeric",  # vector of indices of removed sites
     estimates = "unmarkedEstimateList",
@@ -292,22 +292,25 @@ setClass("unmarkedFit",
 
 # Distance sampling
 setClass("unmarkedFitDS",
-  representation(keyfun = "character", unitsOut = "character", output = "character"), 
+  representation(formula = "formula", keyfun = "character", unitsOut = "character", output = "character"), 
   contains = "unmarkedFit"
 )
 
 # Multinomial mixture model
-setClass("unmarkedFitMPois", contains = "unmarkedFit")
+setClass("unmarkedFitMPois", 
+  representation(formula = "formula"),
+  contains = "unmarkedFit"
+)
 
 # N-mixture TTD model
 setClass("unmarkedFitNmixTTD",
-  representation(stateformula = "formula", detformula = "formula", K = "numeric"),
+  representation(K = "numeric"),
   contains = "unmarkedFit"
 )
 
 # Basic occupancy model
 setClass("unmarkedFitOccu",
-  representation(knownOcc = "logical"),
+  representation(formula = "formula", knownOcc = "logical"),
   contains = "unmarkedFit"
 )
 
@@ -316,27 +319,26 @@ setClass("unmarkedFitOccuComm", contains="unmarkedFitOccu")
 
 # Count-based occupancy model
 setClass("unmarkedFitOccuCOP",
-  representation(removed_obs = "matrix", formlist = "list"),
+  representation(removed_obs = "matrix"),
   contains = "unmarkedFit"
 )
 
 # False positive occupancy
 setClass("unmarkedFitOccuFP",
-  representation(knownOcc = "logical", detformula = "formula", FPformula = "formula",
-                 Bformula = "formula", stateformula = "formula", type = "numeric"),
+  representation(knownOcc = "logical", type = "numeric"),
   contains = "unmarkedFit"
 )
 
 # Penalized likelihood occupancy model
 setClass("unmarkedFitOccuPEN",
-  representation(knownOcc = "logical", pen.type = "character", lambda = "numeric"),
+  representation(formula = "formula", knownOcc = "logical", pen.type = "character", lambda = "numeric"),
   contains = "unmarkedFit"
 )
 
 setClass("unmarkedFitOccuPEN_CV",
-  representation(knownOcc = "logical", pen.type = "character", lambdaVec = "numeric",
-	               k = "numeric", foldAssignments = "numeric", lambdaScores = "numeric", 
-                 chosenLambda = "numeric"),
+  representation(formula = "formula", knownOcc = "logical", pen.type = "character", 
+                 lambdaVec = "numeric", k = "numeric", foldAssignments = "numeric", 
+                 lambdaScores = "numeric", chosenLambda = "numeric"),
   contains = "unmarkedFit"
 )
 
@@ -348,13 +350,13 @@ setClass("unmarkedFitOccuMulti",
 
 # Royle-Nichols occupancy model
 setClass("unmarkedFitOccuRN",
-  representation(K = "numeric"),
+  representation(formula = "formula", K = "numeric"),
   contains = "unmarkedFit"
 )
 
 # N-mixture model
 setClass("unmarkedFitPCount",
-  representation(K = "numeric", mixture = "character"),
+  representation(formula = "formula", K = "numeric", mixture = "character"),
   contains = "unmarkedFit"
 )
 
@@ -362,14 +364,11 @@ setClass("unmarkedFitPCount",
 ### Temporary emigration (TE) model types
 
 # TE occupancy
-setClass("unmarkedFitGOccu",
-  representation(formlist = "list"),
-  contains = "unmarkedFit"
-)
+setClass("unmarkedFitGOccu", contains = "unmarkedFit")
 
 # TE multinomial mixture
 setClass("unmarkedFitGMM",
-  representation(formlist = "list", mixture = "character", K = "numeric"),
+  representation(mixture = "character", K = "numeric"),
   contains = "unmarkedFit"
 )
 
@@ -390,8 +389,7 @@ setClass("unmarkedFitGPC", contains = "unmarkedFitGMM")
 
 # Dynamic occupancy model
 setClass("unmarkedFitColExt",
-  representation(phi = "matrix", psiformula = "formula", gamformula = "formula",
-                 epsformula = "formula", detformula = "formula", projected = "array",
+  representation(phi = "matrix", projected = "array",
                  projected.mean = "matrix", smoothed = "array", smoothed.mean = "matrix",
                  projected.mean.bsse = "optionalMatrix", smoothed.mean.bsse = "optionalMatrix"),
   contains = "unmarkedFit"
@@ -405,16 +403,12 @@ setClass("unmarkedFitOccuMS",
 )
 
 # Time-to-detection occupancy model
-setClass("unmarkedFitOccuTTD",
-  representation(psiformula = "formula", gamformula = "formula",
-                 epsformula = "formula", detformula = "formula"),
-  contains = "unmarkedFit"
-)
+setClass("unmarkedFitOccuTTD", contains = "unmarkedFit")
 
 # This class is not used directly, just used as a base for for PCO, MMO, DSO
 setClass("unmarkedFitDailMadsen",
-  representation(K = "numeric", mixture = "character", formlist = "list",
-                 dynamics = "character", immigration = "logical", fix = "character"),
+  representation(K = "numeric", mixture = "character", dynamics = "character",
+                 immigration = "logical", fix = "character"),
   contains = "unmarkedFit"
 )
 
@@ -436,7 +430,6 @@ setClass("unmarkedFitPCO", contains = "unmarkedFitDailMadsen")
 setClassUnion("unmarkedFrameOrNULL", members=c("unmarkedFrame", "NULL"))
 setClass("unmarkedFitIDS",
     representation(
-        formlist = "list",
         keyfun = "character",
         K = "numeric",
         dataPC = "unmarkedFrameOrNULL",

@@ -15,11 +15,10 @@ fix <- match.arg(fix)
 ##     stop("lambdaformula and omegaformula must be identical for notrend model")
 if((identical(dynamics, "constant") || identical(dynamics, "notrend")) & immigration)
     stop("You can not include immigration in the constant or notrend models")
-formlist <- list(lambdaformula=lambdaformula, gammaformula=gammaformula,
-    omegaformula=omegaformula, pformula=pformula, iotaformula=iotaformula)
-check_no_support(formlist)
-formula <- as.formula(paste(unlist(formlist), collapse=" "))
-D <- getDesign(data, formula)
+formulas <- list(lambda=lambdaformula, gamma=gammaformula, omega=omegaformula, 
+                 det=pformula, iota=iotaformula)
+check_no_support(formulas)
+D <- getDesign(data, formulas)
 y <- D$y
 
 delta <- D$delta; go.dims <- D$go.dims
@@ -226,7 +225,7 @@ if(identical(mixture, "ZIP")) {
         invlinkGrad = "logistic.grad")
     }
 umfit <- new("unmarkedFitPCO", fitType = "pcountOpen",
-    call = match.call(), formula = formula, formlist = formlist, data = data,
+    call = match.call(), formlist = formulas, data = data,
     sitesRemoved=D$removed.sites, estimates = estimateList, AIC = fmAIC,
     opt = fm, negLogLike = fm$value, nllFun = nll, K = K, mixture = mixture,
     dynamics = dynamics, immigration = immigration, fix = fix)

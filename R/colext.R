@@ -5,16 +5,17 @@ colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
   ## truncate to 1
   data@y <- truncateToBinary(data@y)
  
-  formula <- list(psiformula = psiformula, gammaformula = gammaformula,
-                  epsilonformula = epsilonformula, pformula = pformula)
-  check_no_support(formula)
-  dm <- getDesign(data, formula = as.formula(paste(unlist(formula), collapse=" ")))
-  X_psi <- dm$X_state; X_col <- dm$X_col; X_ext <- dm$X_ext
+  formulas <- list(psi = psiformula, col = gammaformula, ext = epsilonformula,
+                   det = pformula)
+  check_no_support(formulas)
+  dm <- getDesign(data, formulas)
+
+  X_col <- dm$X_col; X_ext <- dm$X_ext
   y <- dm$y
   M <- nrow(y)
   T <- data@numPrimary
   J <- ncol(y) / T
-  psiParms <- colnames(X_psi)
+  psiParms <- colnames(dm$X_psi)
   colParms <- colnames(X_col)
   extParms <- colnames(X_ext)
   detParms <- colnames(dm$X_det)
@@ -56,7 +57,7 @@ colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
   pind_mat[3,] <- max(pind_mat[2,]) + c(1, length(extParms))
   pind_mat[4,] <- max(pind_mat[3,]) + c(1, length(detParms))
   
-  tmb_dat <- list(y = as.vector(t(y)), X_psi = X_psi, X_col = X_col, 
+  tmb_dat <- list(y = as.vector(t(y)), X_psi = dm$X_psi, X_col = X_col, 
                   X_ext = X_ext, X_det = dm$X_det,
                   M = M, T = T, J = J, 
                   site_sampled = site_sampled, nd = no_detects)
@@ -109,7 +110,7 @@ colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
   estimateList <- unmarkedEstimateList(list(psi = psi, col = col,
                                             ext = ext, det = det))
   
-  psis <- plogis(X_psi %*% psi_coef$ests)
+  psis <- plogis(dm$X_psi %*% psi_coef$ests)
 
   # Compute projected estimates
   phis <- array(NA,c(2,2,T-1,M))
@@ -140,11 +141,7 @@ colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
 
   umfit <- new("unmarkedFitColExt", fitType = "colext",
                 call = match.call(),
-                formula = as.formula(paste(unlist(formula),collapse=" ")),
-                psiformula = psiformula,
-                gamformula = gammaformula,
-                epsformula = epsilonformula,
-                detformula = pformula,
+                formlist = formulas,
                 data = data, sitesRemoved = dm$removed.sites,
                 estimates = estimateList,
                 AIC = fmAIC, opt = opt, negLogLike = opt$value,

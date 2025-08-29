@@ -11,7 +11,9 @@ pcount.spHDS<-
 function (formula, data, K, mixture = c("P", "NB", "ZIP"), starts,
     method = "BFGS", se = TRUE, ...)
 {
-    check_no_support(split_formula(formula))
+    formulas <- split_formula(formula)
+    names(formulas) <- c("det", "state")
+    check_no_support(formulas)
 
     mixture <- match.arg(mixture, c("P", "NB", "ZIP"))
     if (!is(data, "unmarkedFramePCount"))
@@ -20,7 +22,7 @@ function (formula, data, K, mixture = c("P", "NB", "ZIP"), starts,
    #engine <- match.arg(engine, c("C", "R"))
     if (identical(mixture, "ZIP") & identical(engine, "R"))
         stop("ZIP mixture not available for engine='R'")
-    dm <- getDesign(data, formula)
+    dm <- getDesign(data, formulas)
     y <- dm$y
 
     NAmat <- is.na(y)
@@ -111,7 +113,7 @@ function (formula, data, K, mixture = c("P", "NB", "ZIP"), starts,
                 nP]), invlink = "logistic", invlinkGrad = "logistic.grad")
     }
     umfit <- new("unmarkedFitPCount", fitType = "pcount", call = match.call(),
-        formula = formula, data = data, sitesRemoved = dm$removed.sites,
+        formula = formula, formlist = formulas, data = data, sitesRemoved = dm$removed.sites,
         estimates = estimateList, AIC = fmAIC, opt = fm, negLogLike = fm$value,
         nllFun = nll, K = K, mixture = mixture)
     return(umfit)

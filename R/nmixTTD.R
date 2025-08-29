@@ -19,12 +19,11 @@ nmixTTD <- function(stateformula=~1, detformula=~1, data, K=100,
   mixture <- match.arg(mixture)
   ttdDist <- match.arg(ttdDist)
 
-  formula <- list(stateformula, ~1, ~1, detformula)
-  check_no_support(formula)
-  formula <- as.formula(paste(unlist(formula),collapse=" "))
+  formulas <- list(state = stateformula, col = ~1, ext = ~1, det = detformula)
+  check_no_support(formulas)
 
   #Process input data----------------------------------------------------------
-  dm <- getDesign(data, formula)
+  dm <- getDesign(data, formulas)
   y <- dm$y
   removed <- dm$removed.sites
 
@@ -171,9 +170,7 @@ nmixTTD <- function(stateformula=~1, detformula=~1, data, K=100,
 
   umfit <- new("unmarkedFitNmixTTD", fitType = "nmixTTD",
                call = match.call(),
-               formula = formula,
-               stateformula = stateformula,
-               detformula = detformula,
+               formlist = formulas,
                K = K,
                data = data, sitesRemoved = removed,
                estimates = estimateList,
