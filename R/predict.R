@@ -126,33 +126,32 @@ check_type <- function(mod, type){
   stop("Valid types are ", paste(opts, collapse=", "), call.=FALSE)
 }
 
-# Get X and offset when newdata is umf
 setMethod("predict_inputs_from_umf", "unmarkedFit",
   function(object, type, newdata, na.rm, re.form){
-  designMats <- getDesign(newdata, object@formlist, na.rm = na.rm)
-  if(type == "state") list_els <- c("X_state","Z_state","offset_state")
-  if(type == "det") list_els <- c("X_det","Z_det","offset_det")
-  if(type == "scale"){ # no covariates
-    n <- nrow(designMats$X_det)
-    return(list(X = matrix(1, nrow=n, ncol=1), offset = rep(0, n)))
+
+  dm <- getDesign(newdata, object@formlist, na.rm = na.rm)
+  select_names <- paste0(c("X_", "Z_", "offset_"), type)
+  select <- dm[select_names]
+  names(select) <- c("X", "Z", "offset")
+
+  # Scalar parameters like scale, alpha
+  if(type %in% names(object) & !type %in% names(object@formlist)){
+    return(list(X = matrix(1, nrow=1, ncol=1), offset = NULL))
   }
 
-  X <- designMats[[list_els[1]]]
-  if(is.null(re.form)) X <- cbind(X, designMats[[list_els[2]]])
-  offset <- designMats[[list_els[3]]]
+  # Add random effects matrix if needed
+  if(is.null(re.form) & has_random(object@formlist[[type]])){
+    stopifnot(!is.null(select$Z))
+    select$X <- cbind(select$X, select$Z)
+  }
 
-  list(X=X, offset=offset)
+  list(X = select$X, offset = select$offset)
 })
+
 
 # Get correct individual formula based on type
 setMethod("get_formula", "unmarkedFit", function(object, type, ...){
   object@formlist[[type]]
-  #if(type == "state"){
-  #  return(as.formula(paste("~", object@formula[3], sep="")))
-  #} else if(type == "det"){
-  #  return(as.formula(object@formula[[2]]))
-  #}
-  #NULL
 })
 
 # When newdata is data.frame/raster, get original dataset
@@ -321,16 +320,6 @@ setMethod("predict_by_chunk", "unmarkedFitPCount",
 
 # colext methods---------------------------------------------------------------
 
-setMethod("predict_inputs_from_umf", "unmarkedFitColExt",
-  function(object, type, newdata, na.rm, re.form=NA){
-  #formulas <- object@formlist
-  #names(formulas)[1] <- "state"
-  designMats <- getDesign(newdata, object@formlist, na.rm = na.rm)
-  list_el <- switch(type, psi="X_psi", col="X_col", ext="X_ext", det="X_det")
-  # colext doesn't support offsets
-  list(X=designMats[[list_el]], offset=NULL)
-})
-
 setMethod("get_orig_data", "unmarkedFitColExt", function(object, type, ...){
   clean_covs <- clean_up_covs(object@data, drop_final=TRUE)
   datatype <- switch(type, psi='site_covs', col='yearly_site_covs',
@@ -340,14 +329,6 @@ setMethod("get_orig_data", "unmarkedFitColExt", function(object, type, ...){
 
 
 # occuFP methods---------------------------------------------------------------
-
-setMethod("predict_inputs_from_umf", "unmarkedFitOccuFP",
-  function(object, type, newdata, na.rm, re.form=NA){
-  designMats <- getDesign(newdata, object@formlist, na.rm=na.rm)
-  X_idx <- switch(type, state="X_state", det="X_det", fp="X_fp", b="X_b")
-  off_idx <- paste0("offset_", type)
-  list(X=designMats[[X_idx]], offset=designMats[[off_idx]])
-})
 
 setMethod("get_orig_data", "unmarkedFitOccuFP", function(object, type, ...){
   # Get obs data if fp, b, or det
@@ -374,15 +355,6 @@ setMethod("check_predict_arguments", "unmarkedFitDailMadsen",
   if(!immigration && identical(type, "iota"))
     stop("iota is not a parameter in the immigration=FALSE model")
   methods::callNextMethod(object, type, newdata)
-})
-
-setMethod("predict_inputs_from_umf", "unmarkedFitDailMadsen",
-  function(object, type, newdata, na.rm, re.form=NA){
-  designMats <- getDesign(newdata, object@formlist, na.rm=na.rm)
-  X_idx <- switch(type, lambda="X_lambda", gamma="X_gamma", omega="X_omega",
-                  iota="X_iota", det="X_det")
-  off_idx <- paste0("offset_", type)
-  list(X=designMats[[X_idx]], offset=designMats[[off_idx]])
 })
 
 setMethod("get_orig_data", "unmarkedFitDailMadsen", function(object, type, ...){
@@ -427,14 +399,6 @@ setMethod("predict_by_chunk", "unmarkedFitDailMadsen",
 # All inherit from GMM so only one set of methods is required
 # (except GDR which has its own predict method right now)
 
-setMethod("predict_inputs_from_umf", "unmarkedFitGMM",
-  function(object, type, newdata, na.rm, re.form=NA){
-  designMats <- getDesign(newdata, object@formlist, na.rm=na.rm)
-  X_idx <- switch(type, lambda="X_lambda", phi="X_phi", det="X_det")
-  off_idx <- switch(type, lambda="offset_lambda", phi="offset_phi", det="offset_det")
-  list(X=designMats[[X_idx]], offset=designMats[[off_idx]])
-})
-
 setMethod("get_orig_data", "unmarkedFitGMM", function(object, type, ...){
   clean_covs <- clean_up_covs(object@data, drop_final=FALSE)
   datatype <- switch(type, lambda='site_covs', phi='yearly_site_covs',
@@ -447,13 +411,6 @@ setMethod("get_orig_data", "unmarkedFitGMM", function(object, type, ...){
 
 # Identical to colext
 
-setMethod("predict_inputs_from_umf", "unmarkedFitOccuTTD",
-  function(object, type, newdata, na.rm, re.form=NA){
-  designMats <- getDesign(newdata, object@formlist, na.rm = na.rm)
-  list_el <- switch(type, psi="X_psi", col="X_col", ext="X_ext", det="X_det")
-  list(X=designMats[[list_el]], offset=NULL)
-})
-
 setMethod("get_orig_data", "unmarkedFitOccuTTD", function(object, type, ...){
   clean_covs <- clean_up_covs(object@data, drop_final=TRUE)
   datatype <- switch(type, psi='site_covs', col='yearly_site_covs',
@@ -464,13 +421,6 @@ setMethod("get_orig_data", "unmarkedFitOccuTTD", function(object, type, ...){
 
 # nmixTTD----------------------------------------------------------------------
 
-setMethod("predict_inputs_from_umf", "unmarkedFitNmixTTD",
-  function(object, type, newdata, na.rm, re.form=NA){
-  designMats <- getDesign(newdata, object@formlist, na.rm = na.rm)
-  list_el <- switch(type, state="X_state", det="X_det")
-  list(X=designMats[[list_el]], offset=NULL)
-})
-
 setMethod("get_orig_data", "unmarkedFitNmixTTD", function(object, type, ...){
   clean_covs <- clean_up_covs(object@data, drop_final=FALSE)
   datatype <- switch(type, state='site_covs', det='obs_covs')
@@ -479,18 +429,6 @@ setMethod("get_orig_data", "unmarkedFitNmixTTD", function(object, type, ...){
 
 
 # gdistremoval-----------------------------------------------------------------
-
-setMethod("predict_inputs_from_umf", "unmarkedFitGDR",
-  function(object, type, newdata, na.rm, re.form=NA){
-  designMats <- getDesign(newdata, object@formlist)
-  if(type == "lambda") list_els <- c("X_lambda","Z_lambda")
-  if(type == "phi") list_els <- c("X_phi","Z_phi")
-  if(type == "dist") list_els <- c("X_dist","Z_dist")
-  if(type == "rem") list_els <- c("X_rem", "Z_rem")
-  X <- designMats[[list_els[1]]]
-  if(is.null(re.form)) X <- cbind(X, designMats[[list_els[2]]])
-  list(X=X, offset=NULL)
-})
 
 setMethod("get_orig_data", "unmarkedFitGDR", function(object, type, ...){
   clean_covs <- clean_up_covs(object@data, drop_final=FALSE)

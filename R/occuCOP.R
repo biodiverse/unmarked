@@ -93,26 +93,6 @@ setMethod("summary", "unmarkedFrameOccuCOP", function(object,...) {
 })
 
 
-## fl_getY ----
-setMethod("fl_getY", "unmarkedFitOccuCOP", function(fit, ...){
-  getDesign(getData(fit), fit@formlist)$y
-})
-
-
-## predict_inputs_from_umf ----
-setMethod("predict_inputs_from_umf", "unmarkedFitOccuCOP",
-          function(object, type, newdata, na.rm, re.form = NULL) {
-            designMats = getDesign(umf = newdata,
-                                   formulas = object@formlist,
-                                   na.rm = na.rm)
-            if (type == "psi") list_els <- c("X_psi", "Z_psi")
-            if (type == "lambda") list_els <- c("X_lambda", "Z_lambda")
-            X <- designMats[[list_els[1]]]
-            if (is.null(re.form)) X <- cbind(X, designMats[[list_els[2]]])
-            return(list(X = X, offset = NULL))
-          })
-
-
 ## get_orig_data ----
 setMethod("get_orig_data", "unmarkedFitOccuCOP", function(object, type, ...){
   clean_covs <- clean_up_covs(object@data, drop_final=FALSE)

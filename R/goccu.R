@@ -145,13 +145,6 @@ goccu <- function(psiformula, phiformula, pformula, data,
 
 # Methods
 
-setMethod("predict_inputs_from_umf", "unmarkedFitGOccu",
-  function(object, type, newdata, na.rm, re.form=NA){
-  designMats <- getDesign(newdata, object@formlist, na.rm=na.rm)
-  X_idx <- switch(type, psi="X_psi", phi="X_phi", det="X_det")
-  list(X=designMats[[X_idx]], offset=NULL)
-})
-
 setMethod("get_orig_data", "unmarkedFitGOccu", function(object, type, ...){
   clean_covs <- clean_up_covs(object@data, drop_final=FALSE)
   datatype <- switch(type, psi='site_covs', phi='yearly_site_covs',
