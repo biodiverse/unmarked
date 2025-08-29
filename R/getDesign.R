@@ -68,7 +68,10 @@ setMethod("getDesign", "unmarkedFrame",
 setMethod("getDesign", "unmarkedMultFrame",
   function(umf, formulas, na.rm = TRUE){
 
-  # Process state and detection with generic umf method  
+  # Handle varying name of state variable in models that use this method
+  state_type <- names(formulas)[1]
+  # Process state and detection with generic umf method
+  names(formulas)[1] <- "state"
   out <- methods::callNextMethod(umf, formulas = formulas, na.rm = FALSE)
  
   M <- numSites(umf)
@@ -121,8 +124,11 @@ setMethod("getDesign", "unmarkedMultFrame",
   }
 
   # Combine outputs
-  list(y = y, X_state = out$X_state, X_col = X_col, X_ext = X_ext, X_det = out$X_det,
-       removed.sites = which(drop_sites))
+  out <- list(y = y, X_state = out$X_state, X_col = X_col, X_ext = X_ext, X_det = out$X_det,
+              removed.sites = which(drop_sites))
+  # Rename design matrix for state variable to correct type
+  names(out)[names(out) == "X_state"] <- paste0("X_", state_type)
+  out
 })
 
 
@@ -130,8 +136,12 @@ setMethod("getDesign", "unmarkedMultFrame",
 setMethod("getDesign", "unmarkedFrameG3",
   function(umf, formulas, na.rm = TRUE){
 
+  # Handle varying name of state variable in models that use this method
+  state_type <- names(formulas)[1]
+  
   # Process state and detection with generic umf method  
   # Have to use getMethod because this inherits from unmarkedMultFrame
+  names(formulas)[1] <- "state"
   getDesign_generic <- methods::getMethod("getDesign", "unmarkedFrame")
   out <- getDesign_generic(umf, formulas = formulas, na.rm = FALSE)
  
@@ -173,10 +183,14 @@ setMethod("getDesign", "unmarkedFrameG3",
   }
 
   # Combine outputs
-  list(y = y, X_state = out$X_state, offset_state = out$offset_state,
-       X_phi = X_phi, offset_phi = offset_phi,
-       X_det = out$X_det, offset_det = out$offset_det,
-       removed.sites = which(drop_sites))
+  out <- list(y = y, X_state = out$X_state, offset_state = out$offset_state,
+              X_phi = X_phi, offset_phi = offset_phi,
+              X_det = out$X_det, offset_det = out$offset_det,
+              removed.sites = which(drop_sites))
+  # Rename design matrix and offset for state variable to correct type
+  names(out)[names(out) == "X_state"] <- paste0("X_", state_type)
+  names(out)[names(out) == "offset_state"] <- paste0("offset_", state_type)
+  out
 })
 
 

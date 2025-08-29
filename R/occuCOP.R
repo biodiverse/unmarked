@@ -22,6 +22,19 @@
 
 # Methods ----------------------------------------------------------------------
 
+## getDesign method ----
+# All this method does is translate the submodel names
+setMethod("getDesign", "unmarkedFrameOccuCOP", function(umf, formulas, na.rm = TRUE){
+  names(formulas)[names(formulas) == "psi"] <- "state"
+  names(formulas)[names(formulas) == "lambda"] <- "det"
+  out <- methods::callNextMethod(umf, formulas = formulas, na.rm = na.rm)
+  nms <- gsub("state", "psi", names(out))
+  nms <- gsub("det", "lambda", nms)
+  names(out) <- nms
+  out
+})
+
+
 ## getL method ----
 setMethod("getL", "unmarkedFrameOccuCOP", function(object) {
   return(object@L)
@@ -82,22 +95,18 @@ setMethod("summary", "unmarkedFrameOccuCOP", function(object,...) {
 
 ## fl_getY ----
 setMethod("fl_getY", "unmarkedFitOccuCOP", function(fit, ...){
-  fl <- fit@formlist
-  names(fl) <- c("det", "state")
-  getDesign(getData(fit), fl)$y
+  getDesign(getData(fit), fit@formlist)$y
 })
 
 
 ## predict_inputs_from_umf ----
 setMethod("predict_inputs_from_umf", "unmarkedFitOccuCOP",
           function(object, type, newdata, na.rm, re.form = NULL) {
-            formlist <- object@formlist
-            names(formlist) <- c("det", "state")
             designMats = getDesign(umf = newdata,
-                                   formulas = formlist,
+                                   formulas = object@formlist,
                                    na.rm = na.rm)
-            if (type == "psi") list_els <- c("X_state", "Z_state")
-            if (type == "lambda") list_els <- c("X_det", "Z_det")
+            if (type == "psi") list_els <- c("X_psi", "Z_psi")
+            if (type == "lambda") list_els <- c("X_lambda", "Z_lambda")
             X <- designMats[[list_els[1]]]
             if (is.null(re.form)) X <- cbind(X, designMats[[list_els[2]]])
             return(list(X = X, offset = NULL))
@@ -128,14 +137,12 @@ setMethod("fitted_internal", "unmarkedFitOccuCOP", function(object) {
   data <- object@data
   M = nrow(getY(data))
   J = ncol(getY(data))
-  fl <- object@formlist
-  names(fl) <- c("det", "state")
-  des <- getDesign(data, fl, na.rm = FALSE)
+  des <- getDesign(data, object@formlist, na.rm = FALSE)
   estim_psi = as.numeric(do.call(object["psi"]@invlink,
-                                 list(as.matrix(des$X_state %*% coef(object, 'psi')))))
+                                 list(as.matrix(des$X_psi %*% coef(object, 'psi')))))
   estim_lambda = do.call(object["lambda"]@invlink, 
                          list(matrix(
-                           as.numeric(des$X_det %*% coef(object, 'lambda')),
+                           as.numeric(des$X_lambda %*% coef(object, 'lambda')),
                            nrow = M, ncol = J, byrow = T)))
   return(estim_psi * estim_lambda)
 })
@@ -426,12 +433,11 @@ occuCOP <- function(data,
   # Format input data ----------------------------------------------------------
   
   # Retrieve formlist
-  formlist <- list(det = lambdaformula, state = psiformula)
+  formlist <- list(lambda = lambdaformula, psi = psiformula)
   
   # Get the design matrix (calling the getDesign method for unmarkedFrame)
   # For more informations, see: getMethod("getDesign", "unmarkedFrameOccuCOP")
   designMats <- getDesign(umf = data, formulas = formlist, na.rm = TRUE)
-  names(formlist) <- c("lambda", "psi")
   
   # y is the count detection data (matrix of size M sites x J observations)
   y <- designMats$y
@@ -454,16 +460,16 @@ occuCOP <- function(data,
   }
   
   # Xpsi is the fixed effects design matrix for occupancy
-  Xpsi <- designMats$X_state
+  Xpsi <- designMats$X_psi
   
   # Xlambda is the fixed effects design matrix for detection rate
-  Xlambda <- designMats$X_det
+  Xlambda <- designMats$X_lambda
   
   # Zpsi is the random effects design matrix for occupancy
-  Zpsi <- designMats$Z_state
+  Zpsi <- designMats$Z_psi
   
   # Zlambda is the random effects design matrix for detection rate
-  Zlambda <- designMats$Z_det
+  Zlambda <- designMats$Z_lambda
   
   # removed_obs is a M x J matrix of the observations removed from the analysis
   removed_obs <- is.na(y)

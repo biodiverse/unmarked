@@ -16,7 +16,7 @@ occuTTD <- function(psiformula=~1, gammaformula=~1, epsilonformula=~1,
   ttdDist <- match.arg(ttdDist, c("exp","weibull"))
   linkPsi <- match.arg(linkPsi, c("logit","cloglog"))
 
-  formulas <- list(state = psiformula, col = gammaformula, ext = epsilonformula, det = detformula)
+  formulas <- list(psi = psiformula, col = gammaformula, ext = epsilonformula, det = detformula)
   check_no_support(formulas)
   comb_form <- as.formula(paste(unlist(formulas),collapse=" "))
 
@@ -32,8 +32,6 @@ occuTTD <- function(psiformula=~1, gammaformula=~1, epsilonformula=~1,
 
   #Process input data----------------------------------------------------------
   dm <- getDesign(data, formulas)
-  names(formulas)[1] <- "psi"
-  X_psi <- dm$X_state
   X_col <- dm$X_col; X_ext <- dm$X_ext
   y <- dm$y
 
@@ -52,7 +50,7 @@ occuTTD <- function(psiformula=~1, gammaformula=~1, epsilonformula=~1,
 
   #Organize parameters---------------------------------------------------------
   detParms <- colnames(dm$X_det); nDP <- ncol(dm$X_det)
-  occParms <- colnames(X_psi); nOP <- ncol(X_psi)
+  occParms <- colnames(dm$X_psi); nOP <- ncol(dm$X_psi)
   psi_inds <- 1:nOP
 
   gamParms <- NULL; nGP <- 0; col_inds <- c(0,0)
@@ -79,7 +77,7 @@ occuTTD <- function(psiformula=~1, gammaformula=~1, epsilonformula=~1,
   nll_R <- function(params){
 
     #Get occupancy and detection parameters
-    psi <- linkFunc(X_psi %*% params[psi_inds])
+    psi <- linkFunc(dm$X_psi %*% params[psi_inds])
     psi <- cbind(1-psi, psi)
     lam <- exp(dm$X_det %*% params[det_inds])
 
@@ -135,7 +133,7 @@ occuTTD <- function(psiformula=~1, gammaformula=~1, epsilonformula=~1,
 
   nll_C <- function(params){
     nll_occuTTD(
-          params, yvec, delta, X_psi, dm$X_det, X_col, X_ext,
+          params, yvec, delta, dm$X_psi, dm$X_det, X_col, X_ext,
           range(psi_inds)-1, range(det_inds)-1,
           range(col_inds)-1, range(ext_inds)-1,
           linkPsi, ttdDist, N, T, J, naflag

@@ -323,10 +323,10 @@ setMethod("predict_by_chunk", "unmarkedFitPCount",
 
 setMethod("predict_inputs_from_umf", "unmarkedFitColExt",
   function(object, type, newdata, na.rm, re.form=NA){
-  formulas <- object@formlist
-  names(formulas)[1] <- "state"
-  designMats <- getDesign(newdata, formulas, na.rm = na.rm)
-  list_el <- switch(type, psi="X_state", col="X_col", ext="X_ext", det="X_det")
+  #formulas <- object@formlist
+  #names(formulas)[1] <- "state"
+  designMats <- getDesign(newdata, object@formlist, na.rm = na.rm)
+  list_el <- switch(type, psi="X_psi", col="X_col", ext="X_ext", det="X_det")
   # colext doesn't support offsets
   list(X=designMats[[list_el]], offset=NULL)
 })
@@ -429,11 +429,9 @@ setMethod("predict_by_chunk", "unmarkedFitDailMadsen",
 
 setMethod("predict_inputs_from_umf", "unmarkedFitGMM",
   function(object, type, newdata, na.rm, re.form=NA){
-  formlist <- object@formlist
-  names(formlist)[1] <- "state"
-  designMats <- getDesign(newdata, formlist, na.rm=na.rm)
-  X_idx <- switch(type, lambda="X_state", phi="X_phi", det="X_det")
-  off_idx <- switch(type, lambda="offset_state", phi="offset_phi", det="offset_det")
+  designMats <- getDesign(newdata, object@formlist, na.rm=na.rm)
+  X_idx <- switch(type, lambda="X_lambda", phi="X_phi", det="X_det")
+  off_idx <- switch(type, lambda="offset_lambda", phi="offset_phi", det="offset_det")
   list(X=designMats[[X_idx]], offset=designMats[[off_idx]])
 })
 
@@ -451,10 +449,8 @@ setMethod("get_orig_data", "unmarkedFitGMM", function(object, type, ...){
 
 setMethod("predict_inputs_from_umf", "unmarkedFitOccuTTD",
   function(object, type, newdata, na.rm, re.form=NA){
-  formlist <- object@formlist
-  names(formlist)[1] <- "state"
-  designMats <- getDesign(newdata, formlist, na.rm = na.rm)
-  list_el <- switch(type, psi="X_state", col="X_col", ext="X_ext", det="X_det")
+  designMats <- getDesign(newdata, object@formlist, na.rm = na.rm)
+  list_el <- switch(type, psi="X_psi", col="X_col", ext="X_ext", det="X_det")
   list(X=designMats[[list_el]], offset=NULL)
 })
 
