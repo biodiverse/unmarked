@@ -13,7 +13,6 @@ mixture <- match.arg(mixture)
 
 formulas <- list(lambda = lambdaformula, phi = phiformula, det = pformula)
 check_no_support(formulas)
-comb_form <- as.formula(paste(unlist(formulas), collapse=" "))
 D <- getDesign(data, formulas)
 y <- D$y  # MxJT
 
@@ -191,7 +190,7 @@ if(identical(mixture,"ZIP")) {
 }
 
 umfit <- new("unmarkedFitGMM", fitType = "gmn",
-    call = match.call(), formula = comb_form, formlist = formulas,
+    call = match.call(), formlist = formulas,
     data = data, estimates = estimateList, sitesRemoved = D$removed.sites,
     AIC = fmAIC, opt = fm, negLogLike = fm$value, nllFun = nll,
     mixture=mixture, K=K)

@@ -111,9 +111,7 @@ occuFP <- function(detformula = ~ 1,FPformula = ~ 1,Bformula = ~ 1,stateformula 
     }
 
     umfit <- new("unmarkedFitOccuFP", fitType = "occuFP", call = match.call(),
-                 detformula = detformula,FPformula = FPformula,Bformula = Bformula,
-                 formlist = formulas,
-                 stateformula = stateformula, formula = ~1, type = type, data = data,
+                 formlist = formulas, type = type, data = data,
                  sitesRemoved = dm$removed.sites,
                  estimates = estimateList, AIC = fmAIC, opt = fm,
                  negLogLike = fm$value,

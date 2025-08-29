@@ -667,9 +667,6 @@ occuCOP <- function(data,
     "unmarkedFitOccuCOP",
     fitType = "occuCOP",
     call = match.call(),
-    formula = as.formula(paste(
-      formlist["lambda"], formlist["psi"], collapse = ""
-    )),
     formlist = formlist,
     data = data,
     estimates = estimateList,

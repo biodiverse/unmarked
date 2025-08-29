@@ -47,7 +47,6 @@ distsampOpen <- function(lambdaformula, gammaformula, omegaformula, pformula,
   formulas <- list(lambda = lambdaformula, gamma = gammaformula,
                    omega = omegaformula, det = pformula, iota = iotaformula)
   check_no_support(formulas)
-  comb_form <- as.formula(paste(unlist(formulas), collapse=" "))
 
   D <- getDesign(data, formulas)
   y <- D$y
@@ -307,7 +306,7 @@ distsampOpen <- function(lambdaformula, gammaformula, omegaformula, pformula,
   }
 
   umfit <- new("unmarkedFitDSO", fitType = "distsampOpen",
-      call = match.call(), formula = comb_form, formlist = formulas, data = data,
+      call = match.call(), formlist = formulas, data = data,
       sitesRemoved=D$removed.sites, estimates = estimateList, AIC = fmAIC,
       opt = fm, negLogLike = fm$value, nllFun = nll, K = K, mixture = mixture,
       dynamics = dynamics, fix = fix, immigration=immigration, keyfun=keyfun,

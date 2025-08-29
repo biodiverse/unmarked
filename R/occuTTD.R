@@ -18,7 +18,6 @@ occuTTD <- function(psiformula=~1, gammaformula=~1, epsilonformula=~1,
 
   formulas <- list(psi = psiformula, col = gammaformula, ext = epsilonformula, det = detformula)
   check_no_support(formulas)
-  comb_form <- as.formula(paste(unlist(formulas),collapse=" "))
 
   #Psi link function
   linkFunc <- plogis
@@ -198,12 +197,7 @@ occuTTD <- function(psiformula=~1, gammaformula=~1, epsilonformula=~1,
 
   umfit <- new("unmarkedFitOccuTTD", fitType = "occuTTD",
                call = match.call(),
-               formula = comb_form,
                formlist = formulas,
-               psiformula = psiformula,
-               gamformula = gammaformula,
-               epsformula = epsilonformula,
-               detformula = detformula,
                data = data, sitesRemoved = dm$removed.sites,
                estimates = estimateList,
                AIC = fmAIC, opt = fm, negLogLike = fm$value,

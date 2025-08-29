@@ -265,8 +265,8 @@ gdistremoval <- function(lambdaformula=~1, phiformula=~1, removalformula=~1,
       randomVarInfo=rem_rand_info)
 
   new("unmarkedFitGDR", fitType = "gdistremoval",
-    call = match.call(), formula = as.formula(paste(formulas, collapse="")),
-    formlist = formulas, data = data, estimates = estimateList, sitesRemoved = numeric(0),
+    call = match.call(), formlist = formulas, data = data, 
+    estimates = estimateList, sitesRemoved = numeric(0),
     AIC = fmAIC, opt = opt, negLogLike = opt$value, nllFun = nll,
     mixture=mixture, K=K, keyfun=keyfun, unitsOut=unitsOut, output=output, TMB=tmb_mod)
 

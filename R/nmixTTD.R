@@ -21,7 +21,6 @@ nmixTTD <- function(stateformula=~1, detformula=~1, data, K=100,
 
   formulas <- list(state = stateformula, col = ~1, ext = ~1, det = detformula)
   check_no_support(formulas)
-  comb_form <- as.formula(paste(unlist(formulas),collapse=" "))
 
   #Process input data----------------------------------------------------------
   dm <- getDesign(data, formulas)
@@ -171,10 +170,7 @@ nmixTTD <- function(stateformula=~1, detformula=~1, data, K=100,
 
   umfit <- new("unmarkedFitNmixTTD", fitType = "nmixTTD",
                call = match.call(),
-               formula = comb_form,
                formlist = formulas,
-               stateformula = stateformula,
-               detformula = detformula,
                K = K,
                data = data, sitesRemoved = removed,
                estimates = estimateList,

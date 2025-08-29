@@ -332,7 +332,7 @@ IDS <- function(lambdaformula = ~1,
   est_list <- unmarkedEstimateList(est_list)
 
   new("unmarkedFitIDS", fitType = "IDS", call = match.call(),
-    opt = opt, formula = lambdaformula, formlist=formlist,
+    opt = opt, formlist=formlist,
     data = dataDS, dataPC=dataPC, dataOC=dataOC, K=K,
     surveyDurations=surveyDurations,
     maxDist = list(pc=maxDistPC, oc=maxDistOC),

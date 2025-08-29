@@ -18,7 +18,6 @@ goccu <- function(psiformula, phiformula, pformula, data,
   psiLinkGrad <- ifelse(linkPsi=="cloglog", "cloglog.grad", "logistic.grad")
 
   formulas <- list(psi=psiformula, phi=phiformula, det=pformula)
-  comb_form <- as.formula(paste(unlist(formulas), collapse=" "))
 
   data@y[data@y > 1] <- 1
  
@@ -134,7 +133,7 @@ goccu <- function(psiformula, phiformula, pformula, data,
 
   # Create unmarkedFit object--------------------------------------------------
   umfit <- new("unmarkedFitGOccu", fitType = "goccu", call = match.call(),
-                 formula = comb_form, formlist=formulas, data = data,
+                 formlist=formulas, data = data,
                  sitesRemoved = gd$removed.sites,
                  estimates = estimate_list, AIC = fmAIC, opt = opt,
                  negLogLike = opt$value,

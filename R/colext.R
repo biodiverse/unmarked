@@ -7,7 +7,6 @@ colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
  
   formulas <- list(psi = psiformula, col = gammaformula, ext = epsilonformula,
                    det = pformula)
-  comb_formula <- as.formula(paste(unlist(formulas), collapse=" "))
   check_no_support(formulas)
   dm <- getDesign(data, formulas)
 
@@ -142,12 +141,7 @@ colext <- function(psiformula = ~ 1, gammaformula = ~ 1,
 
   umfit <- new("unmarkedFitColExt", fitType = "colext",
                 call = match.call(),
-                formula = comb_formula,
                 formlist = formulas,
-                psiformula = psiformula,
-                gamformula = gammaformula,
-                epsformula = epsilonformula,
-                detformula = pformula,
                 data = data, sitesRemoved = dm$removed.sites,
                 estimates = estimateList,
                 AIC = fmAIC, opt = opt, negLogLike = opt$value,

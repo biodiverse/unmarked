@@ -383,7 +383,6 @@ setMethod("simulate_internal", "unmarkedFitGDS",
 
 setMethod("simulate_internal", "unmarkedFitGMM",
   function(object, nsim){
-    formula <- object@formula
     umf <- object@data
     mixture <- object@mixture
     y <- umf@y
@@ -444,7 +443,6 @@ setMethod("simulate_internal", "unmarkedFitGMM",
 
 setMethod("simulate_internal", "unmarkedFitGPC",
     function(object, nsim){
-    formula <- object@formula
     umf <- object@data
     mixture <- object@mixture
     y <- umf@y

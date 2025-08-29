@@ -249,7 +249,7 @@ occuMS <- function(detformulas, psiformulas, phiformulas=NULL, data,
                 detformulas = detformulas, psiformulas = psiformulas,
                 phiformulas = phiformulas,
                 parameterization = parameterization,
-                formula = ~1, data = data,
+                data = data,
                 sitesRemoved = gd$removed.sites,
                 estimates = estimateList, AIC = fmAIC, opt = fm,
                 negLogLike = fm$value, nllFun = nll_R)

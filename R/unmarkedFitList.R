@@ -215,9 +215,7 @@ setMethod("modSel", "unmarkedFitList",
     colnames(out) <- cNames
     out$model <- names(fits)
     out$formula <- sapply(fits, function(x) {
-          f <- as.character(x@formula)
-          f <- paste(f[2], "~", f[3])
-          f
+          paste(unlist(x@formlist), collapse = " ")
         })
     for(i in 1:length(eNames)) {
         out[,eNames[i]] <- sapply(estList, function(x) x[eNames[i]])
